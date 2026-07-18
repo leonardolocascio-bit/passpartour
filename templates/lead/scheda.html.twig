@@ -125,13 +125,26 @@
         </div>
 
         <div class="card">
-            <div class="card-pad" style="display:flex;justify-content:space-between;align-items:center">
-                <div>
-                    <h3>Preventivi</h3>
-                    <p class="muted" style="margin:4px 0 0;font-size:13px">{{ lead.preventivi|length }} preventivo/i collegati</p>
-                </div>
-                <a class="btn" href="{{ path('app_preventivo_index') }}">Vai ai preventivi</a>
+            <div class="card-pad" style="border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center">
+                <h3>Preventivi <span class="muted" style="font-weight:500">({{ lead.preventivi|length }})</span></h3>
+                <a class="btn btn-primary" href="{{ path('app_preventivo_nuovo', {lead: lead.id}) }}">+ Nuovo preventivo</a>
             </div>
+            {% if lead.preventivi|length > 0 %}
+                <table class="grid-table">
+                    <tbody>
+                    {% for p in lead.preventivi %}
+                        <tr>
+                            <td style="font-weight:600"><a href="{{ path('app_preventivo_scheda', {id: p.id}) }}">{{ p.numero }}</a></td>
+                            <td>{{ p.titolo }}</td>
+                            <td>{{ p.scenari|length }} scenari</td>
+                            <td><span class="badge">{{ p.stato.label }}</span></td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <div class="card-pad muted" style="font-size:13px">Nessun preventivo per questo lead. Creane uno per proporre le varianti di viaggio.</div>
+            {% endif %}
         </div>
     </div>
 </div>

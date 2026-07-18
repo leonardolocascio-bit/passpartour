@@ -1,0 +1,160 @@
+{% extends 'app.html.twig' %}
+{% import _self as ui %}
+
+{% block title %}{{ titolo }} · Passpartour{% endblock %}
+{% block page_title %}{{ titolo }}{% endblock %}
+
+{# ---------- macro: riga voce di costo ---------- #}
+{% macro voceRow(s, v, categorie, voce) %}
+<tr class="voce-row">
+    <td style="width:150px">
+        <select name="preventivo[scenari][{{ s }}][voci][{{ v }}][categoria]">
+            {% for c in categorie %}
+                <option value="{{ c.value }}" {{ voce and voce.categoria == c ? 'selected' }}>{{ c.label }}</option>
+            {% endfor %}
+        </select>
+    </td>
+    <td><input type="text" name="preventivo[scenari][{{ s }}][voci][{{ v }}][descrizione]" value="{{ voce ? voce.descrizione }}" placeholder="Descrizione"></td>
+    <td style="width:70px"><input type="number" min="1" class="v-qta" name="preventivo[scenari][{{ s }}][voci][{{ v }}][quantita]" value="{{ voce ? voce.quantita : 1 }}"></td>
+    <td style="width:110px"><input type="text" inputmode="decimal" class="v-costo" name="preventivo[scenari][{{ s }}][voci][{{ v }}][costoUnitario]" value="{{ voce ? voce.costoUnitario : '' }}" placeholder="0.00"></td>
+    <td style="width:40px;text-align:center"><button type="button" class="btn del-voce" style="padding:5px 9px">✕</button></td>
+</tr>
+{% endmacro %}
+
+{# ---------- macro: blocco scenario ---------- #}
+{% macro scenarioBlock(s, categorie, scenario) %}
+{% import _self as ui %}
+<div class="scenario-block card" data-s="{{ s }}" data-vindex="{{ scenario ? scenario.voci|length : 0 }}" style="margin-bottom:14px">
+    <div class="card-pad">
+        <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap">
+            <div style="flex:1;min-width:180px">
+                <label>Nome scenario</label>
+                <input type="text" name="preventivo[scenari][{{ s }}][nome]" value="{{ scenario ? scenario.nome }}" placeholder="Es. Comfort">
+            </div>
+            <div style="width:120px">
+                <label>Ricarico %</label>
+                <input type="text" inputmode="decimal" class="s-markup" name="preventivo[scenari][{{ s }}][markupPercentuale]" value="{{ scenario ? scenario.markupPercentuale : '0' }}">
+            </div>
+            <label style="display:flex;align-items:center;gap:7px;font-weight:500;padding-bottom:9px;cursor:pointer">
+                <input type="checkbox" name="preventivo[scenari][{{ s }}][consigliato]" value="1" {{ scenario and scenario.consigliato ? 'checked' }}> Consigliato
+            </label>
+            <input type="hidden" name="preventivo[scenari][{{ s }}][ordinamento]" value="{{ scenario ? scenario.ordinamento : 0 }}">
+            <button type="button" class="btn del-scenario" style="padding-bottom:9px;margin-left:auto">Rimuovi scenario</button>
+        </div>
+
+        <table class="grid-table" style="margin-top:14px">
+            <thead><tr><th>Categoria</th><th>Descrizione</th><th>Qtà</th><th>Costo unit.</th><th></th></tr></thead>
+            <tbody class="voci-body">
+                {% if scenario %}
+                    {% for voce in scenario.voci %}{{ ui.voceRow(s, loop.index0, categorie, voce) }}{% endfor %}
+                {% endif %}
+            </tbody>
+        </table>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px">
+            <button type="button" class="btn add-voce">+ Aggiungi voce</button>
+            <div class="s-totali muted" style="font-size:13px">Costo <b class="s-costo">€ 0</b> · Prezzo <b class="s-prezzo" style="color:var(--ink)">€ 0</b></div>
+        </div>
+    </div>
+</div>
+{% endmacro %}
+
+{% block main %}
+<div style="max-width:920px">
+    {{ form_start(form) }}
+
+    <div class="card" style="margin-bottom:16px"><div class="card-pad">
+        <div style="display:grid;grid-template-columns:1fr;gap:14px">
+            {{ form_row(form.titolo) }}
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+                {{ form_row(form.lead) }}
+                {{ form_row(form.cliente) }}
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+                {{ form_row(form.stato) }}
+                {{ form_row(form.validoFino) }}
+            </div>
+            {{ form_row(form.note) }}
+        </div>
+    </div></div>
+
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <h3>Scenari (varianti di proposta)</h3>
+        <button type="button" class="btn btn-primary" id="add-scenario">+ Aggiungi scenario</button>
+    </div>
+
+    {% do form.scenari.setRendered %}
+    <div id="scenari" data-index="{{ preventivo.scenari|length }}">
+        {% for scenario in preventivo.scenari %}
+            {{ ui.scenarioBlock(loop.index0, categorie, scenario) }}
+        {% endfor %}
+    </div>
+
+    <div style="margin-top:18px;display:flex;gap:10px">
+        <button type="submit" class="btn btn-primary">Salva preventivo</button>
+        <a class="btn" href="{{ preventivo.id ? path('app_preventivo_scheda', {id: preventivo.id}) : path('app_preventivo_index') }}">Annulla</a>
+    </div>
+
+    {{ form_end(form) }}
+</div>
+
+{# template nascosti per l'aggiunta dinamica #}
+<template id="tpl-scenario">{{ ui.scenarioBlock('__S__', categorie, null) }}</template>
+<template id="tpl-voce">{{ ui.voceRow('__S__', '__V__', categorie, null) }}</template>
+
+<script>
+(function () {
+    const cont = document.getElementById('scenari');
+    const tplScenario = document.getElementById('tpl-scenario').innerHTML;
+    const tplVoce = document.getElementById('tpl-voce').innerHTML;
+    const fmt = n => '€ ' + (Math.round(n)).toLocaleString('it-IT');
+
+    function ricalcola(block) {
+        let costo = 0;
+        block.querySelectorAll('.voce-row').forEach(r => {
+            const q = parseFloat(r.querySelector('.v-qta').value) || 0;
+            const c = parseFloat((r.querySelector('.v-costo').value || '').replace(',', '.')) || 0;
+            costo += q * c;
+        });
+        const markup = parseFloat((block.querySelector('.s-markup').value || '').replace(',', '.')) || 0;
+        block.querySelector('.s-costo').textContent = fmt(costo);
+        block.querySelector('.s-prezzo').textContent = fmt(costo * (1 + markup / 100));
+    }
+    function ricalcolaTutti() { cont.querySelectorAll('.scenario-block').forEach(ricalcola); }
+
+    document.getElementById('add-scenario').addEventListener('click', () => {
+        const idx = parseInt(cont.dataset.index, 10);
+        cont.dataset.index = idx + 1;
+        const div = document.createElement('div');
+        div.innerHTML = tplScenario.replaceAll('__S__', idx);
+        cont.appendChild(div.firstElementChild);
+        ricalcolaTutti();
+    });
+
+    cont.addEventListener('click', e => {
+        if (e.target.classList.contains('add-voce')) {
+            const block = e.target.closest('.scenario-block');
+            const s = block.dataset.s;
+            const v = parseInt(block.dataset.vindex, 10);
+            block.dataset.vindex = v + 1;
+            const tmp = document.createElement('table');
+            tmp.innerHTML = '<tbody>' + tplVoce.replaceAll('__S__', s).replaceAll('__V__', v) + '</tbody>';
+            block.querySelector('.voci-body').appendChild(tmp.querySelector('tr'));
+        } else if (e.target.classList.contains('del-voce')) {
+            const block = e.target.closest('.scenario-block');
+            e.target.closest('tr').remove();
+            ricalcola(block);
+        } else if (e.target.classList.contains('del-scenario')) {
+            e.target.closest('.scenario-block').remove();
+        }
+    });
+
+    cont.addEventListener('input', e => {
+        if (e.target.matches('.v-qta, .v-costo, .s-markup')) {
+            ricalcola(e.target.closest('.scenario-block'));
+        }
+    });
+
+    ricalcolaTutti();
+})();
+</script>
+{% endblock %}

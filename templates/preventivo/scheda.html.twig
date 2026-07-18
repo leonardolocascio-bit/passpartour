@@ -1,0 +1,69 @@
+{% extends 'app.html.twig' %}
+
+{% block title %}{{ preventivo.numero }} · Passpartour{% endblock %}
+{% block page_title %}Preventivo{% endblock %}
+
+{% block main %}
+<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:18px;gap:12px;flex-wrap:wrap">
+    <div style="display:flex;align-items:center;gap:12px">
+        <a class="btn" href="{{ path('app_preventivo_index') }}">← Preventivi</a>
+        <div>
+            <div style="display:flex;align-items:center;gap:10px">
+                <h2 style="font-size:20px">{{ preventivo.titolo }}</h2>
+                <span class="badge">{{ preventivo.stato.label }}</span>
+            </div>
+            <div class="muted" style="font-size:13px;margin-top:2px">
+                {{ preventivo.numero }}
+                {% set dest = preventivo.cliente ? preventivo.cliente.nomeCompleto : (preventivo.lead ? preventivo.lead.nomeCompleto : null) %}
+                {% if dest %} · {{ dest }}{% endif %}
+                {% if preventivo.validoFino %} · valido fino al {{ preventivo.validoFino|date('d/m/Y') }}{% endif %}
+            </div>
+        </div>
+    </div>
+    <div style="display:flex;gap:8px">
+        <a class="btn" href="{{ path('app_preventivo_anteprima', {id: preventivo.id}) }}" target="_blank">⎙ Anteprima / PDF</a>
+        <a class="btn btn-primary" href="{{ path('app_preventivo_modifica', {id: preventivo.id}) }}">Modifica</a>
+    </div>
+</div>
+
+{% if preventivo.scenari|length == 0 %}
+    <div class="card"><div class="card-pad muted" style="text-align:center;padding:32px">
+        Nessuno scenario. <a href="{{ path('app_preventivo_modifica', {id: preventivo.id}) }}">Aggiungi le varianti</a>.
+    </div></div>
+{% else %}
+    <div style="display:grid;grid-template-columns:repeat({{ min(preventivo.scenari|length, 3) }}, 1fr);gap:16px;align-items:start">
+        {% for s in preventivo.scenari %}
+            {% set prezzo = calc.prezzoFinale(s) %}
+            {% set costo = calc.costoNetto(s) %}
+            <div class="card" style="{{ s.consigliato ? 'border:2px solid var(--brand)' }}">
+                {% if s.consigliato %}
+                    <div style="background:var(--brand);color:#fff;text-align:center;font-size:11px;font-weight:800;letter-spacing:.05em;padding:4px;border-radius:10px 10px 0 0">CONSIGLIATO</div>
+                {% endif %}
+                <div class="card-pad">
+                    <h3>{{ s.nome }}</h3>
+                    {% if s.descrizione %}<p class="muted" style="font-size:13px;margin:6px 0 0">{{ s.descrizione }}</p>{% endif %}
+                    <div style="margin:14px 0;padding:14px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)">
+                        <div style="font-size:28px;font-weight:800;letter-spacing:-.02em">€ {{ prezzo|number_format(0, ',', '.') }}</div>
+                        <div class="muted" style="font-size:12px">costo € {{ costo|number_format(0, ',', '.') }} · ricarico {{ s.markupPercentuale }}% · margine € {{ calc.margine(s)|number_format(0, ',', '.') }}</div>
+                    </div>
+                    <table style="width:100%;font-size:13px;border-collapse:collapse">
+                        {% for v in s.voci %}
+                            <tr>
+                                <td style="padding:4px 0;color:var(--muted)">{{ v.descrizione ?: v.categoria.label }}{% if v.quantita > 1 %} ×{{ v.quantita }}{% endif %}</td>
+                                <td style="padding:4px 0;text-align:right;white-space:nowrap">€ {{ (v.quantita * v.costoUnitario)|number_format(0, ',', '.') }}</td>
+                            </tr>
+                        {% endfor %}
+                    </table>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+{% endif %}
+
+{% if preventivo.note %}
+    <div class="card" style="margin-top:16px"><div class="card-pad">
+        <h3 style="margin-bottom:6px">Note interne</h3>
+        <p class="muted" style="margin:0">{{ preventivo.note|nl2br }}</p>
+    </div></div>
+{% endif %}
+{% endblock %}

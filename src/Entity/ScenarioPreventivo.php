@@ -128,6 +128,18 @@ class ScenarioPreventivo
         return $this->voci;
     }
 
+    /**
+     * @param iterable<int, VoceCosto> $voci
+     */
+    public function setVoci(iterable $voci): static
+    {
+        $this->voci = $voci instanceof Collection
+            ? $voci
+            : new ArrayCollection(is_array($voci) ? $voci : iterator_to_array($voci));
+
+        return $this;
+    }
+
     public function addVoce(VoceCosto $voce): static
     {
         if (!$this->voci->contains($voce)) {

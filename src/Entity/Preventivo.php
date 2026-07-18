@@ -169,6 +169,18 @@ class Preventivo
         return $this->scenari;
     }
 
+    /**
+     * @param iterable<int, ScenarioPreventivo> $scenari
+     */
+    public function setScenari(iterable $scenari): static
+    {
+        $this->scenari = $scenari instanceof Collection
+            ? $scenari
+            : new ArrayCollection(is_array($scenari) ? $scenari : iterator_to_array($scenari));
+
+        return $this;
+    }
+
     public function addScenario(ScenarioPreventivo $scenario): static
     {
         if (!$this->scenari->contains($scenario)) {
