@@ -41,7 +41,7 @@ Tutti i dati sono **demo**, rigenerabili dalle fixtures. Nessun dato reale.
 - **M2 ✓** intake lead: webhook generico + import CSV + creazione manuale, dedup, tag fonte/campagna.
 - **M3 ✓** CRM: kanban lead (drag&drop stato), scheda lead, attività, timeline.
 - **M4 ✓** preventivatore: editor scenari + voci (collezioni annidate), calcolo prezzi, scheda comparativa, anteprima stampabile/PDF.
-- **M5** automazioni di conversione: nurturing, follow-up, reminder.
+- **M5 ✓** automazioni di conversione: RegolaNurturing per stato → attività auto (MotoreNurturing), Agenda azioni, pagina Automazioni.
 - **M6** dashboard/KPI avanzati (lead per fonte, valore pipeline).
 
 Nota preventivatore: i plurali IT (`scenari`, `voci`) non sono inflettibili da Symfony; le CollectionType usano `by_reference: true` + setter tolleranti `setScenari(iterable)`/`setVoci(iterable)` sulle entità. Non rimuoverli.
