@@ -4,68 +4,129 @@
 {% block page_title %}Dashboard{% endblock %}
 
 {% block main %}
-<div class="grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:16px">
+{# ---- KPI ---- #}
+<div class="grid" style="grid-template-columns:repeat(5,1fr);margin-bottom:16px">
     <div class="card stat">
         <div class="label">Lead totali</div>
         <div class="value">{{ tot_lead }}</div>
         <div class="sub">{{ aperti }} in lavorazione</div>
     </div>
     <div class="card stat">
-        <div class="label">Tasso conversione</div>
+        <div class="label">Conversione</div>
         <div class="value">{{ tasso_conversione }}%</div>
-        <div class="sub">su lead chiusi</div>
+        <div class="sub">{{ vinti }} vinti</div>
     </div>
     <div class="card stat">
-        <div class="label">Vinti</div>
-        <div class="value">{{ per_stato['vinto'] }}</div>
-        <div class="sub">opportunità concluse</div>
+        <div class="label">Valore pipeline</div>
+        <div class="value" style="color:var(--cyan)">€ {{ (valore_pipeline / 1000)|number_format(1, ',', '.') }}k</div>
+        <div class="sub">preventivi aperti</div>
+    </div>
+    <div class="card stat">
+        <div class="label">Valore vinto</div>
+        <div class="value" style="color:var(--ok)">€ {{ (valore_vinti / 1000)|number_format(1, ',', '.') }}k</div>
+        <div class="sub">preventivi accettati</div>
     </div>
     <div class="card stat">
         <div class="label">Preventivi</div>
-        <div class="value">{{ preventivi_attivi }}</div>
-        <div class="sub">totali a sistema</div>
+        <div class="value">{{ prev_per_stato|reduce((c, s) => c + s.n, 0) }}</div>
+        <div class="sub">a sistema</div>
     </div>
 </div>
 
-<div class="grid" style="grid-template-columns:1.4fr 1fr">
+<div class="grid" style="grid-template-columns:1fr 1fr;margin-bottom:16px">
+    {# ---- Pipeline per stato ---- #}
     <div class="card">
-        <div class="card-pad" style="border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center">
-            <h3>Ultimi lead</h3>
-            <a class="btn" href="{{ path('app_lead_index') }}">Vedi tutti</a>
-        </div>
-        <table class="grid-table">
-            <thead><tr><th>Nome</th><th>Destinazione</th><th>Fonte</th><th>Stato</th></tr></thead>
-            <tbody>
-            {% for l in ultimi_lead %}
-                <tr>
-                    <td style="font-weight:600">{{ l.nomeCompleto }}</td>
-                    <td class="muted">{{ l.destinazione ?: '—' }}</td>
-                    <td class="muted">{{ l.fonte.label }}</td>
-                    <td><span class="badge dot badge-{{ l.stato.value }}">{{ l.stato.label }}</span></td>
-                </tr>
-            {% else %}
-                <tr><td colspan="4" class="muted" style="text-align:center;padding:24px">Nessun lead ancora.</td></tr>
-            {% endfor %}
-            </tbody>
-        </table>
-    </div>
-
-    <div class="card">
-        <div class="card-pad" style="border-bottom:1px solid var(--line)"><h3>Pipeline</h3></div>
+        <div class="card-pad" style="border-bottom:1px solid var(--line)"><h3>Pipeline lead</h3></div>
         <div class="card-pad">
+            {% set maxStato = max(per_stato) %}
             {% for stato, n in per_stato %}
-                {% set pct = tot_lead > 0 ? (n / tot_lead * 100)|round : 0 %}
-                <div style="margin-bottom:14px">
+                <div style="margin-bottom:12px">
                     <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:5px">
                         <span class="badge badge-{{ stato }}">{{ stato|replace({'_':' '})|capitalize }}</span>
                         <span style="font-weight:700">{{ n }}</span>
                     </div>
                     <div style="height:7px;background:#eef2f7;border-radius:20px;overflow:hidden">
-                        <div style="height:100%;width:{{ pct }}%;background:var(--brand);border-radius:20px"></div>
+                        <div style="height:100%;width:{{ maxStato > 0 ? (n / maxStato * 100)|round : 0 }}%;background:var(--brand);border-radius:20px"></div>
                     </div>
                 </div>
             {% endfor %}
         </div>
     </div>
+
+    {# ---- Lead per fonte ---- #}
+    <div class="card">
+        <div class="card-pad" style="border-bottom:1px solid var(--line)"><h3>Lead per fonte</h3></div>
+        <div class="card-pad">
+            {% set maxFonte = max(per_fonte|map(f => f.n)) %}
+            {% for f in per_fonte %}
+                <div style="margin-bottom:12px">
+                    <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:5px">
+                        <span>{{ f.label }}</span>
+                        <span style="font-weight:700">{{ f.n }}</span>
+                    </div>
+                    <div style="height:7px;background:#eef2f7;border-radius:20px;overflow:hidden">
+                        <div style="height:100%;width:{{ maxFonte > 0 ? (f.n / maxFonte * 100)|round : 0 }}%;background:var(--cyan);border-radius:20px"></div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<div class="grid" style="grid-template-columns:1.4fr 1fr;margin-bottom:16px">
+    {# ---- Performance agenti ---- #}
+    <div class="card">
+        <div class="card-pad" style="border-bottom:1px solid var(--line)"><h3>Performance agenti</h3></div>
+        <table class="grid-table">
+            <thead><tr><th>Agente</th><th>Lead</th><th>Vinti</th><th>Conv.</th><th>Valore preventivi</th></tr></thead>
+            <tbody>
+            {% for a in agenti %}
+                <tr>
+                    <td style="font-weight:600">{{ a.nome }}</td>
+                    <td>{{ a.lead }}</td>
+                    <td>{{ a.vinti }}</td>
+                    <td>{{ a.tasso }}%</td>
+                    <td style="font-weight:700">€ {{ a.valore|number_format(0, ',', '.') }}</td>
+                </tr>
+            {% else %}
+                <tr><td colspan="5" class="muted" style="text-align:center;padding:20px">Nessun agente con lead assegnati.</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {# ---- Preventivi per stato ---- #}
+    <div class="card">
+        <div class="card-pad" style="border-bottom:1px solid var(--line)"><h3>Preventivi per stato</h3></div>
+        <div class="card-pad" style="display:grid;gap:10px">
+            {% for stato, d in prev_per_stato %}
+                <div style="display:flex;justify-content:space-between;align-items:center;font-size:13px">
+                    <span><span class="badge">{{ d.label }}</span> <span class="muted">×{{ d.n }}</span></span>
+                    <span style="font-weight:700">€ {{ d.valore|number_format(0, ',', '.') }}</span>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+{# ---- Campagne ---- #}
+<div class="card">
+    <div class="card-pad" style="border-bottom:1px solid var(--line)"><h3>Rendimento campagne</h3></div>
+    <table class="grid-table">
+        <thead><tr><th>Campagna</th><th>Fonte</th><th>Lead</th><th>Vinti</th><th>Conversione</th></tr></thead>
+        <tbody>
+        {% for c in campagne %}
+            <tr>
+                <td style="font-weight:600">{{ c.nome }}</td>
+                <td class="muted">{{ c.fonte }}</td>
+                <td>{{ c.lead }}</td>
+                <td>{{ c.vinti }}</td>
+                <td><span style="font-weight:700">{{ c.tasso }}%</span></td>
+            </tr>
+        {% else %}
+            <tr><td colspan="5" class="muted" style="text-align:center;padding:20px">Nessuna campagna.</td></tr>
+        {% endfor %}
+        </tbody>
+    </table>
 </div>
 {% endblock %}
