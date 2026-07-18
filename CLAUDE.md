@@ -33,6 +33,7 @@ Tutti i dati sono **demo**, rigenerabili dalle fixtures. Nessun dato reale.
 ## Convenzioni / guardrail
 - **Nessun calcolo nei template**: la logica sta nei servizi di dominio (UI rifattibile).
 - Design system in `templates/base.html.twig` (token CSS = **palette del logo**: navy royal `#123a72`, arancio `#ea5b24`, ciano `#1f9fd6`, ambra `#f6a41f`); shell con sidebar in `app.html.twig`.
+- **Loghi ufficiali** in `public/images/` (NON reinterpretare/ricreare): `passpartour-color.png` quadricromia orizzontale su fondo chiaro (login), `passpartour-white.png` bianco orizzontale su fondo scuro (sidebar navy), `passpartour-color-stacked.png` impilato, `favicon.png` pittogramma. Regola brand: quadricromia su bianco, monocromo bianco su scuro.
 - Passi piccoli e verificabili, test a ogni milestone, commit atomici.
 
 ## Roadmap
