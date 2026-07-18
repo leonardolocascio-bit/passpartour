@@ -21,7 +21,8 @@
         </div>
     </div>
     <div style="display:flex;gap:8px">
-        <a class="btn" href="{{ path('app_preventivo_anteprima', {id: preventivo.id}) }}" target="_blank">⎙ Anteprima / PDF</a>
+        <a class="btn" href="{{ path('app_preventivo_anteprima', {id: preventivo.id}) }}" target="_blank">⎙ Anteprima</a>
+        <a class="btn" href="{{ path('app_preventivo_pdf', {id: preventivo.id}) }}">↓ Scarica PDF</a>
         <a class="btn btn-primary" href="{{ path('app_preventivo_modifica', {id: preventivo.id}) }}">Modifica</a>
     </div>
 </div>

@@ -9,6 +9,7 @@ use App\Entity\Utente;
 use App\Entity\VoceCosto;
 use App\Enum\CategoriaVoce;
 use App\Form\PreventivoType;
+use App\Service\GeneratorePdf;
 use App\Service\PreventivoCalculator;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -99,6 +100,26 @@ class PreventivoController extends AbstractController
         return $this->render('preventivo/anteprima.html.twig', [
             'preventivo' => $preventivo,
             'calc' => $calc,
+        ]);
+    }
+
+    #[Route('/preventivi/{id}/pdf', name: 'app_preventivo_pdf', requirements: ['id' => '\d+'])]
+    public function pdf(Preventivo $preventivo, PreventivoCalculator $calc, GeneratorePdf $pdf): Response
+    {
+        $logo = $this->getParameter('kernel.project_dir') . '/public/images/passpartour-color.png';
+        $logoData = is_file($logo) ? 'data:image/png;base64,' . base64_encode((string) file_get_contents($logo)) : null;
+
+        $html = $this->renderView('preventivo/pdf.html.twig', [
+            'preventivo' => $preventivo,
+            'calc' => $calc,
+            'logo' => $logoData,
+        ]);
+
+        $nomeFile = $preventivo->getNumero() . '.pdf';
+
+        return new Response($pdf->daHtml($html), Response::HTTP_OK, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="' . $nomeFile . '"',
         ]);
     }
 

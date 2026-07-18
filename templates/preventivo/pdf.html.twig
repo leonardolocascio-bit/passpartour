@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<style>
+    @page { margin: 28px 34px; }
+    * { font-family: "DejaVu Sans", sans-serif; }
+    body { color: #14243b; font-size: 12px; margin: 0; }
+    .muted { color: #6a7788; }
+    .head { width: 100%; border-collapse: collapse; margin-bottom: 6px; }
+    .head td { vertical-align: top; }
+    .head .logo { height: 40px; }
+    .rule { border-bottom: 2px solid #123a72; height: 1px; margin: 6px 0 18px; font-size: 0; }
+    h1 { font-size: 20px; color: #123a72; margin: 0 0 18px; }
+    .scenario { border: 1px solid #e5e9f0; border-radius: 8px; padding: 14px 16px; margin-bottom: 12px; }
+    .scenario.top { border: 2px solid #ea5b24; }
+    .s-head { width: 100%; border-collapse: collapse; }
+    .s-head td { vertical-align: middle; }
+    .s-nome { font-size: 15px; font-weight: bold; color: #123a72; }
+    .tag { background: #ea5b24; color: #fff; font-size: 9px; font-weight: bold; padding: 2px 7px; border-radius: 10px; }
+    .prezzo { font-size: 22px; font-weight: bold; color: #123a72; text-align: right; }
+    .voci { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    .voci td { padding: 5px 0; border-bottom: 1px solid #eef1f6; font-size: 11px; }
+    .voci td.cat { text-align: right; color: #6a7788; }
+    .foot { margin-top: 18px; padding-top: 10px; border-top: 1px solid #e5e9f0; font-size: 10px; color: #6a7788; }
+</style>
+</head>
+<body>
+    <table class="head">
+        <tr>
+            <td>
+                {% if logo %}<img class="logo" src="{{ logo }}" alt="Passpartour">{% endif %}
+                <div class="muted" style="margin-top:6px">Proposta di viaggio · {{ preventivo.numero }}</div>
+            </td>
+            <td style="text-align:right">
+                {% set intest = preventivo.cliente ? preventivo.cliente.nomeCompleto : (preventivo.lead ? preventivo.lead.nomeCompleto : null) %}
+                {% if intest %}<div style="font-weight:bold">{{ intest }}</div>{% endif %}
+                <div class="muted">{{ "now"|date('d/m/Y') }}</div>
+                {% if preventivo.validoFino %}<div class="muted">Valida fino al {{ preventivo.validoFino|date('d/m/Y') }}</div>{% endif %}
+            </td>
+        </tr>
+    </table>
+    <div class="rule">&nbsp;</div>
+
+    <h1>{{ preventivo.titolo }}</h1>
+
+    {% for s in preventivo.scenari %}
+        <div class="scenario {{ s.consigliato ? 'top' }}">
+            <table class="s-head">
+                <tr>
+                    <td>
+                        <span class="s-nome">{{ s.nome }}</span>
+                        {% if s.consigliato %} <span class="tag">CONSIGLIATO</span>{% endif %}
+                        {% if s.descrizione %}<div class="muted" style="margin-top:5px">{{ s.descrizione }}</div>{% endif %}
+                    </td>
+                    <td class="prezzo">€ {{ calc.prezzoFinale(s)|number_format(0, ',', '.') }}</td>
+                </tr>
+            </table>
+            <table class="voci">
+                {% for v in s.voci %}
+                    <tr>
+                        <td>{{ v.descrizione ?: v.categoria.label }}{% if v.quantita > 1 %} ×{{ v.quantita }}{% endif %}</td>
+                        <td class="cat">{{ v.categoria.label }}</td>
+                    </tr>
+                {% endfor %}
+            </table>
+        </div>
+    {% endfor %}
+
+    <div class="foot">
+        Prezzi comprensivi dei servizi elencati. La disponibilità è da riconfermare all'atto della prenotazione.<br>
+        Passpartour · Gestionale agenzia viaggi.
+    </div>
+</body>
+</html>

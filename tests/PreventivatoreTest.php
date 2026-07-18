@@ -92,4 +92,16 @@ class PreventivatoreTest extends WebTestCase
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('h1', $prev->getTitolo());
     }
+
+    public function testDownloadPdfNativo(): void
+    {
+        $prev = $this->em->getRepository(Preventivo::class)->findOneBy([]);
+        $this->client->request('GET', '/preventivi/' . $prev->getId() . '/pdf');
+
+        self::assertResponseIsSuccessful();
+        $resp = $this->client->getResponse();
+        self::assertSame('application/pdf', $resp->headers->get('Content-Type'));
+        self::assertStringContainsString('.pdf', (string) $resp->headers->get('Content-Disposition'));
+        self::assertStringStartsWith('%PDF', $resp->getContent());
+    }
 }

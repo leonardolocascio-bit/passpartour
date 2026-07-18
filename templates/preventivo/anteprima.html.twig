@@ -26,7 +26,8 @@
 {% block body %}
 <div class="toolbar no-print">
     <a class="btn" href="{{ path('app_preventivo_scheda', {id: preventivo.id}) }}">← Torna al preventivo</a>
-    <button class="btn btn-primary" onclick="window.print()">⎙ Stampa / Salva PDF</button>
+    <a class="btn" href="{{ path('app_preventivo_pdf', {id: preventivo.id}) }}">↓ Scarica PDF</a>
+    <button class="btn btn-primary" onclick="window.print()">⎙ Stampa</button>
 </div>
 
 <div class="foglio">
