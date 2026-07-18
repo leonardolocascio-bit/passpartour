@@ -42,6 +42,8 @@ Tutti i dati sono **demo**, rigenerabili dalle fixtures. Nessun dato reale.
 - **M3 ✓** CRM: kanban lead (drag&drop stato), scheda lead, attività, timeline.
 - **M4 ✓** preventivatore: editor scenari + voci (collezioni annidate), calcolo prezzi, scheda comparativa, anteprima stampabile/PDF.
 - **M5 ✓** automazioni di conversione: RegolaNurturing per stato → attività auto (MotoreNurturing), Agenda azioni, pagina Automazioni.
-- **M6** dashboard/KPI avanzati (lead per fonte, valore pipeline).
+- **M6 ✓** dashboard direzionale (CruscottoService): KPI, lead per fonte/campagna, valore pipeline, performance agenti.
+
+Tutte le 6 milestone core completate. 24 test (`php bin/phpunit`).
 
 Nota preventivatore: i plurali IT (`scenari`, `voci`) non sono inflettibili da Symfony; le CollectionType usano `by_reference: true` + setter tolleranti `setScenari(iterable)`/`setVoci(iterable)` sulle entità. Non rimuoverli.
