@@ -1,0 +1,56 @@
+{% extends 'base.html.twig' %}
+
+{% set _route = app.request.attributes.get('_route') %}
+
+{% block body %}
+<div class="app">
+    <aside class="sidebar">
+        <div class="brand">
+            <span class="logo">🧭</span>
+            <span>Passpartour</span>
+        </div>
+        <nav class="nav">
+            <a href="{{ path('app_dashboard') }}" class="{{ _route == 'app_dashboard' ? 'active' }}">
+                <span class="ic">▚</span> Dashboard
+            </a>
+            <a href="{{ path('app_lead_index') }}" class="{{ _route starts with 'app_lead' ? 'active' }}">
+                <span class="ic">◎</span> Lead
+            </a>
+            <a href="{{ path('app_preventivo_index') }}" class="{{ _route starts with 'app_preventivo' ? 'active' }}">
+                <span class="ic">✎</span> Preventivi
+            </a>
+            <a href="{{ path('app_campagna_index') }}" class="{{ _route starts with 'app_campagna' ? 'active' }}">
+                <span class="ic">◈</span> Campagne
+            </a>
+            <a href="{{ path('app_cliente_index') }}" class="{{ _route starts with 'app_cliente' ? 'active' }}">
+                <span class="ic">☺</span> Clienti
+            </a>
+        </nav>
+        <div class="sidebar-foot">
+            <span class="demo-flag">Demo</span>
+            <div style="margin-top:8px">Passpartour · CRM viaggi</div>
+        </div>
+    </aside>
+
+    <div class="main">
+        <header class="topbar">
+            <div class="page-title">{% block page_title %}{% endblock %}</div>
+            <div class="user-chip">
+                {% if app.user %}
+                    <span>{{ app.user.nomeCompleto ?: app.user.userIdentifier }}</span>
+                    <span class="avatar">{{ (app.user.nome|default(app.user.userIdentifier))|first|upper }}</span>
+                    <a class="btn" href="{{ path('app_logout') }}">Esci</a>
+                {% endif %}
+            </div>
+        </header>
+        <div class="content">
+            {% for label, messages in app.flashes %}
+                {% for message in messages %}
+                    <div class="card card-pad" style="margin-bottom:16px;border-left:3px solid var(--{{ label == 'success' ? 'ok' : 'brand' }})">{{ message }}</div>
+                {% endfor %}
+            {% endfor %}
+            {% block main %}{% endblock %}
+        </div>
+    </div>
+</div>
+{% endblock %}

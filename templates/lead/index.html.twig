@@ -1,0 +1,37 @@
+{% extends 'app.html.twig' %}
+
+{% block title %}Lead · Passpartour{% endblock %}
+{% block page_title %}Lead{% endblock %}
+
+{% block main %}
+<div class="card">
+    <div class="card-pad" style="border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center">
+        <h3>Tutti i lead <span class="muted" style="font-weight:500">({{ lead|length }})</span></h3>
+        <span class="muted" style="font-size:12px">Kanban e scheda lead arrivano nella milestone CRM</span>
+    </div>
+    <table class="grid-table">
+        <thead><tr>
+            <th>Nome</th><th>Contatti</th><th>Destinazione</th><th>Periodo</th>
+            <th>Budget</th><th>Fonte</th><th>Assegnatario</th><th>Stato</th>
+        </tr></thead>
+        <tbody>
+        {% for l in lead %}
+            <tr>
+                <td style="font-weight:600">{{ l.nomeCompleto }}</td>
+                <td class="muted" style="font-size:12px">
+                    {{ l.email ?: '' }}{% if l.email and l.telefono %}<br>{% endif %}{{ l.telefono ?: '' }}
+                </td>
+                <td>{{ l.destinazione ?: '—' }}</td>
+                <td class="muted">{{ l.periodo ?: '—' }}</td>
+                <td>{{ l.budgetIndicativo ? '€ ' ~ l.budgetIndicativo|number_format(0, ',', '.') : '—' }}</td>
+                <td class="muted">{{ l.fonte.label }}</td>
+                <td class="muted">{{ l.assegnatario ? l.assegnatario.nomeCompleto : '—' }}</td>
+                <td><span class="badge dot badge-{{ l.stato.value }}">{{ l.stato.label }}</span></td>
+            </tr>
+        {% else %}
+            <tr><td colspan="8" class="muted" style="text-align:center;padding:28px">Nessun lead. Arriveranno dalle campagne di lead gen.</td></tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

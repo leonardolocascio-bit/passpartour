@@ -1,0 +1,39 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Accedi · Passpartour{% endblock %}
+
+{% block body %}
+<div style="min-height:100vh;display:grid;place-items:center;background:linear-gradient(135deg,var(--navy),var(--navy-600));padding:24px">
+    <div class="card" style="width:100%;max-width:380px;padding:32px">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+            <span class="logo" style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--brand),var(--brand-600));display:grid;place-items:center;font-size:19px">🧭</span>
+            <span style="font-weight:800;font-size:20px;letter-spacing:-.02em">Passpartour</span>
+        </div>
+        <p class="muted" style="margin:0 0 22px">Gestionale agenzia viaggi · CRM &amp; preventivatore</p>
+
+        <form method="post">
+            {% if error %}
+                <div class="card-pad" style="background:#fdecee;color:#cc3c4c;border-radius:9px;margin-bottom:16px;font-size:13px">
+                    {{ error.messageKey|trans(error.messageData, 'security') }}
+                </div>
+            {% endif %}
+
+            <label style="display:block;font-weight:600;margin-bottom:6px">Email</label>
+            <input type="email" name="_username" value="{{ last_username }}" required autofocus autocomplete="email"
+                   style="width:100%;padding:11px 13px;border:1px solid var(--line);border-radius:9px;font-size:14px;font-family:inherit;margin-bottom:14px">
+
+            <label style="display:block;font-weight:600;margin-bottom:6px">Password</label>
+            <input type="password" name="_password" required autocomplete="current-password"
+                   style="width:100%;padding:11px 13px;border:1px solid var(--line);border-radius:9px;font-size:14px;font-family:inherit;margin-bottom:20px">
+
+            <input type="hidden" name="_csrf_token" data-controller="csrf-protection" value="{{ csrf_token('authenticate') }}">
+
+            <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;padding:11px">Accedi</button>
+        </form>
+
+        <p class="muted" style="font-size:12px;margin:18px 0 0;text-align:center">
+            Demo · master@passpartour.local / passpartour
+        </p>
+    </div>
+</div>
+{% endblock %}
