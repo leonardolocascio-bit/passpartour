@@ -58,6 +58,34 @@
 </div>
 {% endmacro %}
 
+{# ---------- macro: tappa del diario di viaggio ---------- #}
+{% macro tappaBlock(t, destinazioni, tappa) %}
+<div class="tappa-block card" style="margin-bottom:10px">
+    <div class="card-pad" style="display:flex;gap:12px;align-items:flex-start">
+        <input type="hidden" name="preventivo[tappe][{{ t }}][ordinamento]" value="{{ tappa ? tappa.ordinamento : 0 }}">
+        <div style="width:70px">
+            <label>Giorno</label>
+            <input type="number" min="1" name="preventivo[tappe][{{ t }}][giorno]" value="{{ tappa ? tappa.giorno }}">
+        </div>
+        <div style="flex:1">
+            <label>Tappa</label>
+            <input type="text" name="preventivo[tappe][{{ t }}][titolo]" value="{{ tappa ? tappa.titolo }}" placeholder="Es. Arrivo a Santorini">
+            <textarea name="preventivo[tappe][{{ t }}][descrizione]" placeholder="Cosa succede in questa tappa" style="margin-top:8px">{{ tappa ? tappa.descrizione }}</textarea>
+        </div>
+        <div style="width:210px">
+            <label>Immagine (destinazione)</label>
+            <select name="preventivo[tappe][{{ t }}][destinazione]">
+                <option value="">— nessuna —</option>
+                {% for d in destinazioni %}
+                    <option value="{{ d.id }}" {{ tappa and tappa.destinazione and tappa.destinazione.id == d.id ? 'selected' }}>{{ d.nome }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <button type="button" class="btn del-tappa" style="margin-top:22px">✕</button>
+    </div>
+</div>
+{% endmacro %}
+
 {% block main %}
 <div style="max-width:920px">
     {{ form_start(form) }}
@@ -89,6 +117,21 @@
         {% endfor %}
     </div>
 
+    <div style="display:flex;justify-content:space-between;align-items:center;margin:26px 0 12px">
+        <div>
+            <h3>Diario di viaggio</h3>
+            <p class="muted" style="margin:2px 0 0;font-size:13px">Le tappe del viaggio (timeline). L'immagine arriva dalla libreria destinazioni.</p>
+        </div>
+        <button type="button" class="btn btn-primary" id="add-tappa">+ Aggiungi tappa</button>
+    </div>
+
+    {% do form.tappe.setRendered %}
+    <div id="tappe" data-index="{{ preventivo.tappe|length }}">
+        {% for tappa in preventivo.tappe %}
+            {{ ui.tappaBlock(loop.index0, destinazioni, tappa) }}
+        {% endfor %}
+    </div>
+
     <div style="margin-top:18px;display:flex;gap:10px">
         <button type="submit" class="btn btn-primary">Salva preventivo</button>
         <a class="btn" href="{{ preventivo.id ? path('app_preventivo_scheda', {id: preventivo.id}) : path('app_preventivo_index') }}">Annulla</a>
@@ -100,6 +143,26 @@
 {# template nascosti per l'aggiunta dinamica #}
 <template id="tpl-scenario">{{ ui.scenarioBlock('__S__', categorie, null) }}</template>
 <template id="tpl-voce">{{ ui.voceRow('__S__', '__V__', categorie, null) }}</template>
+<template id="tpl-tappa">{{ ui.tappaBlock('__T__', destinazioni, null) }}</template>
+
+<script>
+(function () {
+    const cont = document.getElementById('tappe');
+    const tpl = document.getElementById('tpl-tappa').innerHTML;
+    document.getElementById('add-tappa').addEventListener('click', () => {
+        const idx = parseInt(cont.dataset.index, 10);
+        cont.dataset.index = idx + 1;
+        const div = document.createElement('div');
+        div.innerHTML = tpl.replaceAll('__T__', idx);
+        cont.appendChild(div.firstElementChild);
+    });
+    cont.addEventListener('click', e => {
+        if (e.target.classList.contains('del-tappa')) {
+            e.target.closest('.tappa-block').remove();
+        }
+    });
+})();
+</script>
 
 <script>
 (function () {

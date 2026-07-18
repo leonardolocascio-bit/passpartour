@@ -51,10 +51,16 @@ class Preventivo
     #[ORM\OrderBy(['ordinamento' => 'ASC'])]
     private Collection $scenari;
 
+    /** @var Collection<int, TappaViaggio> */
+    #[ORM\OneToMany(targetEntity: TappaViaggio::class, mappedBy: 'preventivo', cascade: ['persist', 'remove'], orphanRemoval: true)]
+    #[ORM\OrderBy(['ordinamento' => 'ASC'])]
+    private Collection $tappe;
+
     public function __construct()
     {
         $this->createdAt = new \DateTimeImmutable();
         $this->scenari = new ArrayCollection();
+        $this->tappe = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -197,4 +203,40 @@ class Preventivo
 
         return $this;
     }
+
+    /** @return Collection<int, TappaViaggio> */
+    public function getTappe(): Collection
+    {
+        return $this->tappe;
+    }
+
+    /**
+     * @param iterable<int, TappaViaggio> $tappe
+     */
+    public function setTappe(iterable $tappe): static
+    {
+        $this->tappe = $tappe instanceof Collection
+            ? $tappe
+            : new ArrayCollection(is_array($tappe) ? $tappe : iterator_to_array($tappe));
+
+        return $this;
+    }
+
+    public function addTappa(TappaViaggio $tappa): static
+    {
+        if (!$this->tappe->contains($tappa)) {
+            $this->tappe->add($tappa);
+            $tappa->setPreventivo($this);
+        }
+
+        return $this;
+    }
+
+    public function removeTappa(TappaViaggio $tappa): static
+    {
+        $this->tappe->removeElement($tappa);
+
+        return $this;
+    }
 }
+

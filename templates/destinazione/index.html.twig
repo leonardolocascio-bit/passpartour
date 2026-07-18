@@ -1,0 +1,38 @@
+{% extends 'app.html.twig' %}
+
+{% block title %}Destinazioni · Passpartour{% endblock %}
+{% block page_title %}Libreria destinazioni{% endblock %}
+
+{% block main %}
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+    <p class="muted" style="margin:0;font-size:13px">Immagini riutilizzabili nei preventivi (diario di viaggio).</p>
+    <a class="btn btn-primary" href="{{ path('app_destinazione_nuovo') }}">+ Nuova destinazione</a>
+</div>
+
+{% if destinazioni|length > 0 %}
+    <div class="grid" style="grid-template-columns:repeat(4,1fr)">
+        {% for d in destinazioni %}
+            <div class="card" style="overflow:hidden">
+                <div style="height:130px;background:#eef1f6">
+                    {% if d.immagine %}
+                        <img src="{{ asset('uploads/destinazioni/' ~ d.immagine) }}" alt="{{ d.nome }}" style="width:100%;height:100%;object-fit:cover;display:block">
+                    {% else %}
+                        <div style="width:100%;height:100%;display:grid;place-items:center;color:var(--muted);font-size:13px">nessuna immagine</div>
+                    {% endif %}
+                </div>
+                <div class="card-pad" style="padding:12px 14px;display:flex;justify-content:space-between;align-items:center">
+                    <div>
+                        <div style="font-weight:700">{{ d.nome }}</div>
+                        {% if d.descrizione %}<div class="muted" style="font-size:12px">{{ d.descrizione|length > 42 ? d.descrizione|slice(0, 42) ~ '…' : d.descrizione }}</div>{% endif %}
+                    </div>
+                    <a class="muted" href="{{ path('app_destinazione_modifica', {id: d.id}) }}" style="font-size:13px">Modifica</a>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+{% else %}
+    <div class="card"><div class="card-pad muted" style="text-align:center;padding:32px">
+        Nessuna destinazione. <a href="{{ path('app_destinazione_nuovo') }}">Carica la prima immagine</a>.
+    </div></div>
+{% endif %}
+{% endblock %}

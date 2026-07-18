@@ -5,10 +5,12 @@ namespace App\DataFixtures;
 use App\Entity\Attivita;
 use App\Entity\Campagna;
 use App\Entity\Cliente;
+use App\Entity\Destinazione;
 use App\Entity\Lead;
 use App\Entity\Preventivo;
 use App\Entity\RegolaNurturing;
 use App\Entity\ScenarioPreventivo;
+use App\Entity\TappaViaggio;
 use App\Entity\Utente;
 use App\Entity\VoceCosto;
 use App\Enum\CategoriaVoce;
@@ -103,6 +105,20 @@ class AppFixtures extends Fixture
         $manager->persist($cliente);
         $leadByNome['Simone']->setCliente($cliente);
 
+        // ---- Libreria destinazioni (immagini demo in public/uploads/destinazioni) ----
+        $dest = [];
+        foreach ([
+            ['Santorini', 'santorini.jpg', 'Isola delle Cicladi, celebre per i tramonti di Oia.'],
+            ['Mykonos', 'mykonos.jpg', 'Vita notturna, spiagge e i mulini a vento.'],
+            ['Maldive', 'maldive.jpg', 'Atolli, resort overwater e mare cristallino.'],
+            ['Roma', 'roma.jpg', 'La città eterna: storia, arte e buona cucina.'],
+            ['New York', 'new-york.jpg', 'La città che non dorme mai.'],
+        ] as $d) {
+            $destinazione = (new Destinazione())->setNome($d[0])->setImmagine($d[1])->setDescrizione($d[2]);
+            $manager->persist($destinazione);
+            $dest[$d[0]] = $destinazione;
+        }
+
         // ---- Preventivo con 3 scenari (Economy / Comfort / Luxury) ----
         $prev = (new Preventivo())
             ->setNumero('PRV-2026-0001')
@@ -135,6 +151,24 @@ class AppFixtures extends Fixture
             [CategoriaVoce::ESCURSIONE, 'Tour privato in yacht', 4, '260.00'],
             [CategoriaVoce::ASSICURAZIONE, 'Assicurazione all-risk', 4, '60.00'],
         ]);
+
+        // ---- Diario di viaggio del preventivo ----
+        $tappe = [
+            [1, 'Volo e arrivo a Santorini', 'Volo da Milano, transfer privato e check-in in hotel con vista caldera.', 'Santorini'],
+            [2, 'Fira e tramonto a Oia', 'Passeggiata tra i vicoli bianchi di Fira e aperitivo al tramonto a Oia.', 'Santorini'],
+            [4, 'Escursione in caicco', 'Giornata in barca tra le calette, bagno nelle sorgenti termali e pranzo a bordo.', 'Mykonos'],
+            [7, 'Rientro', 'Transfer in aeroporto e volo di rientro a Milano.', null],
+        ];
+        $ord = 0;
+        foreach ($tappe as $t) {
+            $tappa = (new TappaViaggio())
+                ->setPreventivo($prev)->setGiorno($t[0])->setTitolo($t[1])
+                ->setDescrizione($t[2])->setOrdinamento($ord++);
+            if ($t[3] !== null) {
+                $tappa->setDestinazione($dest[$t[3]]);
+            }
+            $manager->persist($tappa);
+        }
 
         $manager->flush();
 

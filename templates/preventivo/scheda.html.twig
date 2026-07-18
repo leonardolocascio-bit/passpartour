@@ -64,6 +64,29 @@
     </div>
 {% endif %}
 
+{% if preventivo.tappe|length > 0 %}
+    <div class="card" style="margin-top:16px">
+        <div class="card-pad" style="border-bottom:1px solid var(--line)"><h3>Diario di viaggio</h3></div>
+        <div class="card-pad">
+            <div class="timeline">
+                {% for t in preventivo.tappe %}
+                    <div class="tl-item">
+                        <div style="display:flex;gap:14px;align-items:flex-start">
+                            {% if t.destinazione and t.destinazione.immagine %}
+                                <img src="{{ asset('uploads/destinazioni/' ~ t.destinazione.immagine) }}" alt="{{ t.destinazione.nome }}" style="width:130px;height:86px;object-fit:cover;border-radius:8px;flex-shrink:0">
+                            {% endif %}
+                            <div>
+                                <div style="font-weight:700">{% if t.giorno %}Giorno {{ t.giorno }} · {% endif %}{{ t.titolo }}</div>
+                                {% if t.descrizione %}<div class="muted" style="font-size:13px;margin-top:3px">{{ t.descrizione|nl2br }}</div>{% endif %}
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+{% endif %}
+
 {% if preventivo.note %}
     <div class="card" style="margin-top:16px"><div class="card-pad">
         <h3 style="margin-bottom:6px">Note interne</h3>

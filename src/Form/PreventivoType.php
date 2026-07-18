@@ -55,6 +55,15 @@ class PreventivoType extends AbstractType
                 'label' => false,
                 'prototype' => true,
                 'prototype_name' => '__scenario__',
+            ])
+            ->add('tappe', CollectionType::class, [
+                'entry_type' => TappaViaggioType::class,
+                'allow_add' => true,
+                'allow_delete' => true,
+                'by_reference' => true,
+                'label' => false,
+                'prototype' => true,
+                'prototype_name' => '__tappa__',
             ]);
     }
 

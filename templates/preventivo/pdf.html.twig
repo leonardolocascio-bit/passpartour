@@ -68,6 +68,22 @@
         </div>
     {% endfor %}
 
+    {% if preventivo.tappe|length > 0 %}
+        <h2 style="font-size:16px;color:#123a72;margin:24px 0 12px;border-top:1px solid #e5e9f0;padding-top:14px">Diario di viaggio</h2>
+        {% for t in preventivo.tappe %}
+            <table style="width:100%;border-collapse:collapse;margin-bottom:12px"><tr>
+                {% set img = (t.destinazione and t.destinazione.immagine) ? file_base64('uploads/destinazioni/' ~ t.destinazione.immagine) : null %}
+                {% if img %}
+                    <td style="width:154px;vertical-align:top"><img src="data:image/jpeg;base64,{{ img }}" style="width:140px;border-radius:6px"></td>
+                {% endif %}
+                <td style="vertical-align:top">
+                    <div style="font-weight:bold;color:#123a72">{% if t.giorno %}Giorno {{ t.giorno }} · {% endif %}{{ t.titolo }}</div>
+                    {% if t.descrizione %}<div class="muted" style="margin-top:4px;font-size:11px">{{ t.descrizione|nl2br }}</div>{% endif %}
+                </td>
+            </tr></table>
+        {% endfor %}
+    {% endif %}
+
     <div class="foot">
         Prezzi comprensivi dei servizi elencati. La disponibilità è da riconfermare all'atto della prenotazione.<br>
         Passpartour · Gestionale agenzia viaggi.

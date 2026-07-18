@@ -81,6 +81,7 @@ class PreventivoController extends AbstractController
             'form' => $form,
             'preventivo' => $preventivo,
             'categorie' => CategoriaVoce::cases(),
+            'destinazioni' => $em->getRepository(\App\Entity\Destinazione::class)->findBy([], ['nome' => 'ASC']),
             'titolo' => $isNuovo ? 'Nuovo preventivo' : 'Modifica ' . $preventivo->getNumero(),
         ]);
     }
@@ -147,6 +148,11 @@ class PreventivoController extends AbstractController
                 $voce->setScenario($scenario);
                 $voce->setOrdinamento($j++);
             }
+        }
+        $t = 0;
+        foreach ($preventivo->getTappe() as $tappa) {
+            $tappa->setPreventivo($preventivo);
+            $tappa->setOrdinamento($t++);
         }
     }
 
