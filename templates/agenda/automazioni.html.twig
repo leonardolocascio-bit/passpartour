@@ -1,0 +1,38 @@
+{% extends 'app.html.twig' %}
+
+{% block title %}Automazioni · Passpartour{% endblock %}
+{% block page_title %}Regole di automazione (nurturing){% endblock %}
+
+{% block main %}
+<div class="card" style="margin-bottom:16px"><div class="card-pad">
+    <p class="muted" style="margin:0">Quando un lead entra in uno stato, il sistema crea automaticamente le attività di follow-up qui sotto (con promemoria). Le trovi nella <a href="{{ path('app_agenda') }}">Agenda</a> e sulla scheda del lead.</p>
+</div></div>
+
+<div style="display:grid;gap:16px">
+    {% for key, col in per_stato %}
+        {% if col.regole|length > 0 %}
+            <div class="card">
+                <div class="card-pad" style="border-bottom:1px solid var(--line)">
+                    <span class="badge dot badge-{{ key }}">{{ col.stato.label }}</span>
+                </div>
+                <table class="grid-table">
+                    <thead><tr><th>Attività</th><th>Tipo</th><th>Scadenza</th></tr></thead>
+                    <tbody>
+                    {% for r in col.regole %}
+                        <tr>
+                            <td style="font-weight:600">{{ r.titolo }}</td>
+                            <td class="muted">{{ r.tipo.label }}</td>
+                            <td class="muted">
+                                {% if r.giorniOffset == 0 %}stesso giorno
+                                {% elseif r.giorniOffset == 1 %}entro 1 giorno
+                                {% else %}entro {{ r.giorniOffset }} giorni{% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% endif %}
+    {% endfor %}
+</div>
+{% endblock %}

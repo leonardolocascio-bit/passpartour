@@ -7,6 +7,7 @@ use App\Entity\Campagna;
 use App\Entity\Cliente;
 use App\Entity\Lead;
 use App\Entity\Preventivo;
+use App\Entity\RegolaNurturing;
 use App\Entity\ScenarioPreventivo;
 use App\Entity\Utente;
 use App\Entity\VoceCosto;
@@ -15,14 +16,17 @@ use App\Enum\FonteLead;
 use App\Enum\StatoLead;
 use App\Enum\StatoPreventivo;
 use App\Enum\TipoAttivita;
+use App\Service\MotoreNurturing;
 use Doctrine\Bundle\FixturesBundle\Fixture;
 use Doctrine\Persistence\ObjectManager;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
 class AppFixtures extends Fixture
 {
-    public function __construct(private UserPasswordHasherInterface $hasher)
-    {
+    public function __construct(
+        private UserPasswordHasherInterface $hasher,
+        private MotoreNurturing $motore,
+    ) {
     }
 
     public function load(ObjectManager $manager): void
@@ -42,6 +46,23 @@ class AppFixtures extends Fixture
         $fiera = $this->campagna('Fiera del Turismo (banco)', FonteLead::MANUALE, null);
         foreach ([$maldive, $nyc, $grecia, $fiera] as $c) {
             $manager->persist($c);
+        }
+
+        // ---- Regole di nurturing (automazioni per stato) ----
+        $regole = [
+            [StatoLead::NUOVO, TipoAttivita::EMAIL, 'Invia email di benvenuto', 0, 0],
+            [StatoLead::NUOVO, TipoAttivita::CHIAMATA, 'Prima chiamata di qualifica', 1, 1],
+            [StatoLead::CONTATTATO, TipoAttivita::EMAIL, 'Prepara e invia il preventivo', 2, 0],
+            [StatoLead::PREVENTIVO_INVIATO, TipoAttivita::CHIAMATA, 'Follow-up sul preventivo', 2, 0],
+            [StatoLead::PREVENTIVO_INVIATO, TipoAttivita::WHATSAPP, 'Promemoria WhatsApp preventivo', 5, 1],
+            [StatoLead::TRATTATIVA, TipoAttivita::APPUNTAMENTO, 'Incontro/call di chiusura', 1, 0],
+        ];
+        foreach ($regole as $r) {
+            $manager->persist(
+                (new RegolaNurturing())
+                    ->setStato($r[0])->setTipo($r[1])->setTitolo($r[2])
+                    ->setGiorniOffset($r[3])->setOrdinamento($r[4])
+            );
         }
 
         // ---- Lead ----
@@ -116,6 +137,11 @@ class AppFixtures extends Fixture
         ]);
 
         $manager->flush();
+
+        // genera le attività di nurturing per i lead demo in base al loro stato attuale
+        foreach ($leadByNome as $lead) {
+            $this->motore->applicaRegole($lead, $lead->getStato());
+        }
     }
 
     private function utente(string $email, string $nome, string $cognome, array $ruoli): Utente

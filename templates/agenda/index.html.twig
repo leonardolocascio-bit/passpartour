@@ -1,0 +1,60 @@
+{% extends 'app.html.twig' %}
+{% import _self as ui %}
+
+{% block title %}Agenda · Passpartour{% endblock %}
+{% block page_title %}Agenda · azioni da fare{% endblock %}
+
+{% macro riga(a, scaduta) %}
+    <tr>
+        <td style="width:150px"><span class="badge">{{ a.tipo.label }}</span></td>
+        <td style="font-weight:600">{{ a.titolo }}
+            {% if a.automatica %}<span class="badge" style="background:#eaf3fb;color:#1c5099;font-size:10px">auto</span>{% endif %}
+        </td>
+        <td><a href="{{ path('app_lead_scheda', {id: a.lead.id}) }}">{{ a.lead.nomeCompleto }}</a></td>
+        <td class="muted">{{ a.assegnatario ? a.assegnatario.nomeCompleto : '—' }}</td>
+        <td style="white-space:nowrap;{{ scaduta ? 'color:var(--danger);font-weight:600' }}">
+            {{ a.dataScadenza ? a.dataScadenza|date('d/m/Y') : '—' }}
+        </td>
+        <td style="text-align:right">
+            <form method="post" action="{{ path('app_attivita_toggle', {id: a.id}) }}">
+                <input type="hidden" name="_token" value="{{ csrf_token('attivita_toggle_' ~ a.id) }}">
+                <button class="btn" style="padding:5px 10px;font-size:12px">✓ Fatta</button>
+            </form>
+        </td>
+    </tr>
+{% endmacro %}
+
+{% block main %}
+{% if totale == 0 %}
+    <div class="card"><div class="card-pad muted" style="text-align:center;padding:36px">
+        🎉 Nessuna azione in sospeso. Tutto sotto controllo.
+    </div></div>
+{% else %}
+    <div style="display:grid;gap:16px">
+        {% set sezioni = [
+            {'k': 'scadute', 'lista': scadute, 'titolo': 'Scadute', 'colore': 'var(--danger)', 'sc': true},
+            {'k': 'oggi', 'lista': oggi, 'titolo': 'Oggi', 'colore': 'var(--brand)', 'sc': false},
+            {'k': 'prossime', 'lista': prossime, 'titolo': 'Prossime', 'colore': 'var(--cyan)', 'sc': false}
+        ] %}
+        {% for sez in sezioni %}
+            {% if sez.lista|length > 0 %}
+                <div class="card">
+                    <div class="card-pad" style="border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px">
+                        <span style="width:10px;height:10px;border-radius:50%;background:{{ sez.colore }}"></span>
+                        <h3>{{ sez.titolo }} <span class="muted" style="font-weight:500">({{ sez.lista|length }})</span></h3>
+                    </div>
+                    <table class="grid-table">
+                        <tbody>
+                        {% for a in sez.lista %}{{ ui.riga(a, sez.sc) }}{% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% endif %}
+        {% endfor %}
+    </div>
+{% endif %}
+
+<div style="margin-top:16px">
+    <a class="btn" href="{{ path('app_automazioni') }}">◈ Regole di automazione</a>
+</div>
+{% endblock %}

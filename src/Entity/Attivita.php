@@ -33,6 +33,10 @@ class Attivita
     #[ORM\Column]
     private bool $completata = false;
 
+    /** Generata automaticamente dal motore di nurturing. */
+    #[ORM\Column(options: ['default' => false])]
+    private bool $automatica = false;
+
     #[ORM\ManyToOne(targetEntity: Utente::class)]
     #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
     private ?Utente $assegnatario = null;
@@ -118,6 +122,18 @@ class Attivita
     public function setCompletata(bool $completata): static
     {
         $this->completata = $completata;
+
+        return $this;
+    }
+
+    public function isAutomatica(): bool
+    {
+        return $this->automatica;
+    }
+
+    public function setAutomatica(bool $automatica): static
+    {
+        $this->automatica = $automatica;
 
         return $this;
     }

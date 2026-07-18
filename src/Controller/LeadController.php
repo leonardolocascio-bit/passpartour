@@ -8,6 +8,7 @@ use App\Entity\Utente;
 use App\Enum\StatoLead;
 use App\Form\AttivitaType;
 use App\Form\LeadType;
+use App\Service\MotoreNurturing;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -44,7 +45,7 @@ class LeadController extends AbstractController
     }
 
     #[Route('/lead/nuovo', name: 'app_lead_nuovo')]
-    public function nuovo(Request $request, EntityManagerInterface $em): Response
+    public function nuovo(Request $request, EntityManagerInterface $em, MotoreNurturing $motore): Response
     {
         $lead = new Lead();
         $form = $this->createForm(LeadType::class, $lead);
@@ -53,6 +54,7 @@ class LeadController extends AbstractController
         if ($form->isSubmitted() && $form->isValid()) {
             $em->persist($lead);
             $em->flush();
+            $motore->applicaRegole($lead, $lead->getStato());
             $this->addFlash('success', 'Lead creato.');
 
             return $this->redirectToRoute('app_lead_scheda', ['id' => $lead->getId()]);
@@ -73,11 +75,34 @@ class LeadController extends AbstractController
             'action' => $this->generateUrl('app_lead_attivita_nuova', ['id' => $lead->getId()]),
         ]);
 
+        // azioni ancora da fare, ordinate per scadenza (senza data in fondo)
+        $pendenti = [];
+        foreach ($lead->getAttivita() as $a) {
+            if (!$a->isCompletata()) {
+                $pendenti[] = $a;
+            }
+        }
+        usort($pendenti, static function ($a, $b) {
+            $da = $a->getDataScadenza();
+            $db = $b->getDataScadenza();
+            if ($da === null && $db === null) {
+                return 0;
+            }
+            if ($da === null) {
+                return 1;
+            }
+            if ($db === null) {
+                return -1;
+            }
+            return $da <=> $db;
+        });
+
         return $this->render('lead/scheda.html.twig', [
             'lead' => $lead,
             'form_attivita' => $formAttivita,
             'stati' => StatoLead::colonneKanban(),
             'agenti' => $em->getRepository(Utente::class)->findBy([], ['nome' => 'ASC']),
+            'azioni_pendenti' => $pendenti,
         ]);
     }
 
@@ -102,7 +127,7 @@ class LeadController extends AbstractController
     }
 
     #[Route('/lead/{id}/stato', name: 'app_lead_stato', requirements: ['id' => '\d+'], methods: ['POST'])]
-    public function cambiaStato(Lead $lead, Request $request, EntityManagerInterface $em): Response
+    public function cambiaStato(Lead $lead, Request $request, EntityManagerInterface $em, MotoreNurturing $motore): Response
     {
         if (!$this->isCsrfTokenValid('lead_stato_' . $lead->getId(), (string) $request->request->get('_token'))) {
             return new JsonResponse(['ok' => false, 'errore' => 'Token non valido'], 400);
@@ -115,9 +140,10 @@ class LeadController extends AbstractController
 
         $lead->setStato($nuovo);
         $em->flush();
+        $creati = $motore->applicaRegole($lead, $nuovo);
 
         if ($request->isXmlHttpRequest()) {
-            return new JsonResponse(['ok' => true, 'stato' => $nuovo->value, 'label' => $nuovo->label()]);
+            return new JsonResponse(['ok' => true, 'stato' => $nuovo->value, 'label' => $nuovo->label(), 'attivita_create' => $creati]);
         }
 
         $this->addFlash('success', 'Stato aggiornato a "' . $nuovo->label() . '".');

@@ -5,6 +5,7 @@ namespace App\Service\LeadIntake;
 use App\Entity\Campagna;
 use App\Entity\Lead;
 use App\Repository\LeadRepository;
+use App\Service\MotoreNurturing;
 use Doctrine\ORM\EntityManagerInterface;
 
 /**
@@ -16,6 +17,7 @@ class LeadIntakeService
     public function __construct(
         private readonly EntityManagerInterface $em,
         private readonly LeadRepository $leadRepository,
+        private readonly MotoreNurturing $motore,
     ) {
     }
 
@@ -46,6 +48,9 @@ class LeadIntakeService
 
         $this->em->persist($lead);
         $this->em->flush();
+
+        // genera le attività di follow-up per lo stato iniziale
+        $this->motore->applicaRegole($lead, $lead->getStato());
 
         return RisultatoIntake::creato($lead);
     }
