@@ -2,10 +2,15 @@
 
 namespace App\Controller;
 
+use App\Entity\Attivita;
 use App\Entity\Lead;
+use App\Entity\Utente;
+use App\Enum\StatoLead;
+use App\Form\AttivitaType;
 use App\Form\LeadType;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -15,11 +20,27 @@ class LeadController extends AbstractController
     #[Route('/lead', name: 'app_lead_index')]
     public function index(EntityManagerInterface $em): Response
     {
+        $tutti = $em->getRepository(Lead::class)->findBy([], ['createdAt' => 'DESC']);
+
+        $colonne = [];
+        foreach (StatoLead::colonneKanban() as $stato) {
+            $colonne[$stato->value] = ['stato' => $stato, 'lead' => []];
+        }
+        foreach ($tutti as $lead) {
+            $colonne[$lead->getStato()->value]['lead'][] = $lead;
+        }
+
+        return $this->render('lead/kanban.html.twig', [
+            'colonne' => $colonne,
+        ]);
+    }
+
+    #[Route('/lead/lista', name: 'app_lead_lista')]
+    public function lista(EntityManagerInterface $em): Response
+    {
         $lead = $em->getRepository(Lead::class)->findBy([], ['createdAt' => 'DESC']);
 
-        return $this->render('lead/index.html.twig', [
-            'lead' => $lead,
-        ]);
+        return $this->render('lead/index.html.twig', ['lead' => $lead]);
     }
 
     #[Route('/lead/nuovo', name: 'app_lead_nuovo')]
@@ -34,13 +55,29 @@ class LeadController extends AbstractController
             $em->flush();
             $this->addFlash('success', 'Lead creato.');
 
-            return $this->redirectToRoute('app_lead_index');
+            return $this->redirectToRoute('app_lead_scheda', ['id' => $lead->getId()]);
         }
 
         return $this->render('lead/form.html.twig', [
             'form' => $form,
             'lead' => $lead,
             'titolo' => 'Nuovo lead',
+        ]);
+    }
+
+    #[Route('/lead/{id}', name: 'app_lead_scheda', requirements: ['id' => '\d+'])]
+    public function scheda(Lead $lead, Request $request, EntityManagerInterface $em): Response
+    {
+        $attivita = new Attivita();
+        $formAttivita = $this->createForm(AttivitaType::class, $attivita, [
+            'action' => $this->generateUrl('app_lead_attivita_nuova', ['id' => $lead->getId()]),
+        ]);
+
+        return $this->render('lead/scheda.html.twig', [
+            'lead' => $lead,
+            'form_attivita' => $formAttivita,
+            'stati' => StatoLead::colonneKanban(),
+            'agenti' => $em->getRepository(Utente::class)->findBy([], ['nome' => 'ASC']),
         ]);
     }
 
@@ -54,7 +91,7 @@ class LeadController extends AbstractController
             $em->flush();
             $this->addFlash('success', 'Lead aggiornato.');
 
-            return $this->redirectToRoute('app_lead_index');
+            return $this->redirectToRoute('app_lead_scheda', ['id' => $lead->getId()]);
         }
 
         return $this->render('lead/form.html.twig', [
@@ -62,5 +99,74 @@ class LeadController extends AbstractController
             'lead' => $lead,
             'titolo' => 'Modifica lead',
         ]);
+    }
+
+    #[Route('/lead/{id}/stato', name: 'app_lead_stato', requirements: ['id' => '\d+'], methods: ['POST'])]
+    public function cambiaStato(Lead $lead, Request $request, EntityManagerInterface $em): Response
+    {
+        if (!$this->isCsrfTokenValid('lead_stato_' . $lead->getId(), (string) $request->request->get('_token'))) {
+            return new JsonResponse(['ok' => false, 'errore' => 'Token non valido'], 400);
+        }
+
+        $nuovo = StatoLead::tryFrom((string) $request->request->get('stato'));
+        if ($nuovo === null) {
+            return new JsonResponse(['ok' => false, 'errore' => 'Stato non valido'], 400);
+        }
+
+        $lead->setStato($nuovo);
+        $em->flush();
+
+        if ($request->isXmlHttpRequest()) {
+            return new JsonResponse(['ok' => true, 'stato' => $nuovo->value, 'label' => $nuovo->label()]);
+        }
+
+        $this->addFlash('success', 'Stato aggiornato a "' . $nuovo->label() . '".');
+
+        return $this->redirectToRoute('app_lead_scheda', ['id' => $lead->getId()]);
+    }
+
+    #[Route('/lead/{id}/assegna', name: 'app_lead_assegna', requirements: ['id' => '\d+'], methods: ['POST'])]
+    public function assegna(Lead $lead, Request $request, EntityManagerInterface $em): Response
+    {
+        if ($this->isCsrfTokenValid('lead_assegna_' . $lead->getId(), (string) $request->request->get('_token'))) {
+            $idAgente = $request->request->get('assegnatario');
+            $agente = $idAgente ? $em->getRepository(Utente::class)->find($idAgente) : null;
+            $lead->setAssegnatario($agente);
+            $em->flush();
+            $this->addFlash('success', 'Assegnazione aggiornata.');
+        }
+
+        return $this->redirectToRoute('app_lead_scheda', ['id' => $lead->getId()]);
+    }
+
+    #[Route('/lead/{id}/attivita', name: 'app_lead_attivita_nuova', requirements: ['id' => '\d+'], methods: ['POST'])]
+    public function nuovaAttivita(Lead $lead, Request $request, EntityManagerInterface $em): Response
+    {
+        $attivita = new Attivita();
+        $form = $this->createForm(AttivitaType::class, $attivita);
+        $form->handleRequest($request);
+
+        if ($form->isSubmitted() && $form->isValid()) {
+            $attivita->setLead($lead);
+            if ($attivita->getAssegnatario() === null) {
+                $attivita->setAssegnatario($this->getUser() instanceof Utente ? $this->getUser() : null);
+            }
+            $em->persist($attivita);
+            $em->flush();
+            $this->addFlash('success', 'Attività registrata.');
+        }
+
+        return $this->redirectToRoute('app_lead_scheda', ['id' => $lead->getId()]);
+    }
+
+    #[Route('/attivita/{id}/toggle', name: 'app_attivita_toggle', requirements: ['id' => '\d+'], methods: ['POST'])]
+    public function toggleAttivita(Attivita $attivita, Request $request, EntityManagerInterface $em): Response
+    {
+        if ($this->isCsrfTokenValid('attivita_toggle_' . $attivita->getId(), (string) $request->request->get('_token'))) {
+            $attivita->setCompletata(!$attivita->isCompletata());
+            $em->flush();
+        }
+
+        return $this->redirectToRoute('app_lead_scheda', ['id' => $attivita->getLead()->getId()]);
     }
 }

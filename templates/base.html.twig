@@ -134,6 +134,31 @@
             .field-error, .card-pad ul li { color: var(--danger); font-size: 12px; list-style: none; }
             .card-pad ul { padding: 0; margin: 4px 0 0; }
 
+            /* Kanban */
+            .kanban { display: flex; gap: 14px; overflow-x: auto; padding-bottom: 8px; align-items: flex-start; }
+            .kb-col { flex: 0 0 260px; background: #eef1f6; border-radius: 12px; display: flex; flex-direction: column; max-height: calc(100vh - 150px); }
+            .kb-col-head { padding: 12px 14px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; }
+            .kb-count { background: #fff; border-radius: 20px; padding: 1px 9px; font-size: 12px; font-weight: 700; color: var(--muted); }
+            .kb-body { padding: 0 10px 10px; display: flex; flex-direction: column; gap: 9px; overflow-y: auto; min-height: 40px; }
+            .kb-body.drag-over { background: rgba(31,159,214,.10); border-radius: 8px; outline: 2px dashed var(--cyan); outline-offset: -4px; }
+            .kb-card {
+                background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 11px 12px;
+                box-shadow: 0 1px 2px rgba(15,37,64,.05); cursor: grab; transition: box-shadow .12s, transform .06s;
+            }
+            .kb-card:hover { box-shadow: 0 4px 14px rgba(15,37,64,.10); }
+            .kb-card.dragging { opacity: .5; }
+            .kb-card .nome { font-weight: 700; margin-bottom: 3px; }
+            .kb-card .meta { color: var(--muted); font-size: 12px; display: flex; flex-wrap: wrap; gap: 4px 10px; }
+            .kb-card .foot { display: flex; align-items: center; justify-content: space-between; margin-top: 9px; }
+            .avatar-sm { width: 22px; height: 22px; border-radius: 50%; background: var(--cyan); color: #fff; display: grid; place-items: center; font-size: 10px; font-weight: 700; }
+
+            /* Timeline */
+            .timeline { position: relative; padding-left: 22px; }
+            .timeline::before { content: ""; position: absolute; left: 6px; top: 4px; bottom: 4px; width: 2px; background: var(--line); }
+            .tl-item { position: relative; padding: 0 0 16px; }
+            .tl-item::before { content: ""; position: absolute; left: -20px; top: 3px; width: 12px; height: 12px; border-radius: 50%; background: var(--cyan); border: 2px solid #fff; box-shadow: 0 0 0 1px var(--line); }
+            .tl-item.done::before { background: var(--ok); }
+
             .demo-flag {
                 background: var(--brand); color: #fff; font-size: 10px; font-weight: 800;
                 text-transform: uppercase; letter-spacing: .06em; padding: 3px 8px; border-radius: 6px;

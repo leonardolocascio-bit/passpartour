@@ -1,0 +1,138 @@
+{% extends 'app.html.twig' %}
+
+{% block title %}{{ lead.nomeCompleto }} · Passpartour{% endblock %}
+{% block page_title %}Scheda lead{% endblock %}
+
+{% block main %}
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;gap:12px;flex-wrap:wrap">
+    <div style="display:flex;align-items:center;gap:12px">
+        <a class="btn" href="{{ path('app_lead_index') }}">← Pipeline</a>
+        <h2 style="font-size:20px">{{ lead.nomeCompleto }}</h2>
+        <span class="badge dot badge-{{ lead.stato.value }}">{{ lead.stato.label }}</span>
+    </div>
+    <a class="btn" href="{{ path('app_lead_modifica', {id: lead.id}) }}">Modifica dati</a>
+</div>
+
+<div style="display:grid;grid-template-columns:340px 1fr;gap:16px;align-items:start">
+
+    {# ---- Colonna sinistra: dati + azioni ---- #}
+    <div style="display:grid;gap:16px">
+        <div class="card">
+            <div class="card-pad" style="border-bottom:1px solid var(--line)"><h3>Contatti</h3></div>
+            <div class="card-pad" style="display:grid;gap:10px">
+                {% set rows = {
+                    'Email': lead.email, 'Telefono': lead.telefono,
+                    'Destinazione': lead.destinazione, 'Periodo': lead.periodo,
+                    'Passeggeri': lead.numeroPasseggeri,
+                    'Budget': lead.budgetIndicativo ? '€ ' ~ lead.budgetIndicativo|number_format(0, ',', '.') : null,
+                    'Fonte': lead.fonte.label,
+                    'Campagna': lead.campagna ? lead.campagna.nome : null,
+                } %}
+                {% for label, val in rows %}
+                    <div style="display:flex;justify-content:space-between;gap:12px;font-size:13px">
+                        <span class="muted">{{ label }}</span>
+                        <span style="font-weight:600;text-align:right">{{ val ?: '—' }}</span>
+                    </div>
+                {% endfor %}
+                <div style="display:flex;justify-content:space-between;gap:12px;font-size:13px">
+                    <span class="muted">Consenso marketing</span>
+                    <span style="font-weight:600">{% if lead.consensoMarketing %}✓ Sì{% else %}—{% endif %}</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;gap:12px;font-size:12px" class="muted">
+                    <span>Creato</span><span>{{ lead.createdAt|date('d/m/Y H:i') }}</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-pad" style="display:grid;gap:14px">
+                <div>
+                    <label style="font-weight:600;font-size:13px;display:block;margin-bottom:5px">Stato</label>
+                    <form method="post" action="{{ path('app_lead_stato', {id: lead.id}) }}">
+                        <input type="hidden" name="_token" value="{{ csrf_token('lead_stato_' ~ lead.id) }}">
+                        <select name="stato" onchange="this.form.submit()">
+                            {% for s in stati %}
+                                <option value="{{ s.value }}" {{ s == lead.stato ? 'selected' }}>{{ s.label }}</option>
+                            {% endfor %}
+                        </select>
+                    </form>
+                </div>
+                <div>
+                    <label style="font-weight:600;font-size:13px;display:block;margin-bottom:5px">Assegnatario</label>
+                    <form method="post" action="{{ path('app_lead_assegna', {id: lead.id}) }}">
+                        <input type="hidden" name="_token" value="{{ csrf_token('lead_assegna_' ~ lead.id) }}">
+                        <select name="assegnatario" onchange="this.form.submit()">
+                            <option value="">— non assegnato —</option>
+                            {% for a in agenti %}
+                                <option value="{{ a.id }}" {{ lead.assegnatario and a.id == lead.assegnatario.id ? 'selected' }}>{{ a.nomeCompleto }}</option>
+                            {% endfor %}
+                        </select>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {# ---- Colonna destra: attività + preventivi ---- #}
+    <div style="display:grid;gap:16px">
+        <div class="card">
+            <div class="card-pad" style="border-bottom:1px solid var(--line)"><h3>Nuova attività</h3></div>
+            <div class="card-pad">
+                {{ form_start(form_attivita) }}
+                <div style="display:grid;grid-template-columns:180px 1fr;gap:12px 14px">
+                    <div>{{ form_row(form_attivita.tipo) }}</div>
+                    <div>{{ form_row(form_attivita.titolo) }}</div>
+                    <div style="grid-column:1/-1">{{ form_row(form_attivita.descrizione) }}</div>
+                    <div>{{ form_row(form_attivita.dataScadenza) }}</div>
+                </div>
+                <div style="margin-top:14px"><button class="btn btn-primary">Registra attività</button></div>
+                {{ form_end(form_attivita) }}
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-pad" style="border-bottom:1px solid var(--line)"><h3>Timeline attività</h3></div>
+            <div class="card-pad">
+                {% if lead.attivita|length > 0 %}
+                    <div class="timeline">
+                        {% for a in lead.attivita %}
+                            <div class="tl-item {{ a.completata ? 'done' }}">
+                                <div style="display:flex;justify-content:space-between;gap:10px;align-items:baseline">
+                                    <div style="font-weight:600">
+                                        <span class="badge" style="font-size:11px">{{ a.tipo.label }}</span>
+                                        {{ a.titolo }}
+                                    </div>
+                                    <form method="post" action="{{ path('app_attivita_toggle', {id: a.id}) }}">
+                                        <input type="hidden" name="_token" value="{{ csrf_token('attivita_toggle_' ~ a.id) }}">
+                                        <button class="btn" style="padding:4px 9px;font-size:12px">
+                                            {{ a.completata ? '✓ Fatta' : 'Da fare' }}
+                                        </button>
+                                    </form>
+                                </div>
+                                {% if a.descrizione %}<div class="muted" style="font-size:13px;margin-top:3px">{{ a.descrizione }}</div>{% endif %}
+                                <div class="muted" style="font-size:12px;margin-top:4px">
+                                    {{ a.createdAt|date('d/m/Y H:i') }}
+                                    {% if a.assegnatario %} · {{ a.assegnatario.nomeCompleto }}{% endif %}
+                                    {% if a.dataScadenza %} · promemoria {{ a.dataScadenza|date('d/m/Y H:i') }}{% endif %}
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="muted" style="margin:0">Nessuna attività registrata. Aggiungi la prima qui sopra.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-pad" style="display:flex;justify-content:space-between;align-items:center">
+                <div>
+                    <h3>Preventivi</h3>
+                    <p class="muted" style="margin:4px 0 0;font-size:13px">{{ lead.preventivi|length }} preventivo/i collegati</p>
+                </div>
+                <a class="btn" href="{{ path('app_preventivo_index') }}">Vai ai preventivi</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

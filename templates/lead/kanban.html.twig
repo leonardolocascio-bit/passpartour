@@ -1,0 +1,94 @@
+{% extends 'app.html.twig' %}
+
+{% block title %}Lead · Passpartour{% endblock %}
+{% block page_title %}Pipeline lead{% endblock %}
+
+{% block main %}
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;gap:12px;flex-wrap:wrap">
+    <div style="display:flex;gap:6px">
+        <a class="btn btn-primary" href="{{ path('app_lead_index') }}">▤ Kanban</a>
+        <a class="btn" href="{{ path('app_lead_lista') }}">☰ Lista</a>
+    </div>
+    <div style="display:flex;gap:8px">
+        <a class="btn" href="{{ path('app_lead_integrazioni') }}">◈ Integrazioni</a>
+        <a class="btn" href="{{ path('app_lead_importa') }}">↥ Importa CSV</a>
+        <a class="btn btn-primary" href="{{ path('app_lead_nuovo') }}">+ Nuovo lead</a>
+    </div>
+</div>
+
+<div class="kanban" id="kanban">
+    {% for key, col in colonne %}
+        <div class="kb-col">
+            <div class="kb-col-head">
+                <span class="badge dot badge-{{ key }}">{{ col.stato.label }}</span>
+                <span class="kb-count">{{ col.lead|length }}</span>
+            </div>
+            <div class="kb-body" data-stato="{{ key }}">
+                {% for l in col.lead %}
+                    <div class="kb-card" draggable="true"
+                         data-id="{{ l.id }}"
+                         data-token="{{ csrf_token('lead_stato_' ~ l.id) }}"
+                         data-href="{{ path('app_lead_scheda', {id: l.id}) }}">
+                        <div class="nome">{{ l.nomeCompleto }}</div>
+                        <div class="meta">
+                            {% if l.destinazione %}<span>✈ {{ l.destinazione }}</span>{% endif %}
+                            {% if l.budgetIndicativo %}<span>€ {{ l.budgetIndicativo|number_format(0, ',', '.') }}</span>{% endif %}
+                        </div>
+                        <div class="foot">
+                            <span class="badge" style="font-size:11px">{{ l.fonte.label }}</span>
+                            {% if l.assegnatario %}
+                                <span class="avatar-sm" title="{{ l.assegnatario.nomeCompleto }}">{{ l.assegnatario.nome|first|upper }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    {% endfor %}
+</div>
+
+<script>
+(function () {
+    const kanban = document.getElementById('kanban');
+    let dragged = null;
+
+    kanban.querySelectorAll('.kb-card').forEach(card => {
+        card.addEventListener('dragstart', () => { dragged = card; card.classList.add('dragging'); });
+        card.addEventListener('dragend', () => { card.classList.remove('dragging'); dragged = null; });
+        // click sulla card (non durante il drag) apre la scheda
+        card.addEventListener('click', () => { window.location = card.dataset.href; });
+    });
+
+    kanban.querySelectorAll('.kb-body').forEach(body => {
+        body.addEventListener('dragover', e => { e.preventDefault(); body.classList.add('drag-over'); });
+        body.addEventListener('dragleave', () => body.classList.remove('drag-over'));
+        body.addEventListener('drop', async e => {
+            e.preventDefault();
+            body.classList.remove('drag-over');
+            if (!dragged) return;
+            const nuovoStato = body.dataset.stato;
+            const id = dragged.dataset.id;
+            const token = dragged.dataset.token;
+            body.appendChild(dragged); // sposta subito (ottimistico)
+            aggiornaConteggi();
+            try {
+                const r = await fetch('/lead/' + id + '/stato', {
+                    method: 'POST',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest', 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: 'stato=' + encodeURIComponent(nuovoStato) + '&_token=' + encodeURIComponent(token),
+                });
+                if (!r.ok) throw new Error('stato ' + r.status);
+            } catch (err) {
+                location.reload(); // in caso di errore ricarico lo stato reale
+            }
+        });
+    });
+
+    function aggiornaConteggi() {
+        kanban.querySelectorAll('.kb-col').forEach(col => {
+            col.querySelector('.kb-count').textContent = col.querySelectorAll('.kb-card').length;
+        });
+    }
+})();
+</script>
+{% endblock %}
