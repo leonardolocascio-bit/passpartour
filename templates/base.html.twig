@@ -4,7 +4,7 @@
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <title>{% block title %}Passpartour{% endblock %}</title>
-        <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2288%22>✈️</text></svg>">
+        <link rel="icon" type="image/png" href="{{ asset('images/favicon.png') }}">
         {% block stylesheets %}
         <style>
             :root {
@@ -49,15 +49,10 @@
                 position: sticky; top: 0; height: 100vh;
             }
             .brand {
-                display: flex; align-items: center; gap: 10px;
-                padding: 20px 20px 16px; font-weight: 800; font-size: 18px; color: #fff;
-                letter-spacing: -.02em;
+                display: flex; align-items: center;
+                padding: 22px 20px 18px;
             }
-            .brand .logo {
-                width: 32px; height: 32px; border-radius: 9px;
-                background: linear-gradient(135deg, var(--navy-600) 0%, var(--cyan) 45%, var(--brand) 88%);
-                display: grid; place-items: center; font-size: 16px;
-            }
+            .brand-logo { height: 30px; width: auto; display: block; }
             .nav { padding: 8px; display: flex; flex-direction: column; gap: 2px; flex: 1; }
             .nav a {
                 display: flex; align-items: center; gap: 11px;
