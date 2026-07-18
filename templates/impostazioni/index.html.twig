@@ -1,0 +1,58 @@
+{% extends 'app.html.twig' %}
+
+{% block title %}Impostazioni · Passpartour{% endblock %}
+{% block page_title %}Impostazioni{% endblock %}
+
+{% block main %}
+<div style="max-width:760px;display:grid;gap:16px">
+    <div style="display:flex;gap:6px">
+        <a class="btn" href="{{ path('app_agenda') }}">← Agenda</a>
+    </div>
+
+    <div class="card">
+        <div class="card-pad" style="border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px">
+            <span style="font-size:20px">🗓</span>
+            <div>
+                <h3>Google Calendar</h3>
+                <p class="muted" style="margin:2px 0 0;font-size:13px">Sincronizzazione bidirezionale tra le attività dell'agenda e il tuo calendario Google.</p>
+            </div>
+        </div>
+        <div class="card-pad">
+            {% if not google_configurato %}
+                <div class="card-pad" style="background:#fff3e2;color:#c07d1e;border-radius:9px;margin-bottom:14px;font-size:13px">
+                    Integrazione non ancora configurata. Servono le credenziali OAuth di un progetto Google Cloud.
+                </div>
+                <ol class="muted" style="font-size:13px;line-height:1.9;padding-left:18px;margin:0">
+                    <li>Su <b>Google Cloud Console</b> → API e servizi → abilita <b>Google Calendar API</b>.</li>
+                    <li>Crea credenziali → <b>ID client OAuth</b> → tipo <b>App web</b>.</li>
+                    <li>Aggiungi come <b>URI di reindirizzamento autorizzato</b>:<br>
+                        <code style="font-size:12px">{{ url('app_impostazioni_google_callback') }}</code></li>
+                    <li>Copia ID client e secret in <code>.env</code> (<code>GOOGLE_OAUTH_CLIENT_ID</code>, <code>GOOGLE_OAUTH_CLIENT_SECRET</code>) e ricarica.</li>
+                </ol>
+            {% elseif collegamento is null %}
+                <p class="muted" style="margin:0 0 14px;font-size:14px">Collega il tuo account Google per sincronizzare le attività dell'agenda.</p>
+                <a class="btn btn-primary" href="{{ path('app_impostazioni_google_connetti') }}">Collega Google Calendar</a>
+            {% else %}
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+                    <span class="badge badge-vinto">● Collegato</span>
+                    <span class="muted" style="font-size:13px">dal {{ collegamento.collegatoIl|date('d/m/Y H:i') }}</span>
+                </div>
+                <div style="display:flex;gap:8px;align-items:center">
+                    <form method="post" action="{{ path('app_impostazioni_google_sincronizza') }}">
+                        <input type="hidden" name="_token" value="{{ csrf_token('google_sincronizza') }}">
+                        <button class="btn btn-primary">↻ Sincronizza ora</button>
+                    </form>
+                    <form method="post" action="{{ path('app_impostazioni_google_disconnetti') }}" onsubmit="return confirm('Scollegare Google Calendar?')">
+                        <input type="hidden" name="_token" value="{{ csrf_token('google_disconnetti') }}">
+                        <button class="btn">Scollega</button>
+                    </form>
+                </div>
+                <p class="muted" style="font-size:12px;margin:14px 0 0">
+                    Le attività con scadenza vengono create come eventi su Google; modifiche e cancellazioni fatte su Google aggiornano le attività collegate.
+                    Per la sincronizzazione automatica pianifica <code>php bin/console app:google:sincronizza</code> (es. ogni 10 minuti).
+                </p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

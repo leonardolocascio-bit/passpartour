@@ -5,13 +5,27 @@ namespace App\Controller;
 use App\Entity\Attivita;
 use App\Entity\RegolaNurturing;
 use App\Enum\StatoLead;
+use App\Service\CalendarioService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 
 class AgendaController extends AbstractController
 {
+    #[Route('/agenda/calendario/{vista}', name: 'app_agenda_calendario', requirements: ['vista' => 'giorno|settimana|mese|anno'])]
+    public function calendario(string $vista, Request $request, CalendarioService $cal): Response
+    {
+        try {
+            $rif = new \DateTimeImmutable($request->query->get('data') ?: 'today');
+        } catch (\Exception) {
+            $rif = new \DateTimeImmutable('today');
+        }
+
+        return $this->render('agenda/calendario.html.twig', $cal->calcola($vista, $rif));
+    }
+
     #[Route('/agenda', name: 'app_agenda')]
     public function agenda(EntityManagerInterface $em): Response
     {

@@ -1,0 +1,10 @@
+{# Tab di navigazione agenda. Parametri: attiva ('lista'|'giorno'|...), rif (DateTimeImmutable, opz.) #}
+{% set d = rif is defined ? rif|date('Y-m-d') : "now"|date('Y-m-d') %}
+{% set att = attiva|default('lista') %}
+<div style="display:flex;gap:6px;flex-wrap:wrap">
+    <a class="btn {{ att == 'lista' ? 'btn-primary' }}" href="{{ path('app_agenda') }}">☰ Lista</a>
+    <a class="btn {{ att == 'giorno' ? 'btn-primary' }}" href="{{ path('app_agenda_calendario', {vista: 'giorno', data: d}) }}">Giorno</a>
+    <a class="btn {{ att == 'settimana' ? 'btn-primary' }}" href="{{ path('app_agenda_calendario', {vista: 'settimana', data: d}) }}">Settimana</a>
+    <a class="btn {{ att == 'mese' ? 'btn-primary' }}" href="{{ path('app_agenda_calendario', {vista: 'mese', data: d}) }}">Mese</a>
+    <a class="btn {{ att == 'anno' ? 'btn-primary' }}" href="{{ path('app_agenda_calendario', {vista: 'anno', data: d}) }}">Anno</a>
+</div>

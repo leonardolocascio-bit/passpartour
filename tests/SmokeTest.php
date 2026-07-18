@@ -17,7 +17,11 @@ class SmokeTest extends WebTestCase
 
         $client->loginUser($master);
 
-        foreach (['/', '/lead', '/lead/lista', '/agenda', '/automazioni', '/preventivi', '/campagne', '/clienti'] as $url) {
+        $urls = [
+            '/', '/lead', '/lead/lista', '/agenda', '/automazioni', '/preventivi', '/campagne', '/clienti', '/impostazioni',
+            '/agenda/calendario/giorno', '/agenda/calendario/settimana', '/agenda/calendario/mese', '/agenda/calendario/anno',
+        ];
+        foreach ($urls as $url) {
             $client->request('GET', $url);
             self::assertResponseIsSuccessful("La pagina $url deve rendere 200");
         }

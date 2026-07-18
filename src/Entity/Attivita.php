@@ -44,6 +44,10 @@ class Attivita
     #[ORM\Column]
     private \DateTimeImmutable $createdAt;
 
+    /** ID dell'evento corrispondente su Google Calendar (sync). */
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $googleEventId = null;
+
     public function __construct()
     {
         $this->createdAt = new \DateTimeImmutable();
@@ -153,5 +157,17 @@ class Attivita
     public function getCreatedAt(): \DateTimeImmutable
     {
         return $this->createdAt;
+    }
+
+    public function getGoogleEventId(): ?string
+    {
+        return $this->googleEventId;
+    }
+
+    public function setGoogleEventId(?string $googleEventId): static
+    {
+        $this->googleEventId = $googleEventId;
+
+        return $this;
     }
 }

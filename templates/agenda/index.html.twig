@@ -25,6 +25,10 @@
 {% endmacro %}
 
 {% block main %}
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;gap:12px;flex-wrap:wrap">
+    {{ include('agenda/_tabs.html.twig', {attiva: 'lista'}) }}
+    <a class="btn" href="{{ path('app_automazioni') }}">◈ Automazioni</a>
+</div>
 {% if totale == 0 %}
     <div class="card"><div class="card-pad muted" style="text-align:center;padding:36px">
         🎉 Nessuna azione in sospeso. Tutto sotto controllo.
@@ -54,7 +58,4 @@
     </div>
 {% endif %}
 
-<div style="margin-top:16px">
-    <a class="btn" href="{{ path('app_automazioni') }}">◈ Regole di automazione</a>
-</div>
 {% endblock %}

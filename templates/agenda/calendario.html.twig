@@ -1,0 +1,96 @@
+{% extends 'app.html.twig' %}
+
+{% block title %}Agenda · Passpartour{% endblock %}
+{% block page_title %}Agenda · calendario{% endblock %}
+
+{% set tipoColore = {'chiamata': '#1f9fd6', 'email': '#1c5099', 'whatsapp': '#1f9d54', 'appuntamento': '#ea5b24', 'nota': '#f6a41f'} %}
+
+{% macro chip(a, tipoColore, full) %}
+    <a class="cal-chip" style="background:{{ tipoColore[a.tipo.value] ?? '#6a7788' }}{{ a.completata ? ';opacity:.5;text-decoration:line-through' }}"
+       href="{{ path('app_lead_scheda', {id: a.lead.id}) }}"
+       title="{{ a.tipo.label }} · {{ a.titolo }} · {{ a.lead.nomeCompleto }}">{{ full and a.dataScadenza|date('H:i') != '00:00' ? a.dataScadenza|date('H:i') ~ ' ' }}{{ a.titolo }}</a>
+{% endmacro %}
+{% import _self as ui %}
+
+{% block main %}
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;gap:12px;flex-wrap:wrap">
+    {{ include('agenda/_tabs.html.twig', {attiva: vista, rif: rif}) }}
+    <a class="btn" href="{{ path('app_impostazioni') }}">🗓 Google Calendar</a>
+</div>
+
+<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+    <a class="btn" href="{{ path('app_agenda_calendario', {vista: vista, data: prev|date('Y-m-d')}) }}">←</a>
+    <a class="btn" href="{{ path('app_agenda_calendario', {vista: vista, data: oggi|date('Y-m-d')}) }}">Oggi</a>
+    <a class="btn" href="{{ path('app_agenda_calendario', {vista: vista, data: next|date('Y-m-d')}) }}">→</a>
+    <h2 style="font-size:18px;margin-left:6px">{{ titolo }}</h2>
+</div>
+
+{% if vista == 'giorno' %}
+    <div class="card"><div class="card-pad">
+        {% if attivita|length > 0 %}
+            <div style="display:grid;gap:10px">
+                {% for a in attivita %}
+                    <div style="display:flex;align-items:center;gap:12px">
+                        <span style="width:8px;height:8px;border-radius:50%;background:{{ tipoColore[a.tipo.value] ?? '#6a7788' }}"></span>
+                        <span class="muted" style="width:44px;font-size:12px">{{ a.dataScadenza|date('H:i') != '00:00' ? a.dataScadenza|date('H:i') : '—' }}</span>
+                        <span class="badge" style="font-size:11px">{{ a.tipo.label }}</span>
+                        <span style="font-weight:600;{{ a.completata ? 'text-decoration:line-through;color:var(--muted)' }}">{{ a.titolo }}</span>
+                        <a href="{{ path('app_lead_scheda', {id: a.lead.id}) }}" class="muted" style="font-size:13px">· {{ a.lead.nomeCompleto }}</a>
+                        {% if a.automatica %}<span class="badge" style="background:#eaf3fb;color:#1c5099;font-size:10px">auto</span>{% endif %}
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="muted" style="margin:0;text-align:center;padding:24px">Nessuna attività in questo giorno.</p>
+        {% endif %}
+    </div></div>
+
+{% elseif vista == 'settimana' %}
+    <div class="cal-head">
+        {% for g in giorni %}<div>{{ giorni_settimana[loop.index0] }} {{ g.data|date('d') }}</div>{% endfor %}
+    </div>
+    <div class="cal-week">
+        {% for g in giorni %}
+            <div class="cal-week-col {{ g.oggi ? 'oggi' }}">
+                {% for a in g.attivita %}{{ ui.chip(a, tipoColore, true) }}{% else %}<span class="cal-more">—</span>{% endfor %}
+            </div>
+        {% endfor %}
+    </div>
+
+{% elseif vista == 'anno' %}
+    <div class="cal-year">
+        {% for m in mesi %}
+            <a class="card" style="text-decoration:none;color:inherit" href="{{ path('app_agenda_calendario', {vista: 'mese', data: m.data|date('Y-m-d')}) }}">
+                <div class="card-pad" style="padding:12px 14px">
+                    <div style="display:flex;justify-content:space-between;align-items:baseline">
+                        <span style="font-weight:700">{{ m.nome }}</span>
+                        <span class="badge" style="{{ m.count > 0 ? 'background:var(--brand);color:#fff' }}">{{ m.count }}</span>
+                    </div>
+                    <div class="mini-grid">
+                        {% for _ in 1..m.offset %}<span class="mini-day"></span>{% endfor %}
+                        {% for g in 1..m.giorni_totali %}
+                            <span class="mini-day {{ m.giorni_con_attivita[g] is defined ? 'has' }}">{{ g }}</span>
+                        {% endfor %}
+                    </div>
+                </div>
+            </a>
+        {% endfor %}
+    </div>
+
+{% else %}
+    <div class="cal-head">
+        {% for g in giorni_settimana %}<div>{{ g }}</div>{% endfor %}
+    </div>
+    <div class="cal-month">
+        {% for settimana in settimane %}
+            {% for cella in settimana %}
+                <div class="cal-cell {{ cella.in_mese ? '' : 'fuori' }} {{ cella.oggi ? 'oggi' }}">
+                    <div class="cal-daynum">{{ cella.data|date('j') }}</div>
+                    {% for a in cella.attivita|slice(0, 3) %}{{ ui.chip(a, tipoColore, false) }}{% endfor %}
+                    {% if cella.attivita|length > 3 %}<div class="cal-more">+{{ cella.attivita|length - 3 }} altre</div>{% endif %}
+                </div>
+            {% endfor %}
+        {% endfor %}
+    </div>
+{% endif %}
+{% endblock %}
