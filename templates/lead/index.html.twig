@@ -5,19 +5,23 @@
 
 {% block main %}
 <div class="card">
-    <div class="card-pad" style="border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center">
+    <div class="card-pad" style="border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
         <h3>Tutti i lead <span class="muted" style="font-weight:500">({{ lead|length }})</span></h3>
-        <span class="muted" style="font-size:12px">Kanban e scheda lead arrivano nella milestone CRM</span>
+        <div style="display:flex;gap:8px">
+            <a class="btn" href="{{ path('app_lead_integrazioni') }}">◈ Integrazioni</a>
+            <a class="btn" href="{{ path('app_lead_importa') }}">↥ Importa CSV</a>
+            <a class="btn btn-primary" href="{{ path('app_lead_nuovo') }}">+ Nuovo lead</a>
+        </div>
     </div>
     <table class="grid-table">
         <thead><tr>
             <th>Nome</th><th>Contatti</th><th>Destinazione</th><th>Periodo</th>
-            <th>Budget</th><th>Fonte</th><th>Assegnatario</th><th>Stato</th>
+            <th>Budget</th><th>Fonte</th><th>Assegnatario</th><th>Stato</th><th></th>
         </tr></thead>
         <tbody>
         {% for l in lead %}
             <tr>
-                <td style="font-weight:600">{{ l.nomeCompleto }}</td>
+                <td style="font-weight:600"><a href="{{ path('app_lead_modifica', {id: l.id}) }}">{{ l.nomeCompleto }}</a></td>
                 <td class="muted" style="font-size:12px">
                     {{ l.email ?: '' }}{% if l.email and l.telefono %}<br>{% endif %}{{ l.telefono ?: '' }}
                 </td>
@@ -27,9 +31,10 @@
                 <td class="muted">{{ l.fonte.label }}</td>
                 <td class="muted">{{ l.assegnatario ? l.assegnatario.nomeCompleto : '—' }}</td>
                 <td><span class="badge dot badge-{{ l.stato.value }}">{{ l.stato.label }}</span></td>
+                <td style="text-align:right"><a class="muted" href="{{ path('app_lead_modifica', {id: l.id}) }}">Modifica</a></td>
             </tr>
         {% else %}
-            <tr><td colspan="8" class="muted" style="text-align:center;padding:28px">Nessun lead. Arriveranno dalle campagne di lead gen.</td></tr>
+            <tr><td colspan="9" class="muted" style="text-align:center;padding:28px">Nessun lead. Crea il primo o importalo dalle campagne.</td></tr>
         {% endfor %}
         </tbody>
     </table>

@@ -1,0 +1,37 @@
+{% extends 'app.html.twig' %}
+
+{% block title %}{{ titolo }} · Passpartour{% endblock %}
+{% block page_title %}{{ titolo }}{% endblock %}
+
+{% block main %}
+<div class="card" style="max-width:780px">
+    <div class="card-pad">
+        {{ form_start(form) }}
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px 18px">
+            <div>{{ form_row(form.nome) }}</div>
+            <div>{{ form_row(form.cognome) }}</div>
+            <div>{{ form_row(form.email) }}</div>
+            <div>{{ form_row(form.telefono) }}</div>
+            <div>{{ form_row(form.fonte) }}</div>
+            <div>{{ form_row(form.campagna) }}</div>
+            <div>{{ form_row(form.destinazione) }}</div>
+            <div>{{ form_row(form.periodo) }}</div>
+            <div>{{ form_row(form.numeroPasseggeri) }}</div>
+            <div>{{ form_row(form.budgetIndicativo) }}</div>
+            <div>{{ form_row(form.assegnatario) }}</div>
+            <div>{{ form_row(form.stato) }}</div>
+            <div style="grid-column:1/-1">{{ form_row(form.note) }}</div>
+            <div style="grid-column:1/-1">
+                <label style="display:flex;align-items:center;gap:8px;font-weight:500;cursor:pointer">
+                    {{ form_widget(form.consensoMarketing) }} Consenso al trattamento per marketing
+                </label>
+            </div>
+        </div>
+        <div style="margin-top:20px;display:flex;gap:10px">
+            <button type="submit" class="btn btn-primary">Salva</button>
+            <a class="btn" href="{{ path('app_lead_index') }}">Annulla</a>
+        </div>
+        {{ form_end(form) }}
+    </div>
+</div>
+{% endblock %}

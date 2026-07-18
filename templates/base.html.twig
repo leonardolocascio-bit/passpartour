@@ -119,6 +119,21 @@
             table.grid-table tr:last-child td { border-bottom: none; }
             table.grid-table tr:hover td { background: #fafbfd; }
 
+            /* Form */
+            .card-pad input:not([type=checkbox]):not([type=submit]):not([type=file]),
+            .card-pad select, .card-pad textarea {
+                width: 100%; padding: 10px 12px; border: 1px solid var(--line); border-radius: 9px;
+                font-size: 14px; font-family: inherit; background: #fff; color: var(--ink);
+            }
+            .card-pad input:focus, .card-pad select:focus, .card-pad textarea:focus {
+                outline: none; border-color: var(--cyan); box-shadow: 0 0 0 3px rgba(31,159,214,.14);
+            }
+            .card-pad label { display: block; font-weight: 600; margin-bottom: 5px; font-size: 13px; }
+            .card-pad textarea { min-height: 80px; resize: vertical; }
+            .card-pad .form-help, .card-pad small { color: var(--muted); font-size: 12px; }
+            .field-error, .card-pad ul li { color: var(--danger); font-size: 12px; list-style: none; }
+            .card-pad ul { padding: 0; margin: 4px 0 0; }
+
             .demo-flag {
                 background: var(--brand); color: #fff; font-size: 10px; font-weight: 800;
                 text-transform: uppercase; letter-spacing: .06em; padding: 3px 8px; border-radius: 6px;

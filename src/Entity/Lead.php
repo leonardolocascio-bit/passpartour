@@ -4,11 +4,12 @@ namespace App\Entity;
 
 use App\Enum\FonteLead;
 use App\Enum\StatoLead;
+use App\Repository\LeadRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 
-#[ORM\Entity]
+#[ORM\Entity(repositoryClass: LeadRepository::class)]
 #[ORM\Table(name: 'lead')]
 #[ORM\Index(name: 'idx_lead_stato', columns: ['stato'])]
 class Lead
