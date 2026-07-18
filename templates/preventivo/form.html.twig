@@ -31,8 +31,8 @@
                 <label>Nome scenario</label>
                 <input type="text" name="preventivo[scenari][{{ s }}][nome]" value="{{ scenario ? scenario.nome }}" placeholder="Es. Comfort">
             </div>
-            <div style="width:120px">
-                <label>Ricarico %</label>
+            <div style="width:130px">
+                <label>Commissioni %</label>
                 <input type="text" inputmode="decimal" class="s-markup" name="preventivo[scenari][{{ s }}][markupPercentuale]" value="{{ scenario ? scenario.markupPercentuale : '0' }}">
             </div>
             <label style="display:flex;align-items:center;gap:7px;font-weight:500;padding-bottom:9px;cursor:pointer">
@@ -52,7 +52,7 @@
         </table>
         <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px">
             <button type="button" class="btn add-voce">+ Aggiungi voce</button>
-            <div class="s-totali muted" style="font-size:13px">Costo <b class="s-costo">€ 0</b> · Prezzo <b class="s-prezzo" style="color:var(--ink)">€ 0</b></div>
+            <div class="s-totali muted" style="font-size:13px">Costo <b class="s-costo">€ 0</b> · Commissioni <b class="s-commissioni" style="color:var(--brand)">€ 0</b> · Prezzo <b class="s-prezzo" style="color:var(--ink)">€ 0</b></div>
         </div>
     </div>
 </div>
@@ -116,8 +116,10 @@
             costo += q * c;
         });
         const markup = parseFloat((block.querySelector('.s-markup').value || '').replace(',', '.')) || 0;
+        const prezzo = costo * (1 + markup / 100);
         block.querySelector('.s-costo').textContent = fmt(costo);
-        block.querySelector('.s-prezzo').textContent = fmt(costo * (1 + markup / 100));
+        block.querySelector('.s-commissioni').textContent = fmt(prezzo - costo);
+        block.querySelector('.s-prezzo').textContent = fmt(prezzo);
     }
     function ricalcolaTutti() { cont.querySelectorAll('.scenario-block').forEach(ricalcola); }
 

@@ -1,0 +1,15 @@
+{# Icona di categoria voce in stile Passpartour, come immagine SVG (funziona su web e in PDF/dompdf). Parametri: categoria (enum), size (px, default 24) #}
+{% set size = size|default(24) %}
+{% set M = {
+    'volo':          {c: '#1f9fd6', b: '#e4f4fb', p: 'M22 16v-2l-8.5-5V3.5C13.5 2.67 12.83 2 12 2s-1.5.67-1.5 1.5V9L2 14v2l8.5-2.5V19L8 20.5V22l4-1 4 1v-1.5L13.5 19v-5.5L22 16z'},
+    'hotel':         {c: '#123a72', b: '#e9eff7', p: 'M17 11V3H7v4H3v14h8v-4h2v4h8V11h-4zM7 19H5v-2h2v2zm0-4H5v-2h2v2zm0-4H5V9h2v2zm4 8H9v-2h2v2zm0-4H9v-2h2v2zm0-4H9V9h2v2zm0-4H9V5h2v2zm4 8h-2v-2h2v2zm0-4h-2V9h2v2zm0-4h-2V5h2v2zm4 12h-2v-2h2v2zm0-4h-2v-2h2v2z'},
+    'transfer':      {c: '#1c5099', b: '#e9eff9', p: 'M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z'},
+    'escursione':    {c: '#ea5b24', b: '#fdece1', p: 'M20.5 3l-.16.03L15 5.1 9 3 3.36 4.9c-.21.07-.36.25-.36.48V20.5c0 .28.22.5.5.5l.16-.03L9 18.9l6 2.1 5.64-1.9c.21-.07.36-.25.36-.48V3.5c0-.28-.22-.5-.5-.5zM15 19l-6-2.11V5l6 2.11V19z'},
+    'assicurazione': {c: '#1f9d54', b: '#e6f6ec', p: 'M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z'},
+    'altro':         {c: '#f6a41f', b: '#fdf3e0', p: 'M21.41 11.58l-9-9C12.05 2.22 11.55 2 11 2H4c-1.1 0-2 .9-2 2v7c0 .55.22 1.05.59 1.42l9 9c.36.36.86.58 1.41.58s1.05-.22 1.41-.59l7-7c.37-.36.59-.86.59-1.41s-.23-1.05-.59-1.42zM5.5 7C4.67 7 4 6.33 4 5.5S4.67 4 5.5 4 7 4.67 7 5.5 6.33 7 5.5 7z'}
+} %}
+{% set i = M[categoria.value] ?? M['altro'] %}
+{%- set svgDoc -%}
+<svg xmlns="http://www.w3.org/2000/svg" width="{{ size }}" height="{{ size }}" viewBox="0 0 24 24"><rect width="24" height="24" rx="6" fill="{{ i.b }}"/><g transform="translate(4 4) scale(0.6667)"><path d="{{ i.p }}" fill="{{ i.c }}"/></g></svg>
+{%- endset -%}
+<img src="data:image/svg+xml;base64,{{ svgDoc|base64 }}" width="{{ size }}" height="{{ size }}" style="vertical-align:middle" alt="{{ categoria.label }}">

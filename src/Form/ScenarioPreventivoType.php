@@ -20,7 +20,7 @@ class ScenarioPreventivoType extends AbstractType
             ->add('nome', TextType::class, ['label' => 'Nome scenario', 'attr' => ['placeholder' => 'Es. Comfort']])
             ->add('descrizione', TextareaType::class, ['label' => 'Descrizione', 'required' => false])
             ->add('markupPercentuale', TextType::class, [
-                'label' => 'Ricarico %',
+                'label' => 'Commissioni %',
                 'attr' => ['inputmode' => 'decimal'],
                 'empty_data' => '0',
             ])

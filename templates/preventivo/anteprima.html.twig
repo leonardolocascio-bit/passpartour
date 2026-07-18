@@ -64,7 +64,10 @@
             <table class="voci-list">
                 {% for v in s.voci %}
                     <tr>
-                        <td>{{ v.descrizione ?: v.categoria.label }}{% if v.quantita > 1 %} <span class="muted">×{{ v.quantita }}</span>{% endif %}</td>
+                        <td>
+                            {{ include('preventivo/_icona.html.twig', {categoria: v.categoria, size: 24}) }}
+                            <span style="vertical-align:middle;margin-left:8px">{{ v.descrizione ?: v.categoria.label }}{% if v.quantita > 1 %} <span class="muted">×{{ v.quantita }}</span>{% endif %}</span>
+                        </td>
                         <td style="text-align:right;white-space:nowrap;color:var(--muted)">{{ v.categoria.label }}</td>
                     </tr>
                 {% endfor %}

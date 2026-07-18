@@ -59,6 +59,7 @@
             <table class="voci">
                 {% for v in s.voci %}
                     <tr>
+                        <td style="width:26px">{{ include('preventivo/_icona.html.twig', {categoria: v.categoria, size: 20}) }}</td>
                         <td>{{ v.descrizione ?: v.categoria.label }}{% if v.quantita > 1 %} ×{{ v.quantita }}{% endif %}</td>
                         <td class="cat">{{ v.categoria.label }}</td>
                     </tr>

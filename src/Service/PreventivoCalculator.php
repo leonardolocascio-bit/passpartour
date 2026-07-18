@@ -32,8 +32,8 @@ class PreventivoCalculator
         return round($costo * (1 + $markup / 100), 2);
     }
 
-    /** Margine assoluto dello scenario (prezzo - costo). */
-    public function margine(ScenarioPreventivo $scenario): float
+    /** Commissioni dell'agenzia in € (prezzo - costo netto). */
+    public function commissioni(ScenarioPreventivo $scenario): float
     {
         return round($this->prezzoFinale($scenario) - $this->costoNetto($scenario), 2);
     }
