@@ -1,0 +1,47 @@
+{% extends 'app.html.twig' %}
+
+{% block title %}Offerte · Passpartour{% endblock %}
+{% block page_title %}Offerte{% endblock %}
+
+{% block main %}
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+    <p class="muted" style="margin:0;font-size:13px">Pacchetti pronti da inviare a lead e clienti.</p>
+    <a class="btn btn-primary" href="{{ path('app_offerta_nuovo') }}">+ Nuova offerta</a>
+</div>
+
+{% if offerte|length > 0 %}
+    <div class="grid" style="grid-template-columns:repeat(3,1fr)">
+        {% for o in offerte %}
+            <div class="card" style="overflow:hidden;{{ not o.attiva ? 'opacity:.6' }}">
+                <div style="height:150px;background:#eef1f6;position:relative">
+                    {% if o.destinazione and o.destinazione.immagine %}
+                        <img src="{{ asset('uploads/destinazioni/' ~ o.destinazione.immagine) }}" alt="{{ o.titolo }}" style="width:100%;height:100%;object-fit:cover;display:block">
+                    {% else %}
+                        <div style="width:100%;height:100%;display:grid;place-items:center;color:var(--muted);font-size:13px">nessuna immagine</div>
+                    {% endif %}
+                    {% if o.prezzoDa %}
+                        <div style="position:absolute;bottom:10px;right:10px;background:var(--brand);color:#fff;font-weight:800;padding:4px 10px;border-radius:8px;font-size:14px">da € {{ o.prezzoDa|number_format(0, ',', '.') }}</div>
+                    {% endif %}
+                    {% if not o.attiva %}<div style="position:absolute;top:10px;left:10px" class="badge">Sospesa</div>{% endif %}
+                </div>
+                <div class="card-pad" style="padding:14px 16px">
+                    <div style="font-weight:700">{{ o.titolo }}</div>
+                    {% if o.sottotitolo %}<div class="muted" style="font-size:13px">{{ o.sottotitolo }}</div>{% endif %}
+                    <div class="muted" style="font-size:12px;margin-top:6px">
+                        {% if o.durata %}{{ o.durata }}{% endif %}
+                        {% if o.validoAl %}{% if o.durata %} · {% endif %}valida fino al {{ o.validoAl|date('d/m/Y') }}{% endif %}
+                    </div>
+                    <div style="display:flex;gap:8px;margin-top:12px">
+                        <a class="btn btn-primary" style="flex:1;justify-content:center" href="{{ path('app_offerta_invia', {id: o.id}) }}">✉ Invia</a>
+                        <a class="btn" href="{{ path('app_offerta_modifica', {id: o.id}) }}">Modifica</a>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+{% else %}
+    <div class="card"><div class="card-pad muted" style="text-align:center;padding:32px">
+        Nessuna offerta. <a href="{{ path('app_offerta_nuovo') }}">Crea la prima offerta</a>.
+    </div></div>
+{% endif %}
+{% endblock %}

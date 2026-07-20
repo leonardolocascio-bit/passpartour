@@ -18,7 +18,7 @@ class SmokeTest extends WebTestCase
         $client->loginUser($master);
 
         $urls = [
-            '/', '/lead', '/lead/lista', '/agenda', '/automazioni', '/preventivi', '/campagne', '/clienti', '/impostazioni',
+            '/', '/lead', '/lead/lista', '/agenda', '/automazioni', '/preventivi', '/offerte', '/destinazioni', '/campagne', '/clienti', '/impostazioni',
             '/agenda/calendario/giorno', '/agenda/calendario/settimana', '/agenda/calendario/mese', '/agenda/calendario/anno',
         ];
         foreach ($urls as $url) {

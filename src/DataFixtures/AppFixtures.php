@@ -7,6 +7,7 @@ use App\Entity\Campagna;
 use App\Entity\Cliente;
 use App\Entity\Destinazione;
 use App\Entity\Lead;
+use App\Entity\Offerta;
 use App\Entity\Preventivo;
 use App\Entity\RegolaNurturing;
 use App\Entity\ScenarioPreventivo;
@@ -118,6 +119,22 @@ class AppFixtures extends Fixture
             $destinazione = (new Destinazione())->setNome($d[0])->setImmagine($d[1])->setDescrizione($d[2]);
             $manager->persist($destinazione);
             $dest[$d[0]] = $destinazione;
+        }
+
+        // ---- Offerte demo ----
+        $offerte = [
+            ['Maldive da sogno', '7 notti in resort overwater', 'Maldive', '1990.00', '7 notti', '+70 days', "Volo, transfer in idrovolante e soggiorno all inclusive in overwater bungalow. Snorkeling nella barriera corallina incluso."],
+            ['Capodanno a New York', '5 notti nella Grande Mela', 'New York', '1490.00', '5 notti', '+40 days', "Volo, hotel a Manhattan e tour della città. Vivi il countdown più famoso del mondo a Times Square."],
+            ['Grecia: Cicladi in libertà', 'Santorini & Mykonos', 'Santorini', '990.00', '8 giorni', '+90 days', "Voli, traghetti tra le isole e hotel con colazione. Tramonti di Oia e spiagge di Mykonos."],
+        ];
+        foreach ($offerte as $o) {
+            $offerta = (new Offerta())
+                ->setTitolo($o[0])->setSottotitolo($o[1])
+                ->setDestinazione($dest[$o[2]] ?? null)
+                ->setPrezzoDa($o[3])->setDurata($o[4])
+                ->setValidoAl(new \DateTimeImmutable($o[5]))
+                ->setDescrizione($o[6]);
+            $manager->persist($offerta);
         }
 
         // ---- Preventivo con 3 scenari (Economy / Comfort / Luxury) ----

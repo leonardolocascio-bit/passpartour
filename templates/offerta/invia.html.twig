@@ -1,0 +1,44 @@
+{% extends 'app.html.twig' %}
+
+{% block title %}Invia offerta · Passpartour{% endblock %}
+{% block page_title %}Invia offerta{% endblock %}
+
+{% block main %}
+<div class="card" style="max-width:640px"><div class="card-pad">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <div style="font-weight:700">{{ offerta.titolo }}{% if offerta.prezzoDa %} <span class="muted" style="font-weight:500">· da € {{ offerta.prezzoDa|number_format(0, ',', '.') }}</span>{% endif %}</div>
+        <a class="btn" href="{{ path('app_offerta_index') }}">Annulla</a>
+    </div>
+
+    {% if not mailer_reale %}
+        <div class="card-pad" style="background:#fff3e2;color:#c07d1e;border-radius:9px;margin-bottom:16px;font-size:13px">
+            ⚠️ Trasporto email non configurato (<code>MAILER_DSN=null</code>): l'invio non recapiterà davvero. Imposta un DSN SMTP in <code>.env</code> per spedire.
+        </div>
+    {% endif %}
+
+    <form method="post" style="display:grid;gap:14px">
+        <input type="hidden" name="_token" value="{{ csrf_token('offerta_invia_' ~ offerta.id) }}">
+        <div>
+            <label style="display:block;font-weight:600;margin-bottom:5px;font-size:13px">Destinatario (lead o cliente)</label>
+            <input type="email" name="destinatario" value="{{ destinatario }}" required placeholder="email@cliente.it" list="rubrica"
+                   style="width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:9px;font-family:inherit">
+            <datalist id="rubrica">
+                {% for e in rubrica %}<option value="{{ e }}">{% endfor %}
+            </datalist>
+        </div>
+        <div>
+            <label style="display:block;font-weight:600;margin-bottom:5px;font-size:13px">Oggetto</label>
+            <input type="text" name="oggetto" value="{{ oggetto }}" required
+                   style="width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:9px;font-family:inherit">
+        </div>
+        <div>
+            <label style="display:block;font-weight:600;margin-bottom:5px;font-size:13px">Messaggio (facoltativo, in cima all'email)</label>
+            <textarea name="messaggio" rows="4" placeholder="Un breve messaggio personale…"
+                      style="width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:9px;font-family:inherit;resize:vertical"></textarea>
+        </div>
+        <div>
+            <button type="submit" class="btn btn-primary">✉ Invia offerta</button>
+        </div>
+    </form>
+</div></div>
+{% endblock %}

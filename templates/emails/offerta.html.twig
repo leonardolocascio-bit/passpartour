@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="it">
+<head><meta charset="utf-8"></head>
+<body style="margin:0;background:#eef1f6;padding:24px;font-family:Arial,Helvetica,sans-serif;color:#14243b">
+    <div style="max-width:600px;margin:0 auto">
+        <div style="background:#123a72;color:#ffffff;padding:16px 24px;border-radius:10px 10px 0 0;font-size:18px;font-weight:bold;letter-spacing:.5px">
+            PASSPARTOUR
+        </div>
+        <div style="background:#ffffff;border:1px solid #e5e9f0;border-top:none;border-radius:0 0 10px 10px;overflow:hidden">
+            {% if messaggio %}
+                <p style="white-space:pre-line;font-size:14px;line-height:1.6;margin:0;padding:20px 24px 0">{{ messaggio }}</p>
+            {% endif %}
+
+            {% if immagine %}
+                <img src="{{ immagine }}" alt="{{ offerta.titolo }}" style="width:100%;display:block;margin-top:{{ messaggio ? '16px' : '0' }}">
+            {% endif %}
+
+            <div style="padding:22px 24px">
+                <h1 style="font-size:22px;color:#123a72;margin:0">{{ offerta.titolo }}</h1>
+                {% if offerta.sottotitolo %}<div style="color:#6a7788;font-size:15px;margin-top:4px">{{ offerta.sottotitolo }}</div>{% endif %}
+
+                {% if offerta.prezzoDa %}
+                    <div style="margin:16px 0">
+                        <span style="background:#ea5b24;color:#fff;font-weight:bold;font-size:20px;padding:8px 16px;border-radius:8px;display:inline-block">a partire da € {{ offerta.prezzoDa|number_format(0, ',', '.') }}</span>
+                        {% if offerta.durata %}<span style="color:#6a7788;font-size:14px;margin-left:8px">/ {{ offerta.durata }}</span>{% endif %}
+                    </div>
+                {% endif %}
+
+                {% if offerta.descrizione %}
+                    <p style="font-size:14px;line-height:1.6;color:#14243b;margin:14px 0 0;white-space:pre-line">{{ offerta.descrizione }}</p>
+                {% endif %}
+
+                {% if offerta.validoAl %}
+                    <p style="font-size:13px;color:#6a7788;margin:16px 0 0">Offerta valida
+                        {%- if offerta.validoDal %} dal {{ offerta.validoDal|date('d/m/Y') }}{% endif %} fino al {{ offerta.validoAl|date('d/m/Y') }}.</p>
+                {% endif %}
+
+                <p style="font-size:14px;color:#14243b;margin:20px 0 0">Ti interessa? Rispondi a questa email o contattaci: prepariamo la proposta su misura per te.</p>
+            </div>
+
+            <div style="background:#f4f7fb;padding:14px 24px;font-size:12px;color:#9aa6b4">
+                Passpartour · La tua agenzia di viaggi.
+            </div>
+        </div>
+    </div>
+</body>
+</html>

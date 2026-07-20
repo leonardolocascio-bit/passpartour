@@ -1,0 +1,43 @@
+{% extends 'app.html.twig' %}
+
+{% block title %}{{ titolo }} · Passpartour{% endblock %}
+{% block page_title %}{{ titolo }}{% endblock %}
+
+{% block main %}
+<div class="card" style="max-width:640px"><div class="card-pad">
+    {{ form_start(form) }}
+    <div style="display:grid;gap:14px">
+        {{ form_row(form.titolo) }}
+        {{ form_row(form.sottotitolo) }}
+        {{ form_row(form.destinazione) }}
+        {% if offerta.destinazione and offerta.destinazione.immagine %}
+            <img src="{{ asset('uploads/destinazioni/' ~ offerta.destinazione.immagine) }}" alt="" style="width:100%;max-height:180px;object-fit:cover;border-radius:9px;border:1px solid var(--line)">
+        {% endif %}
+        {{ form_row(form.descrizione) }}
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+            {{ form_row(form.prezzoDa) }}
+            {{ form_row(form.durata) }}
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+            {{ form_row(form.validoDal) }}
+            {{ form_row(form.validoAl) }}
+        </div>
+        <label style="display:flex;align-items:center;gap:8px;font-weight:500;cursor:pointer">
+            {{ form_widget(form.attiva) }} Offerta attiva (visibile nel catalogo)
+        </label>
+    </div>
+    <div style="margin-top:18px;display:flex;gap:10px;justify-content:space-between">
+        <div style="display:flex;gap:10px">
+            <button type="submit" class="btn btn-primary">Salva</button>
+            <a class="btn" href="{{ path('app_offerta_index') }}">Annulla</a>
+        </div>
+        {% if offerta.id %}
+            <form method="post" action="{{ path('app_offerta_elimina', {id: offerta.id}) }}" onsubmit="return confirm('Eliminare l\'offerta?')">
+                <input type="hidden" name="_token" value="{{ csrf_token('offerta_elimina_' ~ offerta.id) }}">
+                <button class="btn" style="color:var(--danger)">Elimina</button>
+            </form>
+        {% endif %}
+    </div>
+    {{ form_end(form) }}
+</div></div>
+{% endblock %}
