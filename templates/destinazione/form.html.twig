@@ -4,19 +4,45 @@
 {% block page_title %}{{ titolo }}{% endblock %}
 
 {% block main %}
-<div class="card" style="max-width:560px"><div class="card-pad">
+<div class="card" style="max-width:600px"><div class="card-pad">
     {{ form_start(form) }}
     <div style="display:grid;gap:14px">
         {{ form_row(form.nome) }}
         {{ form_row(form.descrizione) }}
+
         {% if destinazione.immagine %}
             <div>
                 <label>Immagine attuale</label>
                 <img src="{{ asset('uploads/destinazioni/' ~ destinazione.immagine) }}" alt="" style="width:100%;max-height:200px;object-fit:cover;border-radius:9px;border:1px solid var(--line)">
+                {% if destinazione.fotografo %}
+                    <div class="muted" style="font-size:11px;margin-top:4px">Foto di
+                        {% if destinazione.fotografoUrl %}<a href="{{ destinazione.fotografoUrl }}" target="_blank" rel="noopener">{{ destinazione.fotografo }}</a>{% else %}{{ destinazione.fotografo }}{% endif %} · Unsplash</div>
+                {% endif %}
             </div>
         {% endif %}
+
         {{ form_row(form.immagineFile) }}
+
+        {% if unsplash_configurato %}
+            <div style="border-top:1px solid var(--line);padding-top:14px">
+                <label>…oppure cerca su Unsplash</label>
+                <div style="display:flex;gap:8px">
+                    <input type="text" id="unsplash-q" placeholder="Es. Santorini" style="flex:1">
+                    <button type="button" class="btn" id="unsplash-cerca">Cerca</button>
+                </div>
+                <div id="unsplash-risultati" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:10px"></div>
+                <div id="unsplash-scelta" class="muted" style="font-size:12px;margin-top:6px"></div>
+            </div>
+        {% else %}
+            <p class="muted" style="font-size:12px;margin:0">💡 Imposta <code>UNSPLASH_ACCESS_KEY</code> in <code>.env</code> per cercare immagini direttamente da Unsplash.</p>
+        {% endif %}
+
+        <input type="hidden" name="unsplash_full" id="unsplash_full">
+        <input type="hidden" name="unsplash_download" id="unsplash_download">
+        <input type="hidden" name="unsplash_autore" id="unsplash_autore">
+        <input type="hidden" name="unsplash_autore_url" id="unsplash_autore_url">
     </div>
+
     <div style="margin-top:18px;display:flex;gap:10px;justify-content:space-between">
         <div style="display:flex;gap:10px">
             <button type="submit" class="btn btn-primary">Salva</button>
@@ -31,4 +57,43 @@
     </div>
     {{ form_end(form) }}
 </div></div>
+
+{% if unsplash_configurato %}
+<script>
+(function () {
+    const q = document.getElementById('unsplash-q');
+    const box = document.getElementById('unsplash-risultati');
+    const scelta = document.getElementById('unsplash-scelta');
+
+    async function cerca() {
+        if (!q.value.trim()) return;
+        box.innerHTML = '<span class="muted" style="font-size:12px">Ricerca…</span>';
+        try {
+            const r = await fetch('{{ path('app_destinazione_unsplash') }}?q=' + encodeURIComponent(q.value));
+            const data = await r.json();
+            box.innerHTML = '';
+            if (!data.risultati.length) { box.innerHTML = '<span class="muted" style="font-size:12px">Nessun risultato.</span>'; return; }
+            data.risultati.forEach(foto => {
+                const img = document.createElement('img');
+                img.src = foto.thumb;
+                img.title = 'Foto di ' + foto.autore;
+                img.style.cssText = 'width:100%;height:70px;object-fit:cover;border-radius:6px;cursor:pointer;border:2px solid transparent';
+                img.addEventListener('click', () => {
+                    box.querySelectorAll('img').forEach(i => i.style.borderColor = 'transparent');
+                    img.style.borderColor = 'var(--brand)';
+                    document.getElementById('unsplash_full').value = foto.full;
+                    document.getElementById('unsplash_download').value = foto.download_location;
+                    document.getElementById('unsplash_autore').value = foto.autore;
+                    document.getElementById('unsplash_autore_url').value = foto.autore_url;
+                    scelta.textContent = 'Selezionata: foto di ' + foto.autore + ' — verrà scaricata al salvataggio.';
+                });
+                box.appendChild(img);
+            });
+        } catch (e) { box.innerHTML = '<span class="muted" style="font-size:12px">Errore di ricerca.</span>'; }
+    }
+    document.getElementById('unsplash-cerca').addEventListener('click', cerca);
+    q.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); cerca(); } });
+})();
+</script>
+{% endif %}
 {% endblock %}

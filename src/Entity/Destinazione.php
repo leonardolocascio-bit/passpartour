@@ -26,6 +26,13 @@ class Destinazione
     #[ORM\Column(type: 'text', nullable: true)]
     private ?string $descrizione = null;
 
+    /** Attribuzione immagine (es. fotografo Unsplash). */
+    #[ORM\Column(length: 150, nullable: true)]
+    private ?string $fotografo = null;
+
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $fotografoUrl = null;
+
     #[ORM\Column]
     private \DateTimeImmutable $createdAt;
 
@@ -71,6 +78,30 @@ class Destinazione
     public function setDescrizione(?string $descrizione): static
     {
         $this->descrizione = $descrizione;
+
+        return $this;
+    }
+
+    public function getFotografo(): ?string
+    {
+        return $this->fotografo;
+    }
+
+    public function setFotografo(?string $fotografo): static
+    {
+        $this->fotografo = $fotografo;
+
+        return $this;
+    }
+
+    public function getFotografoUrl(): ?string
+    {
+        return $this->fotografoUrl;
+    }
+
+    public function setFotografoUrl(?string $fotografoUrl): static
+    {
+        $this->fotografoUrl = $fotografoUrl;
 
         return $this;
     }

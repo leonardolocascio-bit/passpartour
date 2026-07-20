@@ -24,6 +24,7 @@
                     <div>
                         <div style="font-weight:700">{{ d.nome }}</div>
                         {% if d.descrizione %}<div class="muted" style="font-size:12px">{{ d.descrizione|length > 42 ? d.descrizione|slice(0, 42) ~ '…' : d.descrizione }}</div>{% endif %}
+                        {% if d.fotografo %}<div class="muted" style="font-size:10px;margin-top:2px">📷 {{ d.fotografo }} · Unsplash</div>{% endif %}
                     </div>
                     <a class="muted" href="{{ path('app_destinazione_modifica', {id: d.id}) }}" style="font-size:13px">Modifica</a>
                 </div>
