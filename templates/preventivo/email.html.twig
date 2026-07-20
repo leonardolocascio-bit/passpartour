@@ -1,0 +1,51 @@
+{% extends 'app.html.twig' %}
+
+{% block title %}Invia preventivo · Passpartour{% endblock %}
+{% block page_title %}Invia preventivo via email{% endblock %}
+
+{% block main %}
+{% set intest = preventivo.cliente ? preventivo.cliente.nomeCompleto : (preventivo.lead ? preventivo.lead.nomeCompleto : '') %}
+<div class="card" style="max-width:640px"><div class="card-pad">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <div>
+            <div style="font-weight:700">{{ preventivo.numero }} · {{ preventivo.titolo }}</div>
+            <div class="muted" style="font-size:13px">📎 Il PDF del preventivo verrà allegato automaticamente.</div>
+        </div>
+        <a class="btn" href="{{ path('app_preventivo_scheda', {id: preventivo.id}) }}">Annulla</a>
+    </div>
+
+    {% if not mailer_reale %}
+        <div class="card-pad" style="background:#fff3e2;color:#c07d1e;border-radius:9px;margin-bottom:16px;font-size:13px">
+            ⚠️ Trasporto email non configurato (<code>MAILER_DSN=null</code>): l'invio non recapiterà davvero. Imposta un DSN SMTP in <code>.env</code> per spedire.
+        </div>
+    {% endif %}
+
+    <form method="post" style="display:grid;gap:14px">
+        <input type="hidden" name="_token" value="{{ csrf_token('preventivo_email_' ~ preventivo.id) }}">
+        <div>
+            <label style="display:block;font-weight:600;margin-bottom:5px;font-size:13px">Destinatario</label>
+            <input type="email" name="destinatario" value="{{ destinatario }}" required placeholder="email@cliente.it"
+                   style="width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:9px;font-family:inherit">
+        </div>
+        <div>
+            <label style="display:block;font-weight:600;margin-bottom:5px;font-size:13px">Oggetto</label>
+            <input type="text" name="oggetto" value="{{ oggetto }}" required
+                   style="width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:9px;font-family:inherit">
+        </div>
+        <div>
+            <label style="display:block;font-weight:600;margin-bottom:5px;font-size:13px">Messaggio</label>
+            <textarea name="messaggio" rows="6"
+                      style="width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:9px;font-family:inherit;resize:vertical">{% if intest %}Gentile {{ intest }},
+{% endif %}in allegato trovi la nostra proposta di viaggio "{{ preventivo.titolo }}".
+Restiamo a disposizione per qualsiasi personalizzazione o chiarimento.
+
+Un caro saluto,
+Passpartour</textarea>
+        </div>
+        <div style="display:flex;gap:10px">
+            <button type="submit" class="btn btn-primary">✉ Invia preventivo</button>
+            <a class="btn" href="{{ path('app_preventivo_anteprima', {id: preventivo.id}) }}" target="_blank">Anteprima PDF</a>
+        </div>
+    </form>
+</div></div>
+{% endblock %}

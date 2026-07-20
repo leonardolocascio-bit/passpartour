@@ -46,6 +46,10 @@ class Preventivo
     #[ORM\Column]
     private \DateTimeImmutable $createdAt;
 
+    /** Ultimo invio al cliente via email. */
+    #[ORM\Column(nullable: true)]
+    private ?\DateTimeImmutable $inviatoIl = null;
+
     /** @var Collection<int, ScenarioPreventivo> */
     #[ORM\OneToMany(targetEntity: ScenarioPreventivo::class, mappedBy: 'preventivo', cascade: ['persist', 'remove'], orphanRemoval: true)]
     #[ORM\OrderBy(['ordinamento' => 'ASC'])]
@@ -167,6 +171,18 @@ class Preventivo
     public function getCreatedAt(): \DateTimeImmutable
     {
         return $this->createdAt;
+    }
+
+    public function getInviatoIl(): ?\DateTimeImmutable
+    {
+        return $this->inviatoIl;
+    }
+
+    public function setInviatoIl(?\DateTimeImmutable $inviatoIl): static
+    {
+        $this->inviatoIl = $inviatoIl;
+
+        return $this;
     }
 
     /** @return Collection<int, ScenarioPreventivo> */

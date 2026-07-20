@@ -17,13 +17,15 @@
                 {% set dest = preventivo.cliente ? preventivo.cliente.nomeCompleto : (preventivo.lead ? preventivo.lead.nomeCompleto : null) %}
                 {% if dest %} · {{ dest }}{% endif %}
                 {% if preventivo.validoFino %} · valido fino al {{ preventivo.validoFino|date('d/m/Y') }}{% endif %}
+                {% if preventivo.inviatoIl %} · <span style="color:var(--ok)">✉ inviato il {{ preventivo.inviatoIl|date('d/m/Y H:i') }}</span>{% endif %}
             </div>
         </div>
     </div>
     <div style="display:flex;gap:8px">
         <a class="btn" href="{{ path('app_preventivo_anteprima', {id: preventivo.id}) }}" target="_blank">⎙ Anteprima</a>
-        <a class="btn" href="{{ path('app_preventivo_pdf', {id: preventivo.id}) }}">↓ Scarica PDF</a>
-        <a class="btn btn-primary" href="{{ path('app_preventivo_modifica', {id: preventivo.id}) }}">Modifica</a>
+        <a class="btn" href="{{ path('app_preventivo_pdf', {id: preventivo.id}) }}">↓ PDF</a>
+        <a class="btn" href="{{ path('app_preventivo_modifica', {id: preventivo.id}) }}">Modifica</a>
+        <a class="btn btn-primary" href="{{ path('app_preventivo_email', {id: preventivo.id}) }}">✉ Invia</a>
     </div>
 </div>
 
