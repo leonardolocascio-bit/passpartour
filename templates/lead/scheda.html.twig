@@ -10,7 +10,10 @@
         <h2 style="font-size:20px">{{ lead.nomeCompleto }}</h2>
         <span class="badge dot badge-{{ lead.stato.value }}">{{ lead.stato.label }}</span>
     </div>
-    <a class="btn" href="{{ path('app_lead_modifica', {id: lead.id}) }}">Modifica dati</a>
+    <div style="display:flex;gap:8px">
+        <a class="btn btn-primary" href="{{ path('app_lead_messaggio', {id: lead.id}) }}">✆ Messaggio</a>
+        <a class="btn" href="{{ path('app_lead_modifica', {id: lead.id}) }}">Modifica dati</a>
+    </div>
 </div>
 
 <div style="display:grid;grid-template-columns:340px 1fr;gap:16px;align-items:start">

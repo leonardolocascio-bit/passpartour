@@ -6,9 +6,11 @@ use App\Entity\Attivita;
 use App\Entity\Lead;
 use App\Entity\Utente;
 use App\Enum\StatoLead;
+use App\Enum\TipoAttivita;
 use App\Form\AttivitaType;
 use App\Form\LeadType;
 use App\Service\MotoreNurturing;
+use App\Service\TwilioMessenger;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -183,6 +185,57 @@ class LeadController extends AbstractController
         }
 
         return $this->redirectToRoute('app_lead_scheda', ['id' => $lead->getId()]);
+    }
+
+    #[Route('/lead/{id}/messaggio', name: 'app_lead_messaggio', requirements: ['id' => '\d+'])]
+    public function messaggio(Lead $lead, Request $request, EntityManagerInterface $em, TwilioMessenger $twilio): Response
+    {
+        if ($request->isMethod('POST')) {
+            if (!$this->isCsrfTokenValid('lead_messaggio_' . $lead->getId(), (string) $request->request->get('_token'))) {
+                $this->addFlash('error', 'Token non valido.');
+
+                return $this->redirectToRoute('app_lead_messaggio', ['id' => $lead->getId()]);
+            }
+
+            $canale = $request->request->get('canale') === 'whatsapp' ? 'whatsapp' : 'sms';
+            $telefono = trim((string) $request->request->get('telefono'));
+            $testo = trim((string) $request->request->get('testo'));
+
+            if ($telefono === '' || $testo === '') {
+                $this->addFlash('error', 'Inserisci numero e testo del messaggio.');
+
+                return $this->redirectToRoute('app_lead_messaggio', ['id' => $lead->getId()]);
+            }
+
+            $esito = $twilio->invia($canale, $telefono, $testo);
+            if (!$esito['ok']) {
+                $this->addFlash('error', 'Invio non riuscito: ' . ($esito['errore'] ?? 'errore'));
+
+                return $this->redirectToRoute('app_lead_messaggio', ['id' => $lead->getId()]);
+            }
+
+            // log come attività in timeline
+            $attivita = (new Attivita())
+                ->setLead($lead)
+                ->setTipo($canale === 'whatsapp' ? TipoAttivita::WHATSAPP : TipoAttivita::SMS)
+                ->setTitolo(($canale === 'whatsapp' ? 'WhatsApp' : 'SMS') . ' inviato')
+                ->setDescrizione($testo)
+                ->setCompletata(true)
+                ->setAssegnatario($this->getUser() instanceof Utente ? $this->getUser() : null);
+            $em->persist($attivita);
+            $em->flush();
+
+            $this->addFlash('success', ($canale === 'whatsapp' ? 'WhatsApp' : 'SMS') . ' inviato a ' . $telefono . '.');
+
+            return $this->redirectToRoute('app_lead_scheda', ['id' => $lead->getId()]);
+        }
+
+        return $this->render('lead/messaggio.html.twig', [
+            'lead' => $lead,
+            'sms_ok' => $twilio->puoInviare('sms'),
+            'whatsapp_ok' => $twilio->puoInviare('whatsapp'),
+            'configurato' => $twilio->configurato(),
+        ]);
     }
 
     #[Route('/attivita/{id}/toggle', name: 'app_attivita_toggle', requirements: ['id' => '\d+'], methods: ['POST'])]

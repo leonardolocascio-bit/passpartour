@@ -6,6 +6,7 @@ enum TipoAttivita: string
 {
     case CHIAMATA = 'chiamata';
     case EMAIL = 'email';
+    case SMS = 'sms';
     case WHATSAPP = 'whatsapp';
     case APPUNTAMENTO = 'appuntamento';
     case NOTA = 'nota';
@@ -15,6 +16,7 @@ enum TipoAttivita: string
         return match ($this) {
             self::CHIAMATA => 'Chiamata',
             self::EMAIL => 'Email',
+            self::SMS => 'SMS',
             self::WHATSAPP => 'WhatsApp',
             self::APPUNTAMENTO => 'Appuntamento',
             self::NOTA => 'Nota',

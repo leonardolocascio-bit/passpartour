@@ -3,7 +3,7 @@
 {% block title %}Agenda · Passpartour{% endblock %}
 {% block page_title %}Agenda · calendario{% endblock %}
 
-{% set tipoColore = {'chiamata': '#1f9fd6', 'email': '#1c5099', 'whatsapp': '#1f9d54', 'appuntamento': '#ea5b24', 'nota': '#f6a41f'} %}
+{% set tipoColore = {'chiamata': '#1f9fd6', 'email': '#1c5099', 'sms': '#7c5cd0', 'whatsapp': '#1f9d54', 'appuntamento': '#ea5b24', 'nota': '#f6a41f'} %}
 
 {% macro chip(a, tipoColore, full) %}
     <a class="cal-chip" style="background:{{ tipoColore[a.tipo.value] ?? '#6a7788' }}{{ a.completata ? ';opacity:.5;text-decoration:line-through' }}"

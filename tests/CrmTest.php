@@ -51,6 +51,14 @@ class CrmTest extends WebTestCase
         self::assertStringContainsString('Timeline attività', $this->client->getResponse()->getContent());
     }
 
+    public function testPaginaMessaggioRende(): void
+    {
+        $lead = $this->unLead();
+        $this->client->request('GET', '/lead/' . $lead->getId() . '/messaggio');
+        self::assertResponseIsSuccessful();
+        self::assertStringContainsString('Invia messaggio', $this->client->getResponse()->getContent());
+    }
+
     public function testCambioStatoViaKanban(): void
     {
         $crawler = $this->client->request('GET', '/lead');
