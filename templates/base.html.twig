@@ -171,6 +171,16 @@
             .mini-day { text-align: center; font-size: 9px; padding: 3px 0; border-radius: 3px; color: #9aa6b4; }
             .mini-day.has { background: var(--brand); color: #fff; font-weight: 700; }
 
+            /* Diario di viaggio — timeline grafica verticale */
+            .dv-item { display: flex; align-items: stretch; }
+            .dv-when { width: 100px; flex-shrink: 0; text-align: right; padding: 1px 12px 0 0; font-size: 12px; font-weight: 700; color: var(--navy); }
+            .dv-rail { width: 24px; flex-shrink: 0; position: relative; }
+            .dv-rail::before { content: ""; position: absolute; left: 11px; top: 0; bottom: 0; width: 2px; background: var(--line); }
+            .dv-item:last-child .dv-rail::before { bottom: auto; height: 22px; }
+            .dv-node { position: absolute; left: 5px; top: 3px; width: 14px; height: 14px; border-radius: 50%; background: var(--brand); border: 3px solid var(--card); box-shadow: 0 0 0 1px var(--line); }
+            .dv-body { flex: 1; min-width: 0; padding: 0 0 24px 16px; display: flex; gap: 14px; align-items: flex-start; }
+            .dv-body img { width: 150px; height: 100px; object-fit: cover; border-radius: 10px; flex-shrink: 0; }
+
             /* Timeline */
             .timeline { position: relative; padding-left: 22px; }
             .timeline::before { content: ""; position: absolute; left: 6px; top: 4px; bottom: 4px; width: 2px; background: var(--line); }

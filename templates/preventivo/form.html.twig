@@ -4,25 +4,57 @@
 {% block title %}{{ titolo }} · Passpartour{% endblock %}
 {% block page_title %}{{ titolo }}{% endblock %}
 
-{# ---------- macro: riga voce di costo ---------- #}
-{% macro voceRow(s, v, categorie, voce) %}
-<tr class="voce-row">
-    <td style="width:150px">
-        <select name="preventivo[scenari][{{ s }}][voci][{{ v }}][categoria]">
-            {% for c in categorie %}
-                <option value="{{ c.value }}" {{ voce and voce.categoria == c ? 'selected' }}>{{ c.label }}</option>
-            {% endfor %}
+{# ---------- macro: voce di costo (campi per categoria) ---------- #}
+{% macro voceCard(s, v, categorie, trattamenti, voce) %}
+{% set p = 'preventivo[scenari][' ~ s ~ '][voci][' ~ v ~ ']' %}
+<div class="voce-card" style="border:1px solid var(--line);border-radius:9px;padding:12px 14px;margin-bottom:8px;background:#fbfcfe">
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <select class="v-cat" name="{{ p }}[categoria]" style="width:150px">
+            {% for c in categorie %}<option value="{{ c.value }}" {{ voce and voce.categoria == c ? 'selected' }}>{{ c.label }}</option>{% endfor %}
         </select>
-    </td>
-    <td><input type="text" name="preventivo[scenari][{{ s }}][voci][{{ v }}][descrizione]" value="{{ voce ? voce.descrizione }}" placeholder="Descrizione"></td>
-    <td style="width:70px"><input type="number" min="1" class="v-qta" name="preventivo[scenari][{{ s }}][voci][{{ v }}][quantita]" value="{{ voce ? voce.quantita : 1 }}"></td>
-    <td style="width:110px"><input type="text" inputmode="decimal" class="v-costo" name="preventivo[scenari][{{ s }}][voci][{{ v }}][costoUnitario]" value="{{ voce ? voce.costoUnitario : '' }}" placeholder="0.00"></td>
-    <td style="width:40px;text-align:center"><button type="button" class="btn del-voce" style="padding:5px 9px">✕</button></td>
-</tr>
+        <div style="flex:1"></div>
+        <input type="number" min="1" class="v-qta" name="{{ p }}[quantita]" value="{{ voce ? voce.quantita : 1 }}" title="Quantità" style="width:64px">
+        <input type="text" inputmode="decimal" class="v-costo" name="{{ p }}[costoUnitario]" value="{{ voce ? voce.costoUnitario : '' }}" placeholder="Costo €" title="Costo unitario" style="width:110px">
+        <button type="button" class="btn del-voce" style="padding:6px 10px">✕</button>
+    </div>
+
+    <div class="vg vg-tratta" style="margin-top:10px;display:grid;grid-template-columns:2fr 1fr 2fr 1fr;gap:8px">
+        <div><label>Da</label><input type="text" name="{{ p }}[da]" value="{{ voce ? voce.da }}" placeholder="Partenza"></div>
+        <div><label>Ora part.</label><input type="text" name="{{ p }}[orarioPartenza]" value="{{ voce ? voce.orarioPartenza }}" placeholder="10:30"></div>
+        <div><label>A</label><input type="text" name="{{ p }}[a]" value="{{ voce ? voce.a }}" placeholder="Arrivo"></div>
+        <div><label>Ora arr.</label><input type="text" name="{{ p }}[orarioArrivo]" value="{{ voce ? voce.orarioArrivo }}" placeholder="13:15"></div>
+    </div>
+
+    <div class="vg vg-hotel" style="margin-top:10px;display:grid;grid-template-columns:2fr 90px;gap:8px">
+        <div><label>Nome struttura</label><input type="text" name="{{ p }}[nomeStruttura]" value="{{ voce ? voce.nomeStruttura }}" placeholder="Es. Hotel Belvedere"></div>
+        <div><label>Stelle</label><input type="number" min="1" max="5" name="{{ p }}[stelle]" value="{{ voce ? voce.stelle }}"></div>
+        <div style="grid-column:1/-1"><label>Indirizzo (Google Maps)</label><input type="text" name="{{ p }}[indirizzo]" value="{{ voce ? voce.indirizzo }}" placeholder="Via, città"></div>
+        <div style="grid-column:1/-1"><label>Trattamento</label>
+            <select name="{{ p }}[trattamento]">
+                <option value="">—</option>
+                {% for t in trattamenti %}<option value="{{ t.value }}" {{ voce and voce.trattamento == t ? 'selected' }}>{{ t.label }}</option>{% endfor %}
+            </select>
+        </div>
+        <div style="grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            <div><label>Check-in</label><div style="display:flex;gap:6px"><input type="date" name="{{ p }}[dataInizio]" value="{{ voce and voce.dataInizio ? voce.dataInizio|date('Y-m-d') }}"><input type="text" name="{{ p }}[orarioInizio]" value="{{ voce ? voce.orarioInizio }}" placeholder="14:00" style="width:70px"></div></div>
+            <div><label>Check-out</label><div style="display:flex;gap:6px"><input type="date" name="{{ p }}[dataFine]" value="{{ voce and voce.dataFine ? voce.dataFine|date('Y-m-d') }}"><input type="text" name="{{ p }}[orarioFine]" value="{{ voce ? voce.orarioFine }}" placeholder="10:00" style="width:70px"></div></div>
+        </div>
+    </div>
+
+    <div class="vg vg-semplice" style="margin-top:10px">
+        <label>Descrizione</label>
+        <input type="text" name="{{ p }}[descrizione]" value="{{ voce ? voce.descrizione }}" placeholder="Descrizione">
+    </div>
+
+    <div style="margin-top:8px">
+        <label>Note</label>
+        <textarea name="{{ p }}[note]" placeholder="Note (facoltative)" style="min-height:48px">{{ voce ? voce.note }}</textarea>
+    </div>
+</div>
 {% endmacro %}
 
 {# ---------- macro: blocco scenario ---------- #}
-{% macro scenarioBlock(s, categorie, scenario) %}
+{% macro scenarioBlock(s, categorie, trattamenti, scenario) %}
 {% import _self as ui %}
 <div class="scenario-block card" data-s="{{ s }}" data-vindex="{{ scenario ? scenario.voci|length : 0 }}" style="margin-bottom:14px">
     <div class="card-pad">
@@ -42,15 +74,12 @@
             <button type="button" class="btn del-scenario" style="padding-bottom:9px;margin-left:auto">Rimuovi scenario</button>
         </div>
 
-        <table class="grid-table" style="margin-top:14px">
-            <thead><tr><th>Categoria</th><th>Descrizione</th><th>Qtà</th><th>Costo unit.</th><th></th></tr></thead>
-            <tbody class="voci-body">
-                {% if scenario %}
-                    {% for voce in scenario.voci %}{{ ui.voceRow(s, loop.index0, categorie, voce) }}{% endfor %}
-                {% endif %}
-            </tbody>
-        </table>
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px">
+        <div class="voci-body" style="margin-top:14px">
+            {% if scenario %}
+                {% for voce in scenario.voci %}{{ ui.voceCard(s, loop.index0, categorie, trattamenti, voce) }}{% endfor %}
+            {% endif %}
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
             <button type="button" class="btn add-voce">+ Aggiungi voce</button>
             <div class="s-totali muted" style="font-size:13px">Costo <b class="s-costo">€ 0</b> · Commissioni <b class="s-commissioni" style="color:var(--brand)">€ 0</b> · Prezzo <b class="s-prezzo" style="color:var(--ink)">€ 0</b></div>
         </div>
@@ -60,34 +89,39 @@
 
 {# ---------- macro: tappa del diario di viaggio ---------- #}
 {% macro tappaBlock(t, destinazioni, tappa) %}
-<div class="tappa-block card" style="margin-bottom:10px">
-    <div class="card-pad" style="display:flex;gap:12px;align-items:flex-start">
-        <input type="hidden" name="preventivo[tappe][{{ t }}][ordinamento]" value="{{ tappa ? tappa.ordinamento : 0 }}">
-        <div style="width:70px">
-            <label>Giorno</label>
-            <input type="number" min="1" name="preventivo[tappe][{{ t }}][giorno]" value="{{ tappa ? tappa.giorno }}">
-        </div>
-        <div style="flex:1">
-            <label>Tappa</label>
-            <input type="text" name="preventivo[tappe][{{ t }}][titolo]" value="{{ tappa ? tappa.titolo }}" placeholder="Es. Arrivo a Santorini">
-            <textarea name="preventivo[tappe][{{ t }}][descrizione]" placeholder="Cosa succede in questa tappa" style="margin-top:8px">{{ tappa ? tappa.descrizione }}</textarea>
-        </div>
-        <div style="width:210px">
-            <label>Immagine (destinazione)</label>
-            <select name="preventivo[tappe][{{ t }}][destinazione]">
-                <option value="">— nessuna —</option>
-                {% for d in destinazioni %}
-                    <option value="{{ d.id }}" {{ tappa and tappa.destinazione and tappa.destinazione.id == d.id ? 'selected' }}>{{ d.nome }}</option>
-                {% endfor %}
-            </select>
-        </div>
-        <button type="button" class="btn del-tappa" style="margin-top:22px">✕</button>
+{% set p = 'preventivo[tappe][' ~ t ~ ']' %}
+<div class="tappa-block card" style="margin-bottom:10px"><div class="card-pad" style="display:flex;gap:14px;align-items:flex-start">
+    <input type="hidden" name="{{ p }}[ordinamento]" value="{{ tappa ? tappa.ordinamento : 0 }}">
+    <div style="flex:1">
+        <label>Tappa</label>
+        <input type="text" name="{{ p }}[titolo]" value="{{ tappa ? tappa.titolo }}" placeholder="Es. Arrivo a Santorini">
+        <textarea name="{{ p }}[descrizione]" placeholder="Cosa succede in questa tappa" style="margin-top:8px">{{ tappa ? tappa.descrizione }}</textarea>
     </div>
-</div>
+    <div style="width:240px">
+        <label>Immagine (destinazione)</label>
+        <select name="{{ p }}[destinazione]">
+            <option value="">— nessuna —</option>
+            {% for d in destinazioni %}<option value="{{ d.id }}" {{ tappa and tappa.destinazione and tappa.destinazione.id == d.id ? 'selected' }}>{{ d.nome }}</option>{% endfor %}
+        </select>
+        <label style="margin-top:10px">Quando <span class="muted" style="font-weight:400">(compila ciò che serve)</span></label>
+        <div style="display:flex;gap:6px;align-items:center;font-size:12px">
+            <span class="muted">Giorno</span>
+            <input type="number" min="1" name="{{ p }}[giorno]" value="{{ tappa ? tappa.giorno }}" style="width:52px">
+            <span class="muted">–</span>
+            <input type="number" min="1" name="{{ p }}[giornoA]" value="{{ tappa ? tappa.giornoA }}" style="width:52px">
+        </div>
+        <div style="display:flex;gap:6px;align-items:center;font-size:12px;margin-top:6px">
+            <span class="muted">Date</span>
+            <input type="date" name="{{ p }}[data]" value="{{ tappa and tappa.data ? tappa.data|date('Y-m-d') }}">
+            <input type="date" name="{{ p }}[dataA]" value="{{ tappa and tappa.dataA ? tappa.dataA|date('Y-m-d') }}">
+        </div>
+    </div>
+    <button type="button" class="btn del-tappa" style="margin-top:22px">✕</button>
+</div></div>
 {% endmacro %}
 
 {% block main %}
-<div style="max-width:920px">
+<div style="max-width:960px">
     {{ form_start(form) }}
 
     <div class="card" style="margin-bottom:16px"><div class="card-pad">
@@ -113,7 +147,7 @@
     {% do form.scenari.setRendered %}
     <div id="scenari" data-index="{{ preventivo.scenari|length }}">
         {% for scenario in preventivo.scenari %}
-            {{ ui.scenarioBlock(loop.index0, categorie, scenario) }}
+            {{ ui.scenarioBlock(loop.index0, categorie, trattamenti, scenario) }}
         {% endfor %}
     </div>
 
@@ -140,43 +174,39 @@
     {{ form_end(form) }}
 </div>
 
-{# template nascosti per l'aggiunta dinamica #}
-<template id="tpl-scenario">{{ ui.scenarioBlock('__S__', categorie, null) }}</template>
-<template id="tpl-voce">{{ ui.voceRow('__S__', '__V__', categorie, null) }}</template>
+<template id="tpl-scenario">{{ ui.scenarioBlock('__S__', categorie, trattamenti, null) }}</template>
+<template id="tpl-voce">{{ ui.voceCard('__S__', '__V__', categorie, trattamenti, null) }}</template>
 <template id="tpl-tappa">{{ ui.tappaBlock('__T__', destinazioni, null) }}</template>
 
 <script>
 (function () {
-    const cont = document.getElementById('tappe');
-    const tpl = document.getElementById('tpl-tappa').innerHTML;
+    // ---- Diario tappe ----
+    const contT = document.getElementById('tappe');
+    const tplT = document.getElementById('tpl-tappa').innerHTML;
     document.getElementById('add-tappa').addEventListener('click', () => {
-        const idx = parseInt(cont.dataset.index, 10);
-        cont.dataset.index = idx + 1;
-        const div = document.createElement('div');
-        div.innerHTML = tpl.replaceAll('__T__', idx);
-        cont.appendChild(div.firstElementChild);
+        const idx = parseInt(contT.dataset.index, 10); contT.dataset.index = idx + 1;
+        const div = document.createElement('div'); div.innerHTML = tplT.replaceAll('__T__', idx);
+        contT.appendChild(div.firstElementChild);
     });
-    cont.addEventListener('click', e => {
-        if (e.target.classList.contains('del-tappa')) {
-            e.target.closest('.tappa-block').remove();
-        }
-    });
-})();
-</script>
+    contT.addEventListener('click', e => { if (e.target.classList.contains('del-tappa')) e.target.closest('.tappa-block').remove(); });
 
-<script>
-(function () {
+    // ---- Scenari / voci ----
     const cont = document.getElementById('scenari');
     const tplScenario = document.getElementById('tpl-scenario').innerHTML;
     const tplVoce = document.getElementById('tpl-voce').innerHTML;
+    const GRUPPI = { volo: 'tratta', transfer: 'tratta', hotel: 'hotel', escursione: 'semplice', assicurazione: 'semplice', altro: 'semplice' };
     const fmt = n => '€ ' + (Math.round(n)).toLocaleString('it-IT');
 
+    function campiVoce(card) {
+        const g = GRUPPI[card.querySelector('.v-cat').value] || 'semplice';
+        card.querySelectorAll('.vg').forEach(el => { el.style.display = el.classList.contains('vg-' + g) ? '' : 'none'; });
+    }
     function ricalcola(block) {
         let costo = 0;
-        block.querySelectorAll('.voce-row').forEach(r => {
-            const q = parseFloat(r.querySelector('.v-qta').value) || 0;
-            const c = parseFloat((r.querySelector('.v-costo').value || '').replace(',', '.')) || 0;
-            costo += q * c;
+        block.querySelectorAll('.voce-card').forEach(c => {
+            const q = parseFloat(c.querySelector('.v-qta').value) || 0;
+            const cu = parseFloat((c.querySelector('.v-costo').value || '').replace(',', '.')) || 0;
+            costo += q * cu;
         });
         const markup = parseFloat((block.querySelector('.s-markup').value || '').replace(',', '.')) || 0;
         const prezzo = costo * (1 + markup / 100);
@@ -184,42 +214,39 @@
         block.querySelector('.s-commissioni').textContent = fmt(prezzo - costo);
         block.querySelector('.s-prezzo').textContent = fmt(prezzo);
     }
-    function ricalcolaTutti() { cont.querySelectorAll('.scenario-block').forEach(ricalcola); }
+    function initTutto() {
+        cont.querySelectorAll('.voce-card').forEach(campiVoce);
+        cont.querySelectorAll('.scenario-block').forEach(ricalcola);
+    }
 
     document.getElementById('add-scenario').addEventListener('click', () => {
-        const idx = parseInt(cont.dataset.index, 10);
-        cont.dataset.index = idx + 1;
-        const div = document.createElement('div');
-        div.innerHTML = tplScenario.replaceAll('__S__', idx);
+        const idx = parseInt(cont.dataset.index, 10); cont.dataset.index = idx + 1;
+        const div = document.createElement('div'); div.innerHTML = tplScenario.replaceAll('__S__', idx);
         cont.appendChild(div.firstElementChild);
-        ricalcolaTutti();
+        div.firstElementChild && div.querySelectorAll('.voce-card').forEach(campiVoce);
+        initTutto();
     });
 
     cont.addEventListener('click', e => {
         if (e.target.classList.contains('add-voce')) {
             const block = e.target.closest('.scenario-block');
-            const s = block.dataset.s;
-            const v = parseInt(block.dataset.vindex, 10);
-            block.dataset.vindex = v + 1;
-            const tmp = document.createElement('table');
-            tmp.innerHTML = '<tbody>' + tplVoce.replaceAll('__S__', s).replaceAll('__V__', v) + '</tbody>';
-            block.querySelector('.voci-body').appendChild(tmp.querySelector('tr'));
+            const s = block.dataset.s; const v = parseInt(block.dataset.vindex, 10); block.dataset.vindex = v + 1;
+            const div = document.createElement('div');
+            div.innerHTML = tplVoce.replaceAll('__S__', s).replaceAll('__V__', v);
+            const card = div.firstElementChild;
+            block.querySelector('.voci-body').appendChild(card);
+            campiVoce(card);
         } else if (e.target.classList.contains('del-voce')) {
             const block = e.target.closest('.scenario-block');
-            e.target.closest('tr').remove();
-            ricalcola(block);
+            e.target.closest('.voce-card').remove(); ricalcola(block);
         } else if (e.target.classList.contains('del-scenario')) {
             e.target.closest('.scenario-block').remove();
         }
     });
+    cont.addEventListener('change', e => { if (e.target.classList.contains('v-cat')) campiVoce(e.target.closest('.voce-card')); });
+    cont.addEventListener('input', e => { if (e.target.matches('.v-qta, .v-costo, .s-markup')) ricalcola(e.target.closest('.scenario-block')); });
 
-    cont.addEventListener('input', e => {
-        if (e.target.matches('.v-qta, .v-costo, .s-markup')) {
-            ricalcola(e.target.closest('.scenario-block'));
-        }
-    });
-
-    ricalcolaTutti();
+    initTutto();
 })();
 </script>
 {% endblock %}

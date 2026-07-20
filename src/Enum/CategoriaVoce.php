@@ -15,11 +15,21 @@ enum CategoriaVoce: string
     {
         return match ($this) {
             self::VOLO => 'Volo',
-            self::HOTEL => 'Hotel / Soggiorno',
+            self::HOTEL => 'Hotel',
             self::TRANSFER => 'Transfer',
-            self::ESCURSIONE => 'Escursione',
+            self::ESCURSIONE => 'Tour',
             self::ASSICURAZIONE => 'Assicurazione',
-            self::ALTRO => 'Altro',
+            self::ALTRO => 'Extra',
+        };
+    }
+
+    /** Gruppo di campi dell'editor per questa categoria (usato dal JS). */
+    public function gruppoCampi(): string
+    {
+        return match ($this) {
+            self::VOLO, self::TRANSFER => 'tratta',
+            self::HOTEL => 'hotel',
+            default => 'semplice',
         };
     }
 }

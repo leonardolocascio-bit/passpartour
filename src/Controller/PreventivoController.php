@@ -81,6 +81,7 @@ class PreventivoController extends AbstractController
             'form' => $form,
             'preventivo' => $preventivo,
             'categorie' => CategoriaVoce::cases(),
+            'trattamenti' => \App\Enum\TrattamentoHotel::cases(),
             'destinazioni' => $em->getRepository(\App\Entity\Destinazione::class)->findBy([], ['nome' => 'ASC']),
             'titolo' => $isNuovo ? 'Nuovo preventivo' : 'Modifica ' . $preventivo->getNumero(),
         ]);

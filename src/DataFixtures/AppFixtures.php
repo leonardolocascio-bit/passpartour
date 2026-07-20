@@ -18,6 +18,7 @@ use App\Enum\FonteLead;
 use App\Enum\StatoLead;
 use App\Enum\StatoPreventivo;
 use App\Enum\TipoAttivita;
+use App\Enum\TrattamentoHotel;
 use App\Service\MotoreNurturing;
 use Doctrine\Bundle\FixturesBundle\Fixture;
 use Doctrine\Persistence\ObjectManager;
@@ -131,41 +132,50 @@ class AppFixtures extends Fixture
         $manager->persist($prev);
 
         $this->scenario($manager, $prev, 'Economy', '12.00', 0, false, [
-            [CategoriaVoce::VOLO, 'Voli A/R Milano–Santorini', 4, '180.00'],
-            [CategoriaVoce::HOTEL, 'Hotel 3★ centro Fira, 7 notti', 2, '540.00'],
-            [CategoriaVoce::TRANSFER, 'Transfer aeroporto', 2, '25.00'],
+            ['cat' => CategoriaVoce::VOLO, 'q' => 4, 'costo' => '180.00', 'da' => 'Milano MXP', 'a' => 'Santorini JTR', 'oraP' => '11:20', 'oraA' => '15:05'],
+            ['cat' => CategoriaVoce::HOTEL, 'q' => 2, 'costo' => '540.00', 'nome' => 'Hotel Fira Center 3★', 'stelle' => 3, 'tratt' => TrattamentoHotel::COLAZIONE],
+            ['cat' => CategoriaVoce::TRANSFER, 'q' => 2, 'costo' => '25.00', 'da' => 'Aeroporto JTR', 'a' => 'Hotel'],
         ]);
 
         $this->scenario($manager, $prev, 'Comfort', '15.00', 1, true, [
-            [CategoriaVoce::VOLO, 'Voli A/R Milano–Santorini', 4, '210.00'],
-            [CategoriaVoce::HOTEL, 'Hotel 4★ vista caldera, 7 notti', 2, '890.00'],
-            [CategoriaVoce::TRANSFER, 'Transfer privato', 1, '90.00'],
-            [CategoriaVoce::ESCURSIONE, 'Tour in caicco al tramonto', 4, '75.00'],
-            [CategoriaVoce::ASSICURAZIONE, 'Assicurazione medico-bagaglio', 4, '35.00'],
+            ['cat' => CategoriaVoce::VOLO, 'q' => 4, 'costo' => '210.00', 'da' => 'Milano MXP', 'a' => 'Santorini JTR', 'oraP' => '09:15', 'oraA' => '13:40', 'note' => 'Volo diretto, bagaglio in stiva incluso'],
+            ['cat' => CategoriaVoce::HOTEL, 'q' => 2, 'costo' => '890.00', 'nome' => 'Belvedere Suites', 'stelle' => 4, 'indirizzo' => 'Firá, Santorini 84700, Grecia', 'tratt' => TrattamentoHotel::COLAZIONE, 'dal' => '2026-07-20', 'oraIn' => '14:00', 'al' => '2026-07-27', 'oraOut' => '11:00', 'note' => 'Camera con vista caldera'],
+            ['cat' => CategoriaVoce::TRANSFER, 'q' => 1, 'costo' => '90.00', 'da' => 'Aeroporto JTR', 'a' => 'Hotel Belvedere', 'oraP' => '14:00'],
+            ['cat' => CategoriaVoce::ESCURSIONE, 'q' => 4, 'costo' => '75.00', 'descr' => 'Tour in caicco al tramonto', 'note' => 'Include aperitivo e bagno nelle sorgenti'],
+            ['cat' => CategoriaVoce::ASSICURAZIONE, 'q' => 4, 'costo' => '35.00', 'descr' => 'Assicurazione medico-bagaglio'],
         ]);
 
         $this->scenario($manager, $prev, 'Luxury', '18.00', 2, false, [
-            [CategoriaVoce::VOLO, 'Voli A/R Milano–Santorini business', 4, '480.00'],
-            [CategoriaVoce::HOTEL, 'Suite 5★ con piscina privata, 7 notti', 2, '1900.00'],
-            [CategoriaVoce::TRANSFER, 'Transfer privato con NCC', 1, '150.00'],
-            [CategoriaVoce::ESCURSIONE, 'Tour privato in yacht', 4, '260.00'],
-            [CategoriaVoce::ASSICURAZIONE, 'Assicurazione all-risk', 4, '60.00'],
+            ['cat' => CategoriaVoce::VOLO, 'q' => 4, 'costo' => '480.00', 'da' => 'Milano MXP', 'a' => 'Santorini JTR', 'oraP' => '09:15', 'oraA' => '13:40', 'note' => 'Classe business'],
+            ['cat' => CategoriaVoce::HOTEL, 'q' => 2, 'costo' => '1900.00', 'nome' => 'Katikies Suite 5★', 'stelle' => 5, 'indirizzo' => 'Oia, Santorini 84702, Grecia', 'tratt' => TrattamentoHotel::MEZZA_PENSIONE, 'dal' => '2026-07-20', 'oraIn' => '15:00', 'al' => '2026-07-27', 'oraOut' => '12:00', 'note' => 'Suite con piscina privata'],
+            ['cat' => CategoriaVoce::TRANSFER, 'q' => 1, 'costo' => '150.00', 'da' => 'Aeroporto JTR', 'a' => 'Katikies', 'note' => 'NCC privato'],
+            ['cat' => CategoriaVoce::ESCURSIONE, 'q' => 4, 'costo' => '260.00', 'descr' => 'Tour privato in yacht'],
+            ['cat' => CategoriaVoce::ASSICURAZIONE, 'q' => 4, 'costo' => '60.00', 'descr' => 'Assicurazione all-risk'],
         ]);
 
-        // ---- Diario di viaggio del preventivo ----
+        // ---- Diario di viaggio del preventivo (date flessibili) ----
         $tappe = [
-            [1, 'Volo e arrivo a Santorini', 'Volo da Milano, transfer privato e check-in in hotel con vista caldera.', 'Santorini'],
-            [2, 'Fira e tramonto a Oia', 'Passeggiata tra i vicoli bianchi di Fira e aperitivo al tramonto a Oia.', 'Santorini'],
-            [4, 'Escursione in caicco', 'Giornata in barca tra le calette, bagno nelle sorgenti termali e pranzo a bordo.', 'Mykonos'],
-            [7, 'Rientro', 'Transfer in aeroporto e volo di rientro a Milano.', null],
+            ['giorno' => 1, 'titolo' => 'Volo e arrivo a Santorini', 'descr' => 'Volo da Milano, transfer privato e check-in in hotel con vista caldera.', 'dest' => 'Santorini'],
+            ['giorno' => 2, 'giornoA' => 4, 'titolo' => 'Relax e isola', 'descr' => 'Giornate libere tra spiagge vulcaniche, Firá e il celebre tramonto di Oia.', 'dest' => 'Santorini'],
+            ['giorno' => 5, 'titolo' => 'Escursione a Mykonos', 'descr' => 'Gita in giornata a Mykonos: mulini a vento, Little Venice e spiagge.', 'dest' => 'Mykonos'],
+            ['data' => '2026-07-27', 'titolo' => 'Rientro', 'descr' => 'Transfer in aeroporto e volo di rientro a Milano.', 'dest' => null],
         ];
         $ord = 0;
         foreach ($tappe as $t) {
             $tappa = (new TappaViaggio())
-                ->setPreventivo($prev)->setGiorno($t[0])->setTitolo($t[1])
-                ->setDescrizione($t[2])->setOrdinamento($ord++);
-            if ($t[3] !== null) {
-                $tappa->setDestinazione($dest[$t[3]]);
+                ->setPreventivo($prev)->setTitolo($t['titolo'])
+                ->setDescrizione($t['descr'])->setOrdinamento($ord++);
+            if (isset($t['giorno'])) {
+                $tappa->setGiorno($t['giorno']);
+            }
+            if (isset($t['giornoA'])) {
+                $tappa->setGiornoA($t['giornoA']);
+            }
+            if (isset($t['data'])) {
+                $tappa->setData(new \DateTimeImmutable($t['data']));
+            }
+            if ($t['dest'] !== null) {
+                $tappa->setDestinazione($dest[$t['dest']]);
             }
             $manager->persist($tappa);
         }
@@ -210,8 +220,46 @@ class AppFixtures extends Fixture
         $i = 0;
         foreach ($voci as $v) {
             $voce = (new VoceCosto())
-                ->setCategoria($v[0])->setDescrizione($v[1])
-                ->setQuantita($v[2])->setCostoUnitario($v[3])->setOrdinamento($i++);
+                ->setCategoria($v['cat'])
+                ->setQuantita($v['q'] ?? 1)
+                ->setCostoUnitario($v['costo'])
+                ->setOrdinamento($i++);
+            if (isset($v['descr'])) {
+                $voce->setDescrizione($v['descr']);
+            }
+            if (isset($v['da'])) {
+                $voce->setDa($v['da']);
+            }
+            if (isset($v['a'])) {
+                $voce->setA($v['a']);
+            }
+            if (isset($v['oraP'])) {
+                $voce->setOrarioPartenza($v['oraP']);
+            }
+            if (isset($v['oraA'])) {
+                $voce->setOrarioArrivo($v['oraA']);
+            }
+            if (isset($v['nome'])) {
+                $voce->setNomeStruttura($v['nome']);
+            }
+            if (isset($v['stelle'])) {
+                $voce->setStelle($v['stelle']);
+            }
+            if (isset($v['indirizzo'])) {
+                $voce->setIndirizzo($v['indirizzo']);
+            }
+            if (isset($v['tratt'])) {
+                $voce->setTrattamento($v['tratt']);
+            }
+            if (isset($v['dal'])) {
+                $voce->setDataInizio(new \DateTimeImmutable($v['dal']))->setOrarioInizio($v['oraIn'] ?? null);
+            }
+            if (isset($v['al'])) {
+                $voce->setDataFine(new \DateTimeImmutable($v['al']))->setOrarioFine($v['oraOut'] ?? null);
+            }
+            if (isset($v['note'])) {
+                $voce->setNote($v['note']);
+            }
             $s->addVoce($voce);
             $m->persist($voce);
         }

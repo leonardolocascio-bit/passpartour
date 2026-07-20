@@ -64,11 +64,16 @@
             <table class="voci-list">
                 {% for v in s.voci %}
                     <tr>
-                        <td>
-                            {{ include('preventivo/_icona.html.twig', {categoria: v.categoria, size: 24}) }}
-                            <span style="vertical-align:middle;margin-left:8px">{{ v.descrizione ?: v.categoria.label }}{% if v.quantita > 1 %} <span class="muted">×{{ v.quantita }}</span>{% endif %}</span>
+                        <td style="vertical-align:top">
+                            <table style="width:100%"><tr>
+                                <td style="width:32px;vertical-align:top">{{ include('preventivo/_icona.html.twig', {categoria: v.categoria, size: 24}) }}</td>
+                                <td style="vertical-align:top">
+                                    <div style="font-weight:600">{{ v.etichetta }}{% if v.quantita > 1 %} <span class="muted">×{{ v.quantita }}</span>{% endif %}</div>
+                                    {{ include('preventivo/_voce_dettagli.html.twig', {voce: v, web: true}) }}
+                                </td>
+                            </tr></table>
                         </td>
-                        <td style="text-align:right;white-space:nowrap;color:var(--muted)">{{ v.categoria.label }}</td>
+                        <td style="text-align:right;white-space:nowrap;color:var(--muted);vertical-align:top">{{ v.categoria.label }}</td>
                     </tr>
                 {% endfor %}
             </table>
@@ -76,15 +81,19 @@
     {% endfor %}
 
     {% if preventivo.tappe|length > 0 %}
-        <h2 style="font-size:19px;margin:28px 0 16px;border-top:1px solid var(--line);padding-top:20px">Diario di viaggio</h2>
+        <h2 style="font-size:19px;margin:28px 0 18px;border-top:1px solid var(--line);padding-top:20px">Diario di viaggio</h2>
         {% for t in preventivo.tappe %}
-            <div style="display:flex;gap:16px;margin-bottom:16px;align-items:flex-start">
-                {% if t.destinazione and t.destinazione.immagine %}
-                    <img src="{{ asset('uploads/destinazioni/' ~ t.destinazione.immagine) }}" alt="{{ t.destinazione.nome }}" style="width:170px;height:106px;object-fit:cover;border-radius:10px;flex-shrink:0">
-                {% endif %}
-                <div>
-                    <div style="font-weight:700;font-size:15px">{% if t.giorno %}Giorno {{ t.giorno }} · {% endif %}{{ t.titolo }}</div>
-                    {% if t.descrizione %}<p class="muted" style="margin:5px 0 0;font-size:14px">{{ t.descrizione|nl2br }}</p>{% endif %}
+            <div class="dv-item">
+                <div class="dv-when">{{ t.etichettaTemporale }}</div>
+                <div class="dv-rail"><span class="dv-node"></span></div>
+                <div class="dv-body">
+                    {% if t.destinazione and t.destinazione.immagine %}
+                        <img src="{{ asset('uploads/destinazioni/' ~ t.destinazione.immagine) }}" alt="{{ t.destinazione.nome }}" style="width:170px;height:106px">
+                    {% endif %}
+                    <div>
+                        <div style="font-weight:700;font-size:15px">{{ t.titolo }}</div>
+                        {% if t.descrizione %}<p class="muted" style="margin:5px 0 0;font-size:14px">{{ t.descrizione|nl2br }}</p>{% endif %}
+                    </div>
                 </div>
             </div>
         {% endfor %}

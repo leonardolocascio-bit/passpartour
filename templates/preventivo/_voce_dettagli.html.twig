@@ -1,0 +1,33 @@
+{# Dettagli strutturati di una voce: mostra solo i campi valorizzati. Parametri: voce, web (bool) #}
+{% set web = web|default(false) %}
+{% set c = voce.categoria.value %}
+
+{% if c in ['volo', 'transfer'] %}
+    {% if voce.orarioPartenza or voce.orarioArrivo %}
+        <div class="muted" style="font-size:12px">
+            {%- if voce.orarioPartenza %}Partenza {{ voce.orarioPartenza }}{% endif -%}
+            {%- if voce.orarioArrivo %}{% if voce.orarioPartenza %} · {% endif %}Arrivo {{ voce.orarioArrivo }}{% endif -%}
+        </div>
+    {% endif %}
+{% elseif c == 'hotel' %}
+    {% if voce.stelle or voce.trattamento %}
+        <div class="muted" style="font-size:12px">
+            {%- if voce.stelle %}{% for _ in 1..voce.stelle %}★{% endfor %}{% endif -%}
+            {%- if voce.trattamento %}{% if voce.stelle %} · {% endif %}{{ voce.trattamento.label }}{% endif -%}
+        </div>
+    {% endif %}
+    {% if voce.indirizzo %}
+        <div style="font-size:12px">
+            {%- if web %}📍 {% if voce.googleMapsUrl %}<a href="{{ voce.googleMapsUrl }}" target="_blank" rel="noopener">{{ voce.indirizzo }}</a>{% else %}{{ voce.indirizzo }}{% endif %}
+            {%- else %}<span class="muted">Indirizzo:</span> {{ voce.indirizzo }}{% endif %}
+        </div>
+    {% endif %}
+    {% if voce.dataInizio or voce.orarioInizio or voce.dataFine or voce.orarioFine %}
+        <div class="muted" style="font-size:12px">
+            Check-in {{ voce.dataInizio ? voce.dataInizio|date('d/m/Y') }} {{ voce.orarioInizio }}
+            {%- if voce.dataFine or voce.orarioFine %} → Check-out {{ voce.dataFine ? voce.dataFine|date('d/m/Y') }} {{ voce.orarioFine }}{% endif %}
+        </div>
+    {% endif %}
+{% endif %}
+
+{% if voce.note %}<div class="muted" style="font-size:12px">{{ voce.note|nl2br }}</div>{% endif %}

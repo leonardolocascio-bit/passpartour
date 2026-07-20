@@ -7,6 +7,7 @@ use App\Entity\TappaViaggio;
 use Doctrine\ORM\EntityRepository;
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
+use Symfony\Component\Form\Extension\Core\Type\DateType;
 use Symfony\Component\Form\Extension\Core\Type\HiddenType;
 use Symfony\Component\Form\Extension\Core\Type\IntegerType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
@@ -20,6 +21,9 @@ class TappaViaggioType extends AbstractType
     {
         $builder
             ->add('giorno', IntegerType::class, ['required' => false, 'label' => false])
+            ->add('giornoA', IntegerType::class, ['required' => false, 'label' => false])
+            ->add('data', DateType::class, ['required' => false, 'label' => false, 'widget' => 'single_text', 'input' => 'datetime_immutable'])
+            ->add('dataA', DateType::class, ['required' => false, 'label' => false, 'widget' => 'single_text', 'input' => 'datetime_immutable'])
             ->add('titolo', TextType::class, ['label' => false])
             ->add('descrizione', TextareaType::class, ['label' => false, 'required' => false])
             ->add('destinazione', EntityType::class, [
