@@ -19,9 +19,9 @@
     </div>
 
     <div class="vg vg-tratta" style="margin-top:10px;display:grid;grid-template-columns:2fr 1fr 2fr 1fr;gap:8px">
-        <div><label>Da</label><input type="text" name="{{ p }}[da]" value="{{ voce ? voce.da }}" placeholder="Partenza"></div>
+        <div><label>Da</label><input type="text" class="aeroporto" autocomplete="off" name="{{ p }}[da]" value="{{ voce ? voce.da }}" placeholder="Città o aeroporto"></div>
         <div><label>Ora part.</label><input type="text" name="{{ p }}[orarioPartenza]" value="{{ voce ? voce.orarioPartenza }}" placeholder="10:30"></div>
-        <div><label>A</label><input type="text" name="{{ p }}[a]" value="{{ voce ? voce.a }}" placeholder="Arrivo"></div>
+        <div><label>A</label><input type="text" class="aeroporto" autocomplete="off" name="{{ p }}[a]" value="{{ voce ? voce.a }}" placeholder="Città o aeroporto"></div>
         <div><label>Ora arr.</label><input type="text" name="{{ p }}[orarioArrivo]" value="{{ voce ? voce.orarioArrivo }}" placeholder="13:15"></div>
     </div>
 
@@ -247,6 +247,58 @@
     cont.addEventListener('input', e => { if (e.target.matches('.v-qta, .v-costo, .s-markup')) ricalcola(e.target.closest('.scenario-block')); });
 
     initTutto();
+})();
+</script>
+
+<script>
+/* Autocomplete aeroporti sui campi Da/A dei voli/transfer */
+(function () {
+    let box = null, activeInput = null, timer = null;
+
+    function ensureBox() {
+        if (!box) {
+            box = document.createElement('div');
+            box.style.cssText = 'position:absolute;z-index:1000;background:#fff;border:1px solid var(--line);border-radius:8px;box-shadow:0 8px 24px rgba(15,37,64,.14);max-height:260px;overflow:auto;display:none';
+            document.body.appendChild(box);
+        }
+        return box;
+    }
+    function posiziona(input) {
+        const r = input.getBoundingClientRect();
+        box.style.left = (r.left + window.scrollX) + 'px';
+        box.style.top = (r.bottom + window.scrollY + 2) + 'px';
+        box.style.width = Math.max(r.width, 240) + 'px';
+    }
+    function nascondi() { if (box) box.style.display = 'none'; activeInput = null; }
+
+    async function cerca(input) {
+        const q = input.value.trim();
+        if (q.length < 2) { nascondi(); return; }
+        try {
+            const dati = await (await fetch('/api/aeroporti?q=' + encodeURIComponent(q))).json();
+            if (!dati.length) { nascondi(); return; }
+            const b = ensureBox();
+            b.innerHTML = '';
+            dati.forEach(a => {
+                const d = document.createElement('div');
+                d.style.cssText = 'padding:8px 12px;cursor:pointer;font-size:13px;border-bottom:1px solid #f0f3f7';
+                d.innerHTML = '<b>' + a.citta + '</b> ' + a.nome + ' <span style="color:#6a7788">(' + a.iata + ')</span>';
+                d.addEventListener('mousedown', e => { e.preventDefault(); input.value = a.label; nascondi(); });
+                d.addEventListener('mouseenter', () => { [...b.children].forEach(c => c.style.background = ''); d.style.background = '#f4f7fb'; });
+                b.appendChild(d);
+            });
+            posiziona(input); b.style.display = 'block'; activeInput = input;
+        } catch (e) { nascondi(); }
+    }
+
+    document.addEventListener('input', e => {
+        if (e.target.classList && e.target.classList.contains('aeroporto')) {
+            clearTimeout(timer); const inp = e.target;
+            timer = setTimeout(() => cerca(inp), 180);
+        }
+    });
+    document.addEventListener('click', e => { if (box && !box.contains(e.target) && e.target !== activeInput) nascondi(); });
+    window.addEventListener('scroll', () => { if (activeInput) posiziona(activeInput); }, true);
 })();
 </script>
 {% endblock %}
