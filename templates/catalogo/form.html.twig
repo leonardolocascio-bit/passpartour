@@ -1,0 +1,38 @@
+{% extends 'app.html.twig' %}
+
+{% block title %}{{ titolo }} · Passpartour{% endblock %}
+{% block page_title %}{{ titolo }}{% endblock %}
+
+{% block main %}
+{% set fid = 'form-' ~ chiave %}
+<div class="card" style="max-width:600px"><div class="card-pad">
+    {{ form_start(form, {attr: {id: fid}}) }}
+    <div style="display:grid;gap:14px">
+        {{ form_row(form.nome) }}
+        {{ form_row(form.descrizione) }}
+
+        {{ include('_partials/_image_picker.html.twig', {
+            form: form,
+            unsplash_configurato: unsplash_configurato,
+            immagine_corrente: voce.immagine ? asset('uploads/destinazioni/' ~ voce.immagine) : null,
+            fotografo: voce.fotografo,
+            fotografoUrl: voce.fotografoUrl,
+        }) }}
+    </div>
+    {{ form_end(form) }}
+
+    {# form di eliminazione: separato (NON annidato nel form principale) #}
+    <div style="margin-top:18px;display:flex;gap:10px;justify-content:space-between">
+        <div style="display:flex;gap:10px">
+            <button type="submit" form="{{ fid }}" class="btn btn-primary">Salva</button>
+            <a class="btn" href="{{ path('app_' ~ chiave ~ '_index') }}">Annulla</a>
+        </div>
+        {% if voce.id %}
+            <form method="post" action="{{ path('app_' ~ chiave ~ '_elimina', {id: voce.id}) }}" onsubmit="return confirm('Eliminare questa voce?')">
+                <input type="hidden" name="_token" value="{{ csrf_token(chiave ~ '_elimina_' ~ voce.id) }}">
+                <button class="btn" style="color:var(--danger)">Elimina</button>
+            </form>
+        {% endif %}
+    </div>
+</div></div>
+{% endblock %}

@@ -12,13 +12,17 @@ use App\Entity\Preventivo;
 use App\Entity\RegolaNurturing;
 use App\Entity\ScenarioPreventivo;
 use App\Entity\TappaViaggio;
+use App\Entity\Tema;
+use App\Entity\Tipologia;
 use App\Entity\Utente;
 use App\Entity\VoceCosto;
 use App\Enum\CategoriaVoce;
 use App\Enum\FonteLead;
 use App\Enum\StatoLead;
 use App\Enum\StatoPreventivo;
+use App\Enum\TemaViaggio;
 use App\Enum\TipoAttivita;
+use App\Enum\TipologiaViaggio;
 use App\Enum\TrattamentoHotel;
 use App\Service\MotoreNurturing;
 use Doctrine\Bundle\FixturesBundle\Fixture;
@@ -119,6 +123,14 @@ class AppFixtures extends Fixture
             $destinazione = (new Destinazione())->setNome($d[0])->setImmagine($d[1])->setDescrizione($d[2]);
             $manager->persist($destinazione);
             $dest[$d[0]] = $destinazione;
+        }
+
+        // ---- Cataloghi tipologie e temi (seed dalle voci predefinite; immagini a cura dell'operatore) ----
+        foreach (TipologiaViaggio::cases() as $t) {
+            $manager->persist((new Tipologia())->setNome($t->label()));
+        }
+        foreach (TemaViaggio::cases() as $t) {
+            $manager->persist((new Tema())->setNome($t->label()));
         }
 
         // ---- Offerte demo ----
