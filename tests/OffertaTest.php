@@ -303,6 +303,31 @@ class OffertaTest extends WebTestCase
         self::assertSelectorTextContains('body', '340,00'); // commissione lorda = 1990 - 1650
     }
 
+    public function testEmailIncludeQuoteEComprendeSenzaCosti(): void
+    {
+        $offerta = $this->em->getRepository(Offerta::class)->findOneBy([]);
+        $offerta->setQuote([['tipo' => 'persona', 'sistemazione' => 'In doppia', 'importo' => '1990']])
+            ->setComprende('Voli e transfer')
+            ->setCosti(['quotaVendita' => '1990', 'tipo' => 'netta', 'quotaNetta' => '1650']);
+        $this->em->flush();
+        $id = $offerta->getId();
+
+        $crawler = $this->client->request('GET', '/offerte/' . $id . '/invia');
+        $token = $crawler->filter('input[name="_token"]')->attr('value');
+        $this->client->request('POST', '/offerte/' . $id . '/invia', [
+            '_token' => $token, 'destinatario' => 'lead@example.com', 'oggetto' => 'Proposta',
+        ]);
+        self::assertResponseRedirects();
+
+        $messaggi = static::getContainer()->get('mailer.message_logger_listener')->getEvents()->getMessages();
+        $html = $messaggi[0]->getHtmlBody();
+        self::assertStringContainsString('In doppia', $html);
+        self::assertStringContainsString('Voli e transfer', $html);
+        // i costi interni non devono finire nell'email al cliente
+        self::assertStringNotContainsString('1650', $html);
+        self::assertStringNotContainsString('MOL', $html);
+    }
+
     public function testSchedaDettaglioMostraDatiSenzaMol(): void
     {
         $offerta = $this->em->getRepository(Offerta::class)->findOneBy([]);
