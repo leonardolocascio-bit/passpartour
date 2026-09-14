@@ -245,6 +245,38 @@ class OffertaTest extends WebTestCase
         self::assertSame('SPA resort', $extra[1]['compagnia']);
     }
 
+    public function testOffertaQuotaEBadge(): void
+    {
+        $offerta = $this->em->getRepository(Offerta::class)->findOneBy([]);
+        $id = $offerta->getId();
+
+        $crawler = $this->client->request('GET', '/offerte/' . $id . '/modifica');
+        $form = $crawler->selectButton('Salva')->form();
+        $form['offerta[valuta]'] = 'USD';
+        $form['offerta[supplementoSingola]'] = '350';
+        $form['quote'] = json_encode([
+            ['tipo' => 'persona', 'sistemazione' => 'In doppia', 'importo' => '1990'],
+            ['tipo' => 'persona', 'sistemazione' => 'In tripla', 'importo' => '1790'],
+            ['tipo' => '', 'sistemazione' => '', 'importo' => ''], // vuoto: scartato
+        ]);
+        $form['offerta[earlyBooking]']->tick();
+        $form['offerta[cancellazioneGratuita]']->tick();
+        $form['offerta[cancellazioneEntroGiorni]'] = '30';
+        $this->client->submit($form);
+        self::assertResponseRedirects();
+
+        $this->em->clear();
+        $offerta = $this->em->getRepository(Offerta::class)->find($id);
+        self::assertSame('USD', $offerta->getValuta());
+        self::assertSame('350.00', $offerta->getSupplementoSingola());
+        self::assertCount(2, $offerta->getQuote());
+        self::assertSame('In doppia', $offerta->getQuote()[0]['sistemazione']);
+        self::assertTrue($offerta->isEarlyBooking());
+        self::assertFalse($offerta->isLastMinute());
+        self::assertTrue($offerta->isCancellazioneGratuita());
+        self::assertSame(30, $offerta->getCancellazioneEntroGiorni());
+    }
+
     public function testCaptionIncludeLeVarianti(): void
     {
         $offerta = $this->em->getRepository(Offerta::class)->findOneBy([]);

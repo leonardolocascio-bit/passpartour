@@ -129,6 +129,35 @@ class Offerta
     #[ORM\Column(type: 'json', nullable: true)]
     private ?array $extra = null;
 
+    /** Valuta della quota (ISO 4217, es. EUR). Il convertitore live arriva nella fase D. */
+    #[ORM\Column(length: 3, options: ['default' => 'EUR'])]
+    private string $valuta = 'EUR';
+
+    /**
+     * Quote di vendita (IVA inclusa): [{tipo: 'persona'|'gruppo', sistemazione, importo}, …].
+     *
+     * @var list<array<string, string>>|null
+     */
+    #[ORM\Column(type: 'json', nullable: true)]
+    private ?array $quote = null;
+
+    /** Supplemento camera singola. */
+    #[ORM\Column(type: 'decimal', precision: 12, scale: 2, nullable: true)]
+    private ?string $supplementoSingola = null;
+
+    #[ORM\Column(options: ['default' => false])]
+    private bool $earlyBooking = false;
+
+    #[ORM\Column(options: ['default' => false])]
+    private bool $lastMinute = false;
+
+    #[ORM\Column(options: ['default' => false])]
+    private bool $cancellazioneGratuita = false;
+
+    /** Giorni entro cui la cancellazione è gratuita (se cancellazioneGratuita = true). */
+    #[ORM\Column(type: 'integer', nullable: true)]
+    private ?int $cancellazioneEntroGiorni = null;
+
     /**
      * Righe/opzioni del viaggio compilate nel configuratore offerta:
      * [{id, icona, argomento, testo, evidenza}, …]. L'impaginatore le eredita.
@@ -458,6 +487,92 @@ class Offerta
     public function setExtra(?array $extra): static
     {
         $this->extra = $extra ?: null;
+
+        return $this;
+    }
+
+    public function getValuta(): string
+    {
+        return $this->valuta;
+    }
+
+    public function setValuta(string $valuta): static
+    {
+        $this->valuta = strtoupper(substr(trim($valuta), 0, 3)) ?: 'EUR';
+
+        return $this;
+    }
+
+    /** @return list<array<string, string>> */
+    public function getQuote(): array
+    {
+        return $this->quote ?? [];
+    }
+
+    /** @param list<array<string, string>>|null $quote */
+    public function setQuote(?array $quote): static
+    {
+        $this->quote = $quote ?: null;
+
+        return $this;
+    }
+
+    public function getSupplementoSingola(): ?string
+    {
+        return $this->supplementoSingola;
+    }
+
+    public function setSupplementoSingola(?string $supplementoSingola): static
+    {
+        $this->supplementoSingola = ($supplementoSingola === null || $supplementoSingola === '') ? null : $supplementoSingola;
+
+        return $this;
+    }
+
+    public function isEarlyBooking(): bool
+    {
+        return $this->earlyBooking;
+    }
+
+    public function setEarlyBooking(bool $earlyBooking): static
+    {
+        $this->earlyBooking = $earlyBooking;
+
+        return $this;
+    }
+
+    public function isLastMinute(): bool
+    {
+        return $this->lastMinute;
+    }
+
+    public function setLastMinute(bool $lastMinute): static
+    {
+        $this->lastMinute = $lastMinute;
+
+        return $this;
+    }
+
+    public function isCancellazioneGratuita(): bool
+    {
+        return $this->cancellazioneGratuita;
+    }
+
+    public function setCancellazioneGratuita(bool $cancellazioneGratuita): static
+    {
+        $this->cancellazioneGratuita = $cancellazioneGratuita;
+
+        return $this;
+    }
+
+    public function getCancellazioneEntroGiorni(): ?int
+    {
+        return $this->cancellazioneEntroGiorni;
+    }
+
+    public function setCancellazioneEntroGiorni(?int $cancellazioneEntroGiorni): static
+    {
+        $this->cancellazioneEntroGiorni = $cancellazioneEntroGiorni;
 
         return $this;
     }

@@ -8,8 +8,10 @@ use Doctrine\ORM\EntityRepository;
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
+use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\DateType;
 use Symfony\Component\Form\Extension\Core\Type\FileType;
+use Symfony\Component\Form\Extension\Core\Type\IntegerType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
@@ -45,6 +47,15 @@ class OffertaType extends AbstractType
             ->add('descrizione', TextareaType::class, ['label' => 'Descrizione', 'required' => false])
             ->add('comprende', TextareaType::class, ['label' => 'Il pacchetto comprende', 'required' => false, 'attr' => ['rows' => 4, 'placeholder' => 'Generato dalle caratteristiche, modificabile a mano']])
             ->add('nonComprende', TextareaType::class, ['label' => 'Il pacchetto non comprende', 'required' => false, 'attr' => ['rows' => 3]])
+            ->add('valuta', ChoiceType::class, [
+                'label' => 'Valuta',
+                'choices' => ['Euro (€)' => 'EUR', 'Dollaro USA ($)' => 'USD', 'Sterlina (£)' => 'GBP', 'Franco svizzero (CHF)' => 'CHF', 'Yen (¥)' => 'JPY'],
+            ])
+            ->add('supplementoSingola', TextType::class, ['label' => 'Supplemento singola', 'required' => false, 'attr' => ['inputmode' => 'decimal']])
+            ->add('earlyBooking', CheckboxType::class, ['label' => 'Early booking', 'required' => false])
+            ->add('lastMinute', CheckboxType::class, ['label' => 'Last minute', 'required' => false])
+            ->add('cancellazioneGratuita', CheckboxType::class, ['label' => 'Cancellazione gratuita', 'required' => false])
+            ->add('cancellazioneEntroGiorni', IntegerType::class, ['label' => 'Cancellazione gratuita entro (giorni)', 'required' => false, 'attr' => ['min' => 0]])
             ->add('prezzoDa', TextType::class, ['label' => 'Prezzo a partire da (€)', 'required' => false, 'attr' => ['inputmode' => 'decimal']])
             ->add('durata', TextType::class, ['label' => 'Durata', 'required' => false, 'attr' => ['placeholder' => 'Es. 7 notti']])
             ->add('validoDal', DateType::class, ['label' => 'Valida dal', 'required' => false, 'widget' => 'single_text', 'input' => 'datetime_immutable'])
