@@ -57,12 +57,11 @@
 
         <div class="card"><div class="card-pad">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-                <strong>Righe personalizzate</strong>
-                <button type="button" class="btn" id="riga-aggiungi">+ Riga</button>
+                <strong>Righe del viaggio</strong>
+                <a class="btn" href="{{ path('app_offerta_modifica', {id: offerta.id}) }}">✎ Modifica nel configuratore</a>
             </div>
-            <div id="preset-chips" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px"></div>
-            <div id="righe-box" style="display:grid;gap:8px"></div>
-            <p class="muted" style="font-size:11px;margin:8px 0 0">Icona a scelta, argomento e descrizione. «In evidenza» mostra la riga con sfondo ambra. Trascina con ↑↓ per riordinare.</p>
+            <div id="righe-box" style="display:grid;gap:6px"></div>
+            <p class="muted" style="font-size:11px;margin:8px 0 0">Le righe si compilano nel configuratore dell'offerta; qui scegli cosa mostrare: 📱 nella slide corrente, 💬 nella caption.</p>
         </div></div>
 
         <div class="card"><div class="card-pad">
@@ -128,9 +127,6 @@
     </div>
 </div>
 
-{# Palette icone (popover) #}
-<div id="icone-popover" style="display:none;position:absolute;z-index:50;background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:0 12px 32px rgba(0,0,0,.18);padding:10px;width:320px;max-height:300px;overflow:auto"></div>
-
 <script>
 (function () {
     'use strict';
@@ -145,6 +141,7 @@
         immagine: {{ offerta.immagineFile|json_encode|raw }},
         fotografo: {{ offerta.fotografoEffettivo|json_encode|raw }},
         fotografoUrl: {{ offerta.fotografoUrlEffettivo|json_encode|raw }},
+        righe: {{ offerta.righe|json_encode|raw }},
     };
     const URLS = {
         salva: {{ path('app_offerta_impaginatore_salva', {id: offerta.id})|json_encode|raw }},
@@ -157,32 +154,12 @@
     };
     const CSRF = {{ csrf_token('impaginatore_' ~ offerta.id)|json_encode|raw }};
 
-    const PRESET = [
-        { argomento: 'DATE',          icona: '📅' },
-        { argomento: 'PARTENZE DA',   icona: '🛫' },
-        { argomento: 'ESCURSIONI',    icona: '🗺️' },
-        { argomento: 'TRATTAMENTO',   icona: '🍽️' },
-        { argomento: 'SISTEMAZIONE',  icona: '🏨' },
-        { argomento: 'ASSICURAZIONE', icona: '🛡️' },
-        { argomento: 'BAGAGLIO',      icona: '🧳' },
-        { argomento: 'TRANSFER',      icona: '🚌' },
-        { argomento: 'PLUS',          icona: '✨' },
-        { argomento: 'CTA',           icona: '📞' },
-    ];
-    const ICONE = {
-        'Trasporti':    ['✈️','🛫','🛬','🚌','🚐','🚗','🚕','🚆','🚄','🛳️','⛴️','🚁','🚤','🛵'],
-        'Alloggio':     ['🏨','🛏️','🛎️','🏖️','🏝️','🏕️','⛺','🏰','🏡','🌴'],
-        'Ristorazione': ['🍽️','🍹','🥂','🍷','☕','🍕','🍝','🥗','🍳','🍦'],
-        'Attività':     ['🗺️','🧭','🥾','🤿','🏄','🎿','⛷️','🚵','🏛️','🕌','⛪','🎭','🎡','🎫','📸','🐠','🐘','🦁','⛵','🏌️'],
-        'Servizi':      ['🛡️','🧳','💼','📶','👶','♿','🐶','💆','🧖','🎧','👨‍👩‍👧‍👦','🩺'],
-        'Info e varie': ['📅','⏰','📍','💶','💰','⭐','✨','➕','✅','❗','🔥','🎁','☀️','🌙','🌊','🏔️','❄️','📞','💬','✉️','👉','❤️','😍','🎉'],
-    };
-
     /* ---------- Stato ---------- */
+    const tuttiGliId = () => OFFERTA.righe.map(r => r.id);
     const nuovaSlide = () => ({
         sfondo: OFFERTA.immagine ? { file: OFFERTA.immagine, fotografo: OFFERTA.fotografo || '', fotografoUrl: OFFERTA.fotografoUrl || '' } : null,
         mostra: { titolo: true, claim: true, durata: true, prezzo: true, logo: true },
-        righe: [],
+        righe: tuttiGliId(),
     });
 
     let stato = {{ offerta.impaginato ? offerta.impaginato|json_encode|raw : 'null' }};
@@ -190,8 +167,17 @@
         stato = { slides: [nuovaSlide()], caption: { tono: 'professionale', testo: '' } };
     }
     stato.caption = stato.caption || { tono: 'professionale', testo: '' };
+    if (!Array.isArray(stato.caption.righe)) stato.caption.righe = tuttiGliId();
+    // le slide referenziano le righe dell'offerta per id: scarta id orfani
+    stato.slides.forEach(s => s.righe = (s.righe || []).filter(id => typeof id === 'string' && tuttiGliId().includes(id)));
+    stato.caption.righe = stato.caption.righe.filter(id => tuttiGliId().includes(id));
     let corrente = 0;
     let sporco = false;
+
+    /** Righe dell'offerta selezionate (in ordine di configuratore) dato un elenco di id. */
+    function righeDaId(ids) {
+        return OFFERTA.righe.filter(r => (ids || []).includes(r.id));
+    }
 
     /* ---------- Riferimenti DOM ---------- */
     const $ = id => document.getElementById(id);
@@ -287,8 +273,8 @@
             yBasso = by - 40;
         }
 
-        // Righe personalizzate
-        const righe = (s.righe || []).filter(r => (r.argomento || r.testo));
+        // Righe del viaggio selezionate per questa slide
+        const righe = righeDaId(s.righe).filter(r => (r.argomento || r.testo));
         if (righe.length) {
             const hRiga = 74;
             let y = yBasso - righe.length * hRiga + 48;
@@ -419,106 +405,52 @@
     Object.entries(chk).forEach(([k, el]) => el.addEventListener('change', () => { slide().mostra[k] = el.checked; segnaSporco(); ridisegna(); }));
     $('inp-claim').addEventListener('input', () => { segnaSporco(); ridisegna(); });
 
-    /* ---------- UI righe ---------- */
-    function renderPresetChips() {
-        const box = $('preset-chips'); box.innerHTML = '';
-        PRESET.forEach(p => {
-            const b = document.createElement('button');
-            b.type = 'button'; b.className = 'btn'; b.style.fontSize = '12px'; b.style.padding = '3px 9px';
-            b.textContent = p.icona + ' ' + p.argomento;
-            b.addEventListener('click', () => {
-                slide().righe.push({ icona: p.icona, argomento: p.argomento, testo: '', evidenza: false });
-                segnaSporco(); renderRighe(); ridisegna();
-                const inputs = document.querySelectorAll('#righe-box input[data-campo="testo"]');
-                if (inputs.length) inputs[inputs.length - 1].focus();
-            });
-            box.appendChild(b);
-        });
-    }
-
+    /* ---------- Selezione righe (ereditate dal configuratore offerta) ---------- */
     function renderRighe() {
         const box = $('righe-box'); box.innerHTML = '';
-        const righe = slide().righe;
-        righe.forEach((r, i) => {
+        if (!OFFERTA.righe.length) {
+            box.innerHTML = '<p class="muted" style="font-size:12px;margin:0">Nessuna riga sull\'offerta: compilale nel configuratore («Modifica nel configuratore»).</p>';
+            return;
+        }
+
+        const testata = document.createElement('div');
+        testata.className = 'muted';
+        testata.style.cssText = 'display:grid;grid-template-columns:1fr 52px 52px;gap:6px;font-size:10px;text-transform:uppercase;letter-spacing:.5px';
+        testata.innerHTML = '<span></span><span style="text-align:center">📱 Slide</span><span style="text-align:center">💬 Caption</span>';
+        box.appendChild(testata);
+
+        const s = slide();
+        OFFERTA.righe.forEach(r => {
             const div = document.createElement('div');
-            div.style.cssText = 'display:grid;grid-template-columns:44px 150px 1fr auto;gap:6px;align-items:center';
+            div.style.cssText = 'display:grid;grid-template-columns:1fr 52px 52px;gap:6px;align-items:center;font-size:13px';
 
-            const bIcona = document.createElement('button');
-            bIcona.type = 'button'; bIcona.className = 'btn'; bIcona.style.fontSize = '18px'; bIcona.style.padding = '4px 8px';
-            bIcona.textContent = r.icona || '▪️';
-            bIcona.title = 'Scegli icona';
-            bIcona.addEventListener('click', e => apriPaletteIcone(e.currentTarget, icona => { r.icona = icona; segnaSporco(); renderRighe(); ridisegna(); }));
+            const etichetta = document.createElement('div');
+            etichetta.style.cssText = 'display:flex;gap:6px;align-items:baseline;min-width:0';
+            etichetta.innerHTML = '<span>' + (r.icona || '▪️') + '</span>'
+                + (r.argomento ? '<strong style="color:var(--brand);font-size:12px">' + r.argomento.toUpperCase() + '</strong>' : '')
+                + '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + (r.testo || '') + '</span>'
+                + (r.evidenza ? '<span title="In evidenza" style="color:#f6a41f">★</span>' : '');
 
-            const iArg = document.createElement('input');
-            iArg.type = 'text'; iArg.placeholder = 'ARGOMENTO'; iArg.value = r.argomento || '';
-            iArg.setAttribute('list', 'lista-argomenti'); iArg.style.textTransform = 'uppercase'; iArg.style.fontSize = '12px';
-            iArg.addEventListener('input', () => { r.argomento = iArg.value; segnaSporco(); ridisegna(); });
+            const cbSlide = document.createElement('input');
+            cbSlide.type = 'checkbox'; cbSlide.style.justifySelf = 'center';
+            cbSlide.checked = s.righe.includes(r.id);
+            cbSlide.addEventListener('change', () => {
+                s.righe = cbSlide.checked ? [...s.righe, r.id] : s.righe.filter(id => id !== r.id);
+                segnaSporco(); ridisegna();
+            });
 
-            const iTesto = document.createElement('input');
-            iTesto.type = 'text'; iTesto.placeholder = 'Descrizione (es. Visita guidata Cappella Hammam)'; iTesto.value = r.testo || '';
-            iTesto.dataset.campo = 'testo'; iTesto.style.fontSize = '12px';
-            iTesto.addEventListener('input', () => { r.testo = iTesto.value; segnaSporco(); ridisegna(); });
+            const cbCaption = document.createElement('input');
+            cbCaption.type = 'checkbox'; cbCaption.style.justifySelf = 'center';
+            cbCaption.checked = stato.caption.righe.includes(r.id);
+            cbCaption.addEventListener('change', () => {
+                stato.caption.righe = cbCaption.checked ? [...stato.caption.righe, r.id] : stato.caption.righe.filter(id => id !== r.id);
+                segnaSporco();
+            });
 
-            const strumenti = document.createElement('div');
-            strumenti.style.cssText = 'display:flex;gap:3px;align-items:center';
-            const bEvid = mkBtn(r.evidenza ? '★' : '☆', 'In evidenza (sfondo ambra)', () => { r.evidenza = !r.evidenza; segnaSporco(); renderRighe(); ridisegna(); });
-            if (r.evidenza) bEvid.style.color = '#f6a41f';
-            strumenti.append(
-                bEvid,
-                mkBtn('↑', 'Sposta su', () => { if (i > 0) { [righe[i - 1], righe[i]] = [righe[i], righe[i - 1]]; segnaSporco(); renderRighe(); ridisegna(); } }),
-                mkBtn('↓', 'Sposta giù', () => { if (i < righe.length - 1) { [righe[i + 1], righe[i]] = [righe[i], righe[i + 1]]; segnaSporco(); renderRighe(); ridisegna(); } }),
-                mkBtn('✕', 'Elimina riga', () => { righe.splice(i, 1); segnaSporco(); renderRighe(); ridisegna(); }, 'var(--danger)'),
-            );
-
-            div.append(bIcona, iArg, iTesto, strumenti);
+            div.append(etichetta, cbSlide, cbCaption);
             box.appendChild(div);
         });
-        if (!righe.length) box.innerHTML = '<p class="muted" style="font-size:12px;margin:0">Nessuna riga: usa i preset qui sopra o «+ Riga».</p>';
     }
-
-    function mkBtn(testo, title, onClick, colore) {
-        const b = document.createElement('button');
-        b.type = 'button'; b.className = 'btn'; b.style.padding = '3px 8px'; b.style.fontSize = '12px';
-        b.textContent = testo; b.title = title;
-        if (colore) b.style.color = colore;
-        b.addEventListener('click', onClick);
-        return b;
-    }
-
-    $('riga-aggiungi').addEventListener('click', () => {
-        slide().righe.push({ icona: '➕', argomento: '', testo: '', evidenza: false });
-        segnaSporco(); renderRighe(); ridisegna();
-    });
-
-    /* ---------- Palette icone ---------- */
-    const popover = $('icone-popover');
-    function apriPaletteIcone(ancora, onScelta) {
-        popover.innerHTML = '';
-        Object.entries(ICONE).forEach(([gruppo, icone]) => {
-            const h = document.createElement('div');
-            h.className = 'muted'; h.style.cssText = 'font-size:10px;text-transform:uppercase;letter-spacing:.5px;margin:6px 0 4px';
-            h.textContent = gruppo; popover.appendChild(h);
-            const griglia = document.createElement('div');
-            griglia.style.cssText = 'display:grid;grid-template-columns:repeat(8,1fr);gap:2px';
-            icone.forEach(ic => {
-                const b = document.createElement('button');
-                b.type = 'button'; b.textContent = ic;
-                b.style.cssText = 'border:0;background:none;font-size:20px;cursor:pointer;padding:4px;border-radius:6px';
-                b.addEventListener('mouseenter', () => b.style.background = '#eef1f6');
-                b.addEventListener('mouseleave', () => b.style.background = 'none');
-                b.addEventListener('click', () => { popover.style.display = 'none'; onScelta(ic); });
-                griglia.appendChild(b);
-            });
-            popover.appendChild(griglia);
-        });
-        const r = ancora.getBoundingClientRect();
-        popover.style.left = (r.left + window.scrollX) + 'px';
-        popover.style.top = (r.bottom + window.scrollY + 4) + 'px';
-        popover.style.display = 'block';
-    }
-    document.addEventListener('click', e => {
-        if (popover.style.display === 'block' && !popover.contains(e.target) && e.target.title !== 'Scegli icona') popover.style.display = 'none';
-    });
 
     /* ---------- Sfondi ---------- */
     function renderSfondiCorrenti() {
@@ -618,7 +550,7 @@
     $('btn-genera-caption').addEventListener('click', async () => {
         const b = $('btn-genera-caption'); b.disabled = true; b.textContent = '… genero';
         try {
-            const righe = stato.slides.flatMap(s => s.righe).filter(r => r.argomento || r.testo);
+            const righe = righeDaId(stato.caption.righe).filter(r => r.argomento || r.testo);
             const r = await fetch(URLS.caption, {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ tono: selTono.value, righe, claim: $('inp-claim').value }),
@@ -683,14 +615,8 @@
         renderSfondiCorrenti();
         ridisegna();
     }
-    renderPresetChips();
     aggiornaContatore();
     renderTutto();
 })();
 </script>
-<datalist id="lista-argomenti">
-    <option value="DATE"><option value="PARTENZE DA"><option value="ESCURSIONI"><option value="TRATTAMENTO">
-    <option value="SISTEMAZIONE"><option value="ASSICURAZIONE"><option value="BAGAGLIO"><option value="TRANSFER">
-    <option value="PLUS"><option value="CTA">
-</datalist>
 {% endblock %}

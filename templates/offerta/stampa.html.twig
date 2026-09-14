@@ -76,16 +76,7 @@
             {% elseif offerta.sottotitolo %}<div class="claim">{{ offerta.sottotitolo }}</div>{% endif %}
         </div>
 
-        {% set righe = [] %}
-        {% if offerta.impaginato and offerta.impaginato.slides is defined %}
-            {% for s in offerta.impaginato.slides %}
-                {% for r in s.righe|default([]) %}
-                    {% if (r.argomento is defined and r.argomento) or (r.testo is defined and r.testo) %}
-                        {% set righe = righe|merge([r]) %}
-                    {% endif %}
-                {% endfor %}
-            {% endfor %}
-        {% endif %}
+        {% set righe = offerta.righe %}
         {% if righe|length %}
             <div class="righe">
                 {% for r in righe %}

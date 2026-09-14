@@ -1,0 +1,154 @@
+{# Editor delle righe/opzioni del viaggio (icona + argomento + descrizione).
+   Va incluso DENTRO il form offerta (#form-offerta): serializza in un hidden
+   `righe_json` al submit. Parametro: offerta. #}
+
+<div style="border-top:1px solid var(--line);padding-top:14px">
+    <label>Righe / opzioni del viaggio</label>
+    <p class="muted" style="font-size:12px;margin:2px 0 8px">Compaiono nell'impaginatore social e nella stampa. Icona a scelta, argomento e descrizione; ★ = in evidenza (sfondo ambra). Ordina con ↑↓.</p>
+    <div id="preset-chips" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px"></div>
+    <div id="righe-box" style="display:grid;gap:8px"></div>
+    <div style="margin-top:8px"><button type="button" class="btn" id="riga-aggiungi">+ Riga</button></div>
+    <input type="hidden" name="righe_json" id="righe_json">
+</div>
+
+<div id="icone-popover" style="display:none;position:absolute;z-index:50;background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:0 12px 32px rgba(0,0,0,.18);padding:10px;width:320px;max-height:300px;overflow:auto"></div>
+
+<datalist id="lista-argomenti">
+    <option value="DATE"><option value="PARTENZE DA"><option value="ESCURSIONI"><option value="TRATTAMENTO">
+    <option value="SISTEMAZIONE"><option value="ASSICURAZIONE"><option value="BAGAGLIO"><option value="TRANSFER">
+    <option value="PLUS"><option value="CTA">
+</datalist>
+
+<script>
+(function () {
+    'use strict';
+
+    const PRESET = [
+        { argomento: 'DATE',          icona: '📅' },
+        { argomento: 'PARTENZE DA',   icona: '🛫' },
+        { argomento: 'ESCURSIONI',    icona: '🗺️' },
+        { argomento: 'TRATTAMENTO',   icona: '🍽️' },
+        { argomento: 'SISTEMAZIONE',  icona: '🏨' },
+        { argomento: 'ASSICURAZIONE', icona: '🛡️' },
+        { argomento: 'BAGAGLIO',      icona: '🧳' },
+        { argomento: 'TRANSFER',      icona: '🚌' },
+        { argomento: 'PLUS',          icona: '✨' },
+        { argomento: 'CTA',           icona: '📞' },
+    ];
+    const ICONE = {
+        'Trasporti':    ['✈️','🛫','🛬','🚌','🚐','🚗','🚕','🚆','🚄','🛳️','⛴️','🚁','🚤','🛵'],
+        'Alloggio':     ['🏨','🛏️','🛎️','🏖️','🏝️','🏕️','⛺','🏰','🏡','🌴'],
+        'Ristorazione': ['🍽️','🍹','🥂','🍷','☕','🍕','🍝','🥗','🍳','🍦'],
+        'Attività':     ['🗺️','🧭','🥾','🤿','🏄','🎿','⛷️','🚵','🏛️','🕌','⛪','🎭','🎡','🎫','📸','🐠','🐘','🦁','⛵','🏌️'],
+        'Servizi':      ['🛡️','🧳','💼','📶','👶','♿','🐶','💆','🧖','🎧','👨‍👩‍👧‍👦','🩺'],
+        'Info e varie': ['📅','⏰','📍','💶','💰','⭐','✨','➕','✅','❗','🔥','🎁','☀️','🌙','🌊','🏔️','❄️','📞','💬','✉️','👉','❤️','😍','🎉'],
+    };
+
+    const righe = {{ offerta.righe|json_encode|raw }} || [];
+    const nuovoId = () => 'r' + Math.random().toString(36).slice(2, 10);
+
+    const box = document.getElementById('righe-box');
+    const popover = document.getElementById('icone-popover');
+
+    function mkBtn(testo, title, onClick, colore) {
+        const b = document.createElement('button');
+        b.type = 'button'; b.className = 'btn'; b.style.padding = '3px 8px'; b.style.fontSize = '12px';
+        b.textContent = testo; b.title = title;
+        if (colore) b.style.color = colore;
+        b.addEventListener('click', onClick);
+        return b;
+    }
+
+    function render() {
+        box.innerHTML = '';
+        righe.forEach((r, i) => {
+            const div = document.createElement('div');
+            div.style.cssText = 'display:grid;grid-template-columns:44px 140px 1fr auto;gap:6px;align-items:center';
+
+            const bIcona = document.createElement('button');
+            bIcona.type = 'button'; bIcona.className = 'btn'; bIcona.style.fontSize = '18px'; bIcona.style.padding = '4px 8px';
+            bIcona.textContent = r.icona || '▪️'; bIcona.title = 'Scegli icona';
+            bIcona.addEventListener('click', e => apriPalette(e.currentTarget, ic => { r.icona = ic; render(); }));
+
+            const iArg = document.createElement('input');
+            iArg.type = 'text'; iArg.placeholder = 'ARGOMENTO'; iArg.value = r.argomento || '';
+            iArg.setAttribute('list', 'lista-argomenti'); iArg.style.textTransform = 'uppercase'; iArg.style.fontSize = '12px';
+            iArg.addEventListener('input', () => r.argomento = iArg.value);
+
+            const iTesto = document.createElement('input');
+            iTesto.type = 'text'; iTesto.placeholder = 'Descrizione (es. Visita guidata Cappella Hammam)'; iTesto.value = r.testo || '';
+            iTesto.dataset.campo = 'testo'; iTesto.style.fontSize = '12px';
+            iTesto.addEventListener('input', () => r.testo = iTesto.value);
+
+            const strumenti = document.createElement('div');
+            strumenti.style.cssText = 'display:flex;gap:3px;align-items:center';
+            const bEvid = mkBtn(r.evidenza ? '★' : '☆', 'In evidenza (sfondo ambra)', () => { r.evidenza = !r.evidenza; render(); });
+            if (r.evidenza) bEvid.style.color = '#f6a41f';
+            strumenti.append(
+                bEvid,
+                mkBtn('↑', 'Sposta su', () => { if (i > 0) { [righe[i - 1], righe[i]] = [righe[i], righe[i - 1]]; render(); } }),
+                mkBtn('↓', 'Sposta giù', () => { if (i < righe.length - 1) { [righe[i + 1], righe[i]] = [righe[i], righe[i + 1]]; render(); } }),
+                mkBtn('✕', 'Elimina riga', () => { righe.splice(i, 1); render(); }, 'var(--danger)'),
+            );
+
+            div.append(bIcona, iArg, iTesto, strumenti);
+            box.appendChild(div);
+        });
+        if (!righe.length) box.innerHTML = '<p class="muted" style="font-size:12px;margin:0">Nessuna riga: usa i preset qui sopra o «+ Riga».</p>';
+    }
+
+    const chips = document.getElementById('preset-chips');
+    PRESET.forEach(p => {
+        const b = document.createElement('button');
+        b.type = 'button'; b.className = 'btn'; b.style.fontSize = '12px'; b.style.padding = '3px 9px';
+        b.textContent = p.icona + ' ' + p.argomento;
+        b.addEventListener('click', () => {
+            righe.push({ id: nuovoId(), icona: p.icona, argomento: p.argomento, testo: '', evidenza: false });
+            render();
+            const inputs = box.querySelectorAll('input[data-campo="testo"]');
+            if (inputs.length) inputs[inputs.length - 1].focus();
+        });
+        chips.appendChild(b);
+    });
+
+    document.getElementById('riga-aggiungi').addEventListener('click', () => {
+        righe.push({ id: nuovoId(), icona: '➕', argomento: '', testo: '', evidenza: false });
+        render();
+    });
+
+    function apriPalette(ancora, onScelta) {
+        popover.innerHTML = '';
+        Object.entries(ICONE).forEach(([gruppo, icone]) => {
+            const h = document.createElement('div');
+            h.className = 'muted'; h.style.cssText = 'font-size:10px;text-transform:uppercase;letter-spacing:.5px;margin:6px 0 4px';
+            h.textContent = gruppo; popover.appendChild(h);
+            const griglia = document.createElement('div');
+            griglia.style.cssText = 'display:grid;grid-template-columns:repeat(8,1fr);gap:2px';
+            icone.forEach(ic => {
+                const b = document.createElement('button');
+                b.type = 'button'; b.textContent = ic;
+                b.style.cssText = 'border:0;background:none;font-size:20px;cursor:pointer;padding:4px;border-radius:6px';
+                b.addEventListener('mouseenter', () => b.style.background = '#eef1f6');
+                b.addEventListener('mouseleave', () => b.style.background = 'none');
+                b.addEventListener('click', () => { popover.style.display = 'none'; onScelta(ic); });
+                griglia.appendChild(b);
+            });
+            popover.appendChild(griglia);
+        });
+        const r = ancora.getBoundingClientRect();
+        popover.style.left = (r.left + window.scrollX) + 'px';
+        popover.style.top = (r.bottom + window.scrollY + 4) + 'px';
+        popover.style.display = 'block';
+    }
+    document.addEventListener('click', e => {
+        if (popover.style.display === 'block' && !popover.contains(e.target) && e.target.title !== 'Scegli icona') popover.style.display = 'none';
+    });
+
+    // serializza al submit del form offerta
+    document.getElementById('form-offerta').addEventListener('submit', () => {
+        document.getElementById('righe_json').value = JSON.stringify(righe);
+    });
+
+    render();
+})();
+</script>

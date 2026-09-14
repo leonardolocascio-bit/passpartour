@@ -27,8 +27,17 @@ class Offerta
     private ?string $claim = null;
 
     /**
-     * Stato dell'impaginatore social/stampa: slide del carosello (sfondo, righe
-     * icona/argomento/testo, elementi visibili), caption e tono di voce.
+     * Righe/opzioni del viaggio compilate nel configuratore offerta:
+     * [{id, icona, argomento, testo, evidenza}, …]. L'impaginatore le eredita.
+     *
+     * @var list<array<string, mixed>>|null
+     */
+    #[ORM\Column(type: 'json', nullable: true)]
+    private ?array $righe = null;
+
+    /**
+     * Stato dell'impaginatore social/stampa: slide del carosello (sfondo,
+     * id delle righe selezionate, elementi visibili), caption e tono di voce.
      *
      * @var array<string, mixed>|null
      */
@@ -113,6 +122,20 @@ class Offerta
     public function setClaim(?string $claim): static
     {
         $this->claim = $claim;
+
+        return $this;
+    }
+
+    /** @return list<array<string, mixed>> */
+    public function getRighe(): array
+    {
+        return $this->righe ?? [];
+    }
+
+    /** @param list<array<string, mixed>>|null $righe */
+    public function setRighe(?array $righe): static
+    {
+        $this->righe = $righe ?: null;
 
         return $this;
     }

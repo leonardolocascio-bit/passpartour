@@ -21,6 +21,8 @@
 
         {{ form_row(form.destinazione) }}
         {{ form_row(form.descrizione) }}
+
+        {{ include('_partials/_righe_editor.html.twig', {offerta: offerta}) }}
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
             {{ form_row(form.prezzoDa) }}
             {{ form_row(form.durata) }}

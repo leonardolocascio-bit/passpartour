@@ -30,14 +30,61 @@ class ImpaginatoreController extends AbstractController
     ];
 
     #[Route('/offerte/{id}/impaginatore', name: 'app_offerta_impaginatore', requirements: ['id' => '\d+'])]
-    public function editor(Offerta $offerta, UnsplashClient $unsplash, CaptionGenerator $caption): Response
+    public function editor(Offerta $offerta, UnsplashClient $unsplash, CaptionGenerator $caption, EntityManagerInterface $em): Response
     {
+        $this->migraRigheLegacy($offerta, $em);
+
         return $this->render('offerta/impaginatore.html.twig', [
             'offerta' => $offerta,
             'unsplash_configurato' => $unsplash->isConfigured(),
             'ai_configurata' => $caption->isConfigured(),
             'toni' => CaptionGenerator::TONI,
         ]);
+    }
+
+    /**
+     * Formato storico: le righe vivevano dentro le slide dell'impaginatore come
+     * oggetti. Ora sono dati dell'offerta (configuratore) e le slide le
+     * referenziano per id: al primo accesso solleva le righe sull'offerta.
+     */
+    private function migraRigheLegacy(Offerta $offerta, EntityManagerInterface $em): void
+    {
+        $imp = $offerta->getImpaginato();
+        if ($offerta->getRighe() !== [] || empty($imp['slides'])) {
+            return;
+        }
+
+        $righe = [];
+        $modificato = false;
+        foreach ($imp['slides'] as &$slide) {
+            $ids = [];
+            foreach ((array) ($slide['righe'] ?? []) as $r) {
+                if (\is_string($r)) {
+                    $ids[] = $r;
+                    continue;
+                }
+                if (!\is_array($r) || (empty($r['argomento']) && empty($r['testo']))) {
+                    continue;
+                }
+                $id = 'r' . substr(md5(json_encode($r)), 0, 8);
+                $righe[$id] = [
+                    'id' => $id,
+                    'icona' => (string) ($r['icona'] ?? ''),
+                    'argomento' => (string) ($r['argomento'] ?? ''),
+                    'testo' => (string) ($r['testo'] ?? ''),
+                    'evidenza' => !empty($r['evidenza']),
+                ];
+                $ids[] = $id;
+                $modificato = true;
+            }
+            $slide['righe'] = $ids;
+        }
+        unset($slide);
+
+        if ($modificato) {
+            $offerta->setRighe(array_values($righe))->setImpaginato($imp);
+            $em->flush();
+        }
     }
 
     /** Salva lo stato dell'impaginatore (slide, righe, caption) sull'offerta. */

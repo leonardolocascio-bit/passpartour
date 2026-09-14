@@ -58,9 +58,9 @@ class OffertaTest extends WebTestCase
             'slides' => [[
                 'sfondo' => null,
                 'mostra' => ['titolo' => true, 'claim' => true, 'durata' => true, 'prezzo' => true, 'logo' => true],
-                'righe' => [['icona' => '🗺️', 'argomento' => 'ESCURSIONI', 'testo' => 'Visita guidata Cappella Hammam', 'evidenza' => true]],
+                'righe' => ['r1a2b3c4'], // riferimenti per id alle righe dell'offerta
             ]],
-            'caption' => ['tono' => 'entusiasta', 'testo' => 'Che meraviglia!'],
+            'caption' => ['tono' => 'entusiasta', 'testo' => 'Che meraviglia!', 'righe' => ['r1a2b3c4']],
         ];
 
         $this->client->request('POST', '/offerte/' . $id . '/impaginatore/salva', server: [
@@ -72,7 +72,56 @@ class OffertaTest extends WebTestCase
         $this->em->clear();
         $offerta = $this->em->getRepository(Offerta::class)->find($id);
         self::assertSame('Il paradiso esiste', $offerta->getClaim());
-        self::assertSame('ESCURSIONI', $offerta->getImpaginato()['slides'][0]['righe'][0]['argomento']);
+        self::assertSame(['r1a2b3c4'], $offerta->getImpaginato()['slides'][0]['righe']);
+    }
+
+    public function testRigheSalvateDalConfiguratoreOfferta(): void
+    {
+        $offerta = $this->em->getRepository(Offerta::class)->findOneBy([]);
+        $id = $offerta->getId();
+
+        $crawler = $this->client->request('GET', '/offerte/' . $id . '/modifica');
+        $form = $crawler->selectButton('Salva')->form();
+        $form['righe_json'] = json_encode([
+            ['id' => 'rabc12', 'icona' => '🗺️', 'argomento' => 'ESCURSIONI', 'testo' => 'Visita guidata Cappella Hammam', 'evidenza' => true],
+            ['icona' => '➕', 'argomento' => '', 'testo' => ''], // riga vuota: scartata
+            ['icona' => '🍽️', 'argomento' => 'TRATTAMENTO', 'testo' => 'All inclusive'], // senza id: generato
+        ]);
+        $this->client->submit($form);
+        self::assertResponseRedirects();
+
+        $this->em->clear();
+        $righe = $this->em->getRepository(Offerta::class)->find($id)->getRighe();
+        self::assertCount(2, $righe);
+        self::assertSame('rabc12', $righe[0]['id']);
+        self::assertTrue($righe[0]['evidenza']);
+        self::assertSame('TRATTAMENTO', $righe[1]['argomento']);
+        self::assertNotEmpty($righe[1]['id']);
+    }
+
+    public function testMigrazioneRigheLegacyVersoOfferta(): void
+    {
+        $offerta = $this->em->getRepository(Offerta::class)->findOneBy([]);
+        $offerta->setRighe(null)->setImpaginato([
+            'slides' => [[
+                'sfondo' => null,
+                'mostra' => ['titolo' => true],
+                'righe' => [['icona' => '🗺️', 'argomento' => 'ESCURSIONI', 'testo' => 'Snorkeling', 'evidenza' => false]],
+            ]],
+            'caption' => ['tono' => 'professionale', 'testo' => ''],
+        ]);
+        $this->em->flush();
+        $id = $offerta->getId();
+
+        $this->client->request('GET', '/offerte/' . $id . '/impaginatore');
+        self::assertResponseIsSuccessful();
+
+        $this->em->clear();
+        $offerta = $this->em->getRepository(Offerta::class)->find($id);
+        self::assertCount(1, $offerta->getRighe());
+        self::assertSame('ESCURSIONI', $offerta->getRighe()[0]['argomento']);
+        // la slide ora referenzia la riga per id
+        self::assertSame([$offerta->getRighe()[0]['id']], $offerta->getImpaginato()['slides'][0]['righe']);
     }
 
     public function testCaptionDaTemplatePerOgniTono(): void

@@ -46,6 +46,8 @@ class OffertaController extends AbstractController
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
+            $offerta->setRighe($this->decodificaRighe((string) $request->request->get('righe_json')));
+
             /** @var UploadedFile|null $file */
             $file = $form->get('immagineFile')->getData();
             $unsplashUrl = trim((string) $request->request->get('unsplash_url'));
@@ -79,6 +81,40 @@ class OffertaController extends AbstractController
             'unsplash_configurato' => $unsplash->isConfigured(),
             'titolo' => $isNuovo ? 'Nuova offerta' : 'Modifica offerta',
         ]);
+    }
+
+    /**
+     * Normalizza le righe/opzioni del viaggio serializzate dal configuratore.
+     *
+     * @return list<array{id: string, icona: string, argomento: string, testo: string, evidenza: bool}>
+     */
+    private function decodificaRighe(string $json): array
+    {
+        $dati = json_decode($json ?: '[]', true);
+        if (!\is_array($dati)) {
+            return [];
+        }
+
+        $righe = [];
+        foreach ($dati as $r) {
+            if (!\is_array($r)) {
+                continue;
+            }
+            $argomento = trim((string) ($r['argomento'] ?? ''));
+            $testo = trim((string) ($r['testo'] ?? ''));
+            if ($argomento === '' && $testo === '') {
+                continue; // riga vuota
+            }
+            $righe[] = [
+                'id' => preg_replace('/[^a-z0-9]/', '', (string) ($r['id'] ?? '')) ?: 'r' . bin2hex(random_bytes(4)),
+                'icona' => mb_substr(trim((string) ($r['icona'] ?? '')), 0, 8),
+                'argomento' => mb_substr($argomento, 0, 60),
+                'testo' => mb_substr($testo, 0, 160),
+                'evidenza' => !empty($r['evidenza']),
+            ];
+        }
+
+        return $righe;
     }
 
     #[Route('/offerte/{id}/elimina', name: 'app_offerta_elimina', requirements: ['id' => '\d+'], methods: ['POST'])]
