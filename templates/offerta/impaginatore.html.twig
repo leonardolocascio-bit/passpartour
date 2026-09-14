@@ -280,152 +280,114 @@
         g = c.createLinearGradient(0, H * .38, 0, H);
         g.addColorStop(0, 'rgba(10,22,44,0)'); g.addColorStop(.45, 'rgba(10,22,44,.62)'); g.addColorStop(1, 'rgba(10,22,44,.92)');
         c.fillStyle = g; c.fillRect(0, H * .38, W, H * .62);
+        // tinta calda brand (duotone leggero verso il basso)
+        g = c.createLinearGradient(0, H * .32, 0, H);
+        g.addColorStop(0, 'rgba(234,91,36,0)'); g.addColorStop(1, 'rgba(234,91,36,.30)');
+        c.fillStyle = g; c.fillRect(0, H * .32, W, H * .68);
 
         const FONT = "-apple-system,'Segoe UI',Roboto,'Helvetica Neue',sans-serif";
 
-        // Logo
+        // ===== Cover in stile brand: logo centrato → tipologia (corsivo) → destinazione → prezzo → righe =====
+        const vSel = variantiDaId(s.varianti);
+        const vDurata = vSel.filter(v => v.campo === 'durata' && (v.valore || '').trim());
+
+        // Logo centrato in alto
+        c.textAlign = 'center';
+        let yTop = 130;
         if (s.mostra.logo) {
             const logo = await caricaImg(URLS.logo);
-            if (logo) { const lw = 300, lh = lw * logo.height / logo.width; c.drawImage(logo, PAD, 56, lw, lh); }
+            if (logo) { const lw = 250, lh = lw * logo.height / logo.width; c.drawImage(logo, (W - lw) / 2, 92, lw, lh); yTop = 92 + lh + 64; }
         }
 
-        // Durata (pill in alto a destra)
-        if (s.mostra.durata && OFFERTA.durata) {
-            c.font = '700 34px ' + FONT;
-            const t = OFFERTA.durata.toUpperCase(), tw = c.measureText(t).width;
-            const bx = W - PAD - tw - 56, by = 64, bh = 66;
-            c.fillStyle = '#1f9fd6'; c.beginPath(); c.roundRect(bx, by, tw + 56, bh, 33); c.fill();
-            c.fillStyle = '#fff'; c.textBaseline = 'middle'; c.fillText(t, bx + 28, by + bh / 2 + 2);
-            c.textBaseline = 'alphabetic';
+        // Eyebrow: tipologia in corsivo (es. "Tour del …")
+        if (s.mostra.tipologia && OFFERTA.tipologie && OFFERTA.tipologie.length) {
+            c.font = 'italic 600 60px ' + FONT; c.fillStyle = '#fff';
+            c.shadowColor = 'rgba(0,0,0,.35)'; c.shadowBlur = 12; c.shadowOffsetY = 3;
+            c.fillText(OFFERTA.tipologie[0], W / 2, yTop + 46);
+            c.shadowColor = 'transparent'; c.shadowBlur = 0; c.shadowOffsetY = 0;
+            yTop += 62;
         }
 
-        // Blocco inferiore: righe → titolo/claim → prezzo (dal basso verso l'alto)
-        let yBasso = H - 64;
-        const vSel = variantiDaId(s.varianti);
+        // Titolo hero centrato: destinazione (se attiva), altrimenti titolo offerta
+        const heroTxt = (s.mostra.destinazione && (OFFERTA.destinazioneMicro || OFFERTA.destinazioneMacro))
+            ? (OFFERTA.destinazioneMicro || OFFERTA.destinazioneMacro)
+            : (s.mostra.titolo ? OFFERTA.titolo : '');
+        if (heroTxt) {
+            const t = heroTxt.toUpperCase();
+            let size = 200;
+            c.font = '900 ' + size + 'px ' + FONT;
+            while (c.measureText(t).width > W - 2 * PAD && size > 80) { size -= 6; c.font = '900 ' + size + 'px ' + FONT; }
+            c.fillStyle = '#fff';
+            c.shadowColor = 'rgba(0,0,0,.45)'; c.shadowBlur = 22; c.shadowOffsetY = 5;
+            c.fillText(t, W / 2, yTop + size);
+            c.shadowColor = 'transparent'; c.shadowBlur = 0; c.shadowOffsetY = 0;
+            yTop += size + 16;
+        }
 
-        // Prezzo in evidenza: pillole per le varianti di durata, altrimenti prezzo unico
-        const vDurata = vSel.filter(v => v.campo === 'durata' && (v.valore || '').trim());
-        if (s.mostra.prezzo && vDurata.length) {
-            for (let i = vDurata.length - 1; i >= 0; i--) {
-                const val = vDurata[i].valore.toUpperCase();
-                const pr = prezzoLabel(vDurata[i].prezzo);
-                c.font = '800 46px ' + FONT; const vw = c.measureText(val).width;
-                c.font = '900 76px ' + FONT; const pw = pr ? c.measureText(pr).width : 0;
-                const bh = 108, bx = PAD - 18, tot = 36 + vw + (pr ? 30 + pw : 0) + 36;
-                const by = yBasso - bh + 10;
-                c.fillStyle = '#ea5b24'; c.beginPath(); c.roundRect(bx, by, tot, bh, 20); c.fill();
-                c.textBaseline = 'middle';
-                c.fillStyle = 'rgba(255,255,255,.9)'; c.font = '800 46px ' + FONT;
-                c.fillText(val, bx + 36, by + bh / 2 + 2);
-                if (pr) { c.fillStyle = '#fff'; c.font = '900 76px ' + FONT; c.fillText(pr, bx + 36 + vw + 30, by + bh / 2 + 4); }
-                c.textBaseline = 'alphabetic';
-                yBasso = by - 20;
+        // Claim centrato (corsivo, ambra)
+        if (s.mostra.claim) {
+            const claim = $('inp-claim').value.trim();
+            if (claim) {
+                c.font = 'italic 600 46px ' + FONT; c.fillStyle = '#f6a41f';
+                c.fillText(claim, W / 2, yTop + 46);
+                yTop += 74;
             }
-            yBasso -= 20;
-        } else if (s.mostra.prezzo && OFFERTA.prezzoDa) {
-            const pv = '€ ' + OFFERTA.prezzoDa;
-            c.font = '900 120px ' + FONT;
-            const pw = c.measureText(pv).width;
-            c.font = '700 40px ' + FONT;
-            const daw = c.measureText('da').width;
-            const totale = daw + 18 + pw + 72, bh = 168, bx = PAD - 18, by = yBasso - bh + 22;
-            c.fillStyle = '#ea5b24'; c.beginPath(); c.roundRect(bx, by, totale, bh, 24); c.fill();
-            c.fillStyle = 'rgba(255,255,255,.85)'; c.font = '700 40px ' + FONT;
-            c.fillText('da', bx + 36, by + bh - 52);
-            c.fillStyle = '#fff'; c.font = '900 120px ' + FONT;
-            c.fillText(pv, bx + 36 + daw + 18, by + bh - 44);
-            yBasso = by - 40;
+        }
+        c.textAlign = 'left';
+
+        // Prezzo: badge ambra a sinistra "da €X"
+        if (s.mostra.prezzo && (OFFERTA.prezzoDa || vDurata.length)) {
+            const pTxt = OFFERTA.prezzoDa ? ('€' + OFFERTA.prezzoDa) : prezzoLabel(vDurata[0].prezzo).replace('€ ', '€');
+            c.font = '900 84px ' + FONT; const pw = c.measureText(pTxt).width;
+            c.font = '700 42px ' + FONT; const daw = c.measureText('da ').width;
+            const bh = 112, bx = PAD, by = yTop + 34, bw = 44 + daw + pw + 44;
+            c.fillStyle = '#f6a41f'; c.beginPath(); c.roundRect(bx, by, bw, bh, 10); c.fill();
+            c.textBaseline = 'middle';
+            c.fillStyle = 'rgba(255,255,255,.92)'; c.font = '700 42px ' + FONT; c.fillText('da ', bx + 44, by + bh / 2 + 2);
+            c.fillStyle = '#fff'; c.font = '900 84px ' + FONT; c.fillText(pTxt, bx + 44 + daw, by + bh / 2 + 4);
+            c.textBaseline = 'alphabetic';
+            yTop = by + bh;
         }
 
-        // Righe del viaggio selezionate per questa slide (+ varianti di riga come suffisso)
+        // Righe/feature: icona a filo + parola chiave in grassetto + descrizione (con a-capo)
         const righe = righeDaId(s.righe).filter(r => (r.argomento || r.testo)).map(r => {
             const extra = vSel.filter(v => v.campo === r.id).map(variantePiuPrezzo).join(' · ');
             return extra ? { ...r, testo: (r.testo ? r.testo + ' · ' : '') + extra } : r;
         });
-        // partenze e validità come righe virtuali
         const vPartenza = vSel.filter(v => v.campo === 'partenza');
-        if (vPartenza.length) righe.push({ icona: '🛫', argomento: 'PARTENZE DA', testo: vPartenza.map(variantePiuPrezzo).join(' · ') });
+        if (vPartenza.length) righe.push({ icona: '🛫', argomento: 'Partenze da', testo: vPartenza.map(variantePiuPrezzo).join(' · ') });
         const vValidita = vSel.filter(v => v.campo === 'validita');
-        if (vValidita.length) righe.push({ icona: '📅', argomento: 'VALIDITÀ', testo: vValidita.map(variantePiuPrezzo).join(' · ') });
+        if (vValidita.length) righe.push({ icona: '📅', argomento: 'Validità', testo: vValidita.map(variantePiuPrezzo).join(' · ') });
         if (righe.length) {
-            const hRiga = 74;
-            let y = yBasso - righe.length * hRiga + 48;
+            const iconX = PAD, textX = PAD + 78, maxW = W - PAD - (PAD + 78), lh = 52, gap = 28;
+            let y = Math.max(yTop + 46, H * 0.60);
             for (const r of righe) {
-                const icona = r.icona || '▪️';
-                const arg = (r.argomento || '').toUpperCase();
-                const testo = r.testo || '';
-                if (r.evidenza) {
-                    c.font = '800 38px ' + FONT; const aw = arg ? c.measureText(arg).width : 0;
-                    c.font = '500 38px ' + FONT; const tw = testo ? c.measureText(testo).width : 0;
-                    const cw = 64 + 52 + (aw ? aw + 24 : 0) + tw + 36;
-                    c.fillStyle = '#f6a41f'; c.beginPath();
-                    c.roundRect(PAD - 16, y - 48, Math.min(cw, W - 2 * PAD + 32), 66, 16); c.fill();
+                // token: parole dell'argomento (bold) + parole della descrizione (regular)
+                const boldWords = (r.argomento || '').trim() ? r.argomento.trim().split(/\s+/).map(p => ({ p, bold: true })) : [];
+                const regWords = (r.testo || '').trim() ? r.testo.trim().split(/\s+/).map(p => ({ p, bold: false })) : [];
+                const tokens = boldWords.concat(regWords);
+                // wrap
+                const linee = []; let cur = []; let curW = 0;
+                for (const tok of tokens) {
+                    c.font = (tok.bold ? '800 40px ' : '500 40px ') + FONT;
+                    const w = c.measureText(tok.p + ' ').width;
+                    if (curW + w > maxW && cur.length) { linee.push(cur); cur = []; curW = 0; }
+                    cur.push(tok); curW += w;
                 }
-                c.font = '400 42px ' + FONT; c.fillStyle = '#fff';
-                c.fillText(icona, PAD, y);
-                let x = PAD + 64;
-                if (arg) {
-                    c.font = '800 38px ' + FONT;
-                    c.fillStyle = r.evidenza ? '#123a72' : '#f6a41f';
-                    c.fillText(arg, x, y); x += c.measureText(arg).width + 24;
+                if (cur.length) linee.push(cur);
+
+                c.font = '400 46px ' + FONT; c.fillStyle = '#fff'; c.fillText(r.icona || '▪️', iconX, y + 40);
+                let ly = y + 38;
+                for (const linea of linee) {
+                    let x = textX;
+                    for (const tok of linea) {
+                        c.font = (tok.bold ? '800 40px ' : '500 40px ') + FONT; c.fillStyle = '#fff';
+                        c.fillText(tok.p, x, ly);
+                        x += c.measureText(tok.p + ' ').width;
+                    }
+                    ly += lh;
                 }
-                if (testo) {
-                    c.font = '500 38px ' + FONT;
-                    c.fillStyle = r.evidenza ? '#123a72' : '#fff';
-                    // tronca se sfora
-                    let t = testo;
-                    while (c.measureText(t).width > W - PAD - x && t.length > 2) t = t.slice(0, -2);
-                    c.fillText(t === testo ? t : t + '…', x, y);
-                }
-                y += hRiga;
-            }
-            yBasso -= righe.length * hRiga + 26;
-        }
-
-        // Claim
-        if (s.mostra.claim) {
-            const claim = $('inp-claim').value.trim();
-            if (claim) {
-                c.font = 'italic 600 52px ' + FONT; c.fillStyle = '#f6a41f';
-                const altezza = misuraACapo(c, claim, W - 2 * PAD, 62);
-                testoACapo(c, claim, PAD, yBasso - altezza + 52, W - 2 * PAD, 62);
-                yBasso -= altezza + 18;
-            }
-        }
-
-        // Titolo
-        let yTitoloTop = yBasso;
-        if (s.mostra.titolo && OFFERTA.titolo) {
-            c.font = '900 96px ' + FONT; c.fillStyle = '#fff';
-            c.shadowColor = 'rgba(0,0,0,.45)'; c.shadowBlur = 18; c.shadowOffsetY = 4;
-            const t = OFFERTA.titolo.toUpperCase();
-            const altezza = misuraACapo(c, t, W - 2 * PAD, 104);
-            testoACapo(c, t, PAD, yBasso - altezza + 88, W - 2 * PAD, 104);
-            c.shadowColor = 'transparent'; c.shadowBlur = 0; c.shadowOffsetY = 0;
-            yTitoloTop = yBasso - altezza; // top visivo del titolo
-        }
-
-        // Destinazione (eyebrow sopra il titolo)
-        if (s.mostra.destinazione) {
-            const dest = [OFFERTA.destinazioneMacro, OFFERTA.destinazioneMicro].filter(Boolean).join(' · ');
-            if (dest) {
-                c.font = '800 34px ' + FONT; c.fillStyle = '#1f9fd6';
-                c.fillText('📍 ' + dest.toUpperCase(), PAD, yTitoloTop - 6);
-                yTitoloTop -= 52;
-            }
-        }
-
-        // Tipologia (pillole in alto a sinistra, sotto il logo)
-        if (s.mostra.tipologia && OFFERTA.tipologie && OFFERTA.tipologie.length) {
-            let tx = PAD, ty = s.mostra.logo ? 190 : 70;
-            c.font = '700 30px ' + FONT;
-            for (const tip of OFFERTA.tipologie.slice(0, 4)) {
-                const et = tip.toUpperCase(), tw = c.measureText(et).width, bw = tw + 40;
-                if (tx + bw > W - PAD) { tx = PAD; ty += 58; }
-                c.fillStyle = 'rgba(18,58,114,.85)'; c.beginPath(); c.roundRect(tx, ty, bw, 46, 23); c.fill();
-                c.fillStyle = '#fff'; c.textBaseline = 'middle'; c.fillText(et, tx + 20, ty + 25);
-                c.textBaseline = 'alphabetic';
-                tx += bw + 12;
+                y += linee.length * lh + gap;
             }
         }
 
