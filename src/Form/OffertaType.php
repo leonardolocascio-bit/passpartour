@@ -9,10 +9,12 @@ use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\Form\Extension\Core\Type\DateType;
+use Symfony\Component\Form\Extension\Core\Type\FileType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
+use Symfony\Component\Validator\Constraints\File;
 
 class OffertaType extends AbstractType
 {
@@ -21,8 +23,16 @@ class OffertaType extends AbstractType
         $builder
             ->add('titolo', TextType::class, ['label' => 'Titolo', 'attr' => ['placeholder' => 'Es. Maldive da sogno']])
             ->add('sottotitolo', TextType::class, ['label' => 'Sottotitolo', 'required' => false, 'attr' => ['placeholder' => 'Es. 7 notti in overwater']])
+            ->add('immagineFile', FileType::class, [
+                'label' => 'Immagine',
+                'mapped' => false,
+                'required' => false,
+                'constraints' => [
+                    new File(maxSize: '6M', mimeTypes: ['image/jpeg', 'image/png', 'image/webp'], mimeTypesMessage: 'Carica un\'immagine JPG, PNG o WebP'),
+                ],
+            ])
             ->add('destinazione', EntityType::class, [
-                'label' => 'Immagine (destinazione)',
+                'label' => 'Collega a una destinazione (facoltativo)',
                 'class' => Destinazione::class,
                 'choice_label' => 'nome',
                 'required' => false,

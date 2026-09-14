@@ -5,9 +5,12 @@ namespace App\Controller;
 use App\Entity\Lead;
 use App\Entity\Offerta;
 use App\Form\OffertaType;
+use App\Service\UnsplashClient;
+use App\Service\UploaderImmagini;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
+use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Mailer\MailerInterface;
@@ -26,23 +29,41 @@ class OffertaController extends AbstractController
     }
 
     #[Route('/offerte/nuova', name: 'app_offerta_nuovo')]
-    public function nuovo(Request $request, EntityManagerInterface $em): Response
+    public function nuovo(Request $request, EntityManagerInterface $em, UnsplashClient $unsplash, UploaderImmagini $uploader): Response
     {
-        return $this->salva(new Offerta(), $request, $em, true);
+        return $this->salva(new Offerta(), $request, $em, $unsplash, $uploader, true);
     }
 
     #[Route('/offerte/{id}/modifica', name: 'app_offerta_modifica', requirements: ['id' => '\d+'])]
-    public function modifica(Offerta $offerta, Request $request, EntityManagerInterface $em): Response
+    public function modifica(Offerta $offerta, Request $request, EntityManagerInterface $em, UnsplashClient $unsplash, UploaderImmagini $uploader): Response
     {
-        return $this->salva($offerta, $request, $em, false);
+        return $this->salva($offerta, $request, $em, $unsplash, $uploader, false);
     }
 
-    private function salva(Offerta $offerta, Request $request, EntityManagerInterface $em, bool $isNuovo): Response
+    private function salva(Offerta $offerta, Request $request, EntityManagerInterface $em, UnsplashClient $unsplash, UploaderImmagini $uploader, bool $isNuovo): Response
     {
         $form = $this->createForm(OffertaType::class, $offerta);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
+            /** @var UploadedFile|null $file */
+            $file = $form->get('immagineFile')->getData();
+            $unsplashUrl = trim((string) $request->request->get('unsplash_url'));
+
+            if ($file !== null) {
+                $nomeFile = $uploader->salvaUpload($file, $offerta->getTitolo());
+                if ($nomeFile !== null) {
+                    $offerta->setImmagine($nomeFile)->setFotografo(null)->setFotografoUrl(null);
+                }
+            } elseif ($unsplashUrl !== '') {
+                $nomeFile = $uploader->salvaDaUrl($unsplashUrl, $offerta->getTitolo());
+                if ($nomeFile !== null) {
+                    $offerta->setImmagine($nomeFile)
+                        ->setFotografo($request->request->get('unsplash_autore') ?: null)
+                        ->setFotografoUrl($request->request->get('unsplash_autore_url') ?: null);
+                }
+            }
+
             if ($isNuovo) {
                 $em->persist($offerta);
             }
@@ -55,6 +76,7 @@ class OffertaController extends AbstractController
         return $this->render('offerta/form.html.twig', [
             'form' => $form,
             'offerta' => $offerta,
+            'unsplash_configurato' => $unsplash->isConfigured(),
             'titolo' => $isNuovo ? 'Nuova offerta' : 'Modifica offerta',
         ]);
     }
@@ -98,8 +120,8 @@ class OffertaController extends AbstractController
             $messaggio = trim((string) $request->request->get('messaggio'));
 
             $img = null;
-            if ($offerta->getDestinazione() && $offerta->getDestinazione()->getImmagine()) {
-                $file = $this->getParameter('kernel.project_dir') . '/public/uploads/destinazioni/' . $offerta->getDestinazione()->getImmagine();
+            if ($offerta->getImmagineFile()) {
+                $file = $this->getParameter('kernel.project_dir') . '/public/uploads/destinazioni/' . $offerta->getImmagineFile();
                 if (is_file($file)) {
                     $img = 'data:image/jpeg;base64,' . base64_encode((string) file_get_contents($file));
                 }

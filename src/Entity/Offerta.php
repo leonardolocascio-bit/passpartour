@@ -30,6 +30,16 @@ class Offerta
     #[ORM\Column(type: 'text', nullable: true)]
     private ?string $descrizione = null;
 
+    /** Immagine propria dell'offerta (upload o Unsplash). Se assente si usa quella della destinazione. */
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $immagine = null;
+
+    #[ORM\Column(length: 150, nullable: true)]
+    private ?string $fotografo = null;
+
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $fotografoUrl = null;
+
     #[ORM\Column(type: 'decimal', precision: 12, scale: 2, nullable: true)]
     private ?string $prezzoDa = null;
 
@@ -104,6 +114,58 @@ class Offerta
         $this->descrizione = $descrizione;
 
         return $this;
+    }
+
+    public function getImmagine(): ?string
+    {
+        return $this->immagine;
+    }
+
+    public function setImmagine(?string $immagine): static
+    {
+        $this->immagine = $immagine;
+
+        return $this;
+    }
+
+    public function getFotografo(): ?string
+    {
+        return $this->fotografo;
+    }
+
+    public function setFotografo(?string $fotografo): static
+    {
+        $this->fotografo = $fotografo;
+
+        return $this;
+    }
+
+    public function getFotografoUrl(): ?string
+    {
+        return $this->fotografoUrl;
+    }
+
+    public function setFotografoUrl(?string $fotografoUrl): static
+    {
+        $this->fotografoUrl = $fotografoUrl;
+
+        return $this;
+    }
+
+    /** Nome file dell'immagine da mostrare: propria dell'offerta o, in fallback, della destinazione. */
+    public function getImmagineFile(): ?string
+    {
+        return $this->immagine ?? $this->destinazione?->getImmagine();
+    }
+
+    public function getFotografoEffettivo(): ?string
+    {
+        return $this->immagine ? $this->fotografo : $this->destinazione?->getFotografo();
+    }
+
+    public function getFotografoUrlEffettivo(): ?string
+    {
+        return $this->immagine ? $this->fotografoUrl : $this->destinazione?->getFotografoUrl();
     }
 
     public function getPrezzoDa(): ?string

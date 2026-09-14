@@ -14,8 +14,8 @@
         {% for o in offerte %}
             <div class="card" style="overflow:hidden;{{ not o.attiva ? 'opacity:.6' }}">
                 <div style="height:150px;background:#eef1f6;position:relative">
-                    {% if o.destinazione and o.destinazione.immagine %}
-                        <img src="{{ asset('uploads/destinazioni/' ~ o.destinazione.immagine) }}" alt="{{ o.titolo }}" style="width:100%;height:100%;object-fit:cover;display:block">
+                    {% if o.immagineFile %}
+                        <img src="{{ asset('uploads/destinazioni/' ~ o.immagineFile) }}" alt="{{ o.titolo }}" style="width:100%;height:100%;object-fit:cover;display:block">
                     {% else %}
                         <div style="width:100%;height:100%;display:grid;place-items:center;color:var(--muted);font-size:13px">nessuna immagine</div>
                     {% endif %}

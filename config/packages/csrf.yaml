@@ -1,5 +1,9 @@
-# CSRF basato su sessione (non stateless): funziona senza JS e resta isolato
-# per-app grazie al nome cookie di sessione univoco (vedi framework.yaml).
+# CSRF: cookie con nome univoco per l'app.
+# I cookie ignorano la porta: su 127.0.0.1 più app Symfony condividono i cookie e
+# il cookie CSRF stateless (default "csrf-token") collide, causando "Invalid CSRF token".
+# Con un nome dedicato l'app non trova un cookie in conflitto e valida via sessione
+# (funziona senza il controller JS Stimulus, che qui non è caricato).
 framework:
     csrf_protection:
         enabled: true
+        cookie_name: PASSPARTOUR_csrf
