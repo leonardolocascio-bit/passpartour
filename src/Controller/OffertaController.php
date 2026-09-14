@@ -101,7 +101,8 @@ class OffertaController extends AbstractController
             $offerta->setExtra($this->decodeSegmenti($request->request->get('extra'), ['tipo', 'descrizione', 'da', 'a', 'data', 'compagnia']));
             $offerta->setBagaglio($this->normalizzaBagaglio($request->request->all('bagaglio')));
 
-            // quote di vendita (editor ripetibile)
+            // itinerario (crociere/tour) e quote di vendita (editor ripetibile)
+            $offerta->setItinerario($this->decodeSegmenti($request->request->get('itinerario'), ['giorno', 'luogo', 'arrivo', 'partenza', 'descrizione']));
             $offerta->setQuote($this->decodeSegmenti($request->request->get('quote'), ['tipo', 'sistemazione', 'importo']));
 
             // costi/MOL (dato interno)

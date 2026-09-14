@@ -34,6 +34,29 @@
     <p style="white-space:pre-line;line-height:1.6;margin:0 0 20px">{{ offerta.descrizione }}</p>
 {% endif %}
 
+{# ---------- ITINERARIO ---------- #}
+{% if offerta.itinerario|length %}
+    <section class="sk-sec">
+        <h3 class="sk-h">🗺️ Itinerario</h3>
+        <div style="display:grid;gap:8px">
+            {% for t in offerta.itinerario %}
+                <div class="sk-item">
+                    <div style="font-weight:600">
+                        {% if t.giorno|default('') %}<span class="badge" style="margin-right:6px">{{ t.giorno }}</span>{% endif %}
+                        {{ t.luogo|default('') }}
+                    </div>
+                    {% if t.arrivo|default('') or t.partenza|default('') %}
+                        <div class="muted" style="font-size:13px;margin-top:2px">
+                            {% if t.arrivo|default('') %}Arrivo {{ t.arrivo }}{% endif %}{% if t.partenza|default('') %}{% if t.arrivo|default('') %} · {% endif %}Partenza {{ t.partenza }}{% endif %}
+                        </div>
+                    {% endif %}
+                    {% if t.descrizione|default('') %}<div style="font-size:13px;margin-top:2px">{{ t.descrizione }}</div>{% endif %}
+                </div>
+            {% endfor %}
+        </div>
+    </section>
+{% endif %}
+
 {# ---------- QUOTE ---------- #}
 {% if offerta.quote|length or offerta.supplementoSingola %}
     <section class="sk-sec">

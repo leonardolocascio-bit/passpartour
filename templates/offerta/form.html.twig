@@ -224,6 +224,21 @@
         });
     });
 
+    // itinerario: visibile solo se tra le tipologie c'è crociera o tour
+    var pickerTip = document.getElementById('chip_tipologie');
+    var sezItin = document.getElementById('sez-itinerario');
+    if (pickerTip && sezItin) {
+        var aggiornaItin = function () {
+            var mostra = ['crociera', 'tour'].some(function (v) {
+                var el = pickerTip.querySelector('[data-chip-value="' + v + '"]');
+                return el && el.classList.contains('chip--on');
+            });
+            sezItin.hidden = !mostra;
+        };
+        pickerTip.addEventListener('click', function () { setTimeout(aggiornaItin, 0); });
+        aggiornaItin();
+    }
+
     // costi: mostra i campi in base alla modalità (netta / commissionabile)
     var tipoSel = document.querySelector('[data-costi-tipo]');
     if (tipoSel) {

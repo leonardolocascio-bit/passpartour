@@ -129,6 +129,14 @@ class Offerta
     #[ORM\Column(type: 'json', nullable: true)]
     private ?array $extra = null;
 
+    /**
+     * Itinerario (crociere/tour): [{giorno, luogo, arrivo, partenza, descrizione}, …].
+     *
+     * @var list<array<string, string>>|null
+     */
+    #[ORM\Column(type: 'json', nullable: true)]
+    private ?array $itinerario = null;
+
     /** Valuta della quota (ISO 4217, es. EUR). Il convertitore live arriva nella fase D. */
     #[ORM\Column(length: 3, options: ['default' => 'EUR'])]
     private string $valuta = 'EUR';
@@ -497,6 +505,20 @@ class Offerta
     public function setExtra(?array $extra): static
     {
         $this->extra = $extra ?: null;
+
+        return $this;
+    }
+
+    /** @return list<array<string, string>> */
+    public function getItinerario(): array
+    {
+        return $this->itinerario ?? [];
+    }
+
+    /** @param list<array<string, string>>|null $itinerario */
+    public function setItinerario(?array $itinerario): static
+    {
+        $this->itinerario = $itinerario ?: null;
 
         return $this;
     }

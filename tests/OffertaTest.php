@@ -354,6 +354,35 @@ class OffertaTest extends WebTestCase
         self::assertStringNotContainsString('Quota netta', $body);
     }
 
+    public function testItinerarioCrociera(): void
+    {
+        $offerta = $this->em->getRepository(Offerta::class)->findOneBy([]);
+        $id = $offerta->getId();
+
+        $crawler = $this->client->request('GET', '/offerte/' . $id . '/modifica');
+        $form = $crawler->selectButton('Salva')->form();
+        $form['tipologie'] = json_encode(['crociera']);
+        $form['itinerario'] = json_encode([
+            ['giorno' => 'Giorno 1', 'luogo' => 'Civitavecchia', 'arrivo' => '', 'partenza' => '18:00', 'descrizione' => 'Imbarco'],
+            ['giorno' => 'Giorno 2', 'luogo' => 'Napoli', 'arrivo' => '08:00', 'partenza' => '17:00', 'descrizione' => ''],
+            ['giorno' => '', 'luogo' => ''], // vuoto: scartato
+        ]);
+        $this->client->submit($form);
+        self::assertResponseRedirects();
+
+        $this->em->clear();
+        $offerta = $this->em->getRepository(Offerta::class)->find($id);
+        $it = $offerta->getItinerario();
+        self::assertCount(2, $it);
+        self::assertSame('Civitavecchia', $it[0]['luogo']);
+        self::assertSame('08:00', $it[1]['arrivo']);
+
+        // la scheda dettaglio mostra l'itinerario
+        $this->client->request('GET', '/offerte/' . $id);
+        self::assertSelectorTextContains('body', 'Itinerario');
+        self::assertSelectorTextContains('body', 'Civitavecchia');
+    }
+
     public function testCaptionIncludeLeVarianti(): void
     {
         $offerta = $this->em->getRepository(Offerta::class)->findOneBy([]);

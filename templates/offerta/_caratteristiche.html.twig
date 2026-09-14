@@ -3,6 +3,24 @@
    trattamento_scelte, assicurazioni_scelte. #}
 {% set al = offerta.alloggio %}
 
+{# ---------- ITINERARIO (crociere / tour) ---------- #}
+<div id="sez-itinerario"{{ ('crociera' in offerta.tipologie or 'tour' in offerta.tipologie) ? '' : ' hidden' }}>
+    {{ include('_partials/_segmenti_editor.html.twig', {
+        name: 'itinerario',
+        label: 'Itinerario',
+        dati: offerta.itinerario,
+        add_label: 'Tappa',
+        hint: 'Tappe della crociera o del tour: giorno, porto/città, orari e descrizione.',
+        campi: [
+            {key: 'giorno', label: 'Giorno', type: 'text', placeholder: 'es. Giorno 1'},
+            {key: 'luogo', label: 'Porto / città', type: 'text'},
+            {key: 'arrivo', label: 'Arrivo', type: 'text', placeholder: 'es. 08:00'},
+            {key: 'partenza', label: 'Partenza', type: 'text', placeholder: 'es. 18:00'},
+            {key: 'descrizione', label: 'Descrizione', type: 'textarea'},
+        ],
+    }) }}
+</div>
+
 {# ---------- ALLOGGIO ---------- #}
 <fieldset style="border:1px solid var(--line);border-radius:10px;padding:14px;margin:0">
     <legend style="font-weight:700;padding:0 6px">Alloggio</legend>
