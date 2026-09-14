@@ -1,0 +1,40 @@
+{#
+  Chip picker riutilizzabile: voci predefinite selezionabili + aggiunta di voci
+  personalizzate. Il set selezionato viene serializzato in un hidden JSON che il
+  controller legge (json_decode). Non è un campo del form Symfony.
+
+  Parametri:
+    name          nome dell'hidden (es. 'tipologie'); il controller lo legge da request
+    label         etichetta della sezione
+    scelte        mappa { valore: etichetta } delle voci predefinite
+    selezionati   list<string> dei valori già scelti (enum o custom)
+    custom        (bool, default true) consenti l'aggiunta di voci personalizzate
+    placeholder   (string) testo del campo "aggiungi"
+#}
+{% set custom = custom is defined ? custom : true %}
+{% set selezionati = selezionati|default([]) %}
+{% set pid = 'chip_' ~ name %}
+<div class="chip-picker" data-chip-picker data-name="{{ name }}" id="{{ pid }}">
+    <label class="chip-picker__label">{{ label }}</label>
+    <div class="chip-picker__chips" data-chip-list>
+        {% for val, lab in scelte %}
+            <button type="button" class="chip{{ val in selezionati ? ' chip--on' }}"
+                    data-chip-value="{{ val }}">{{ lab }}</button>
+        {% endfor %}
+        {# voci custom già salvate (non presenti tra le predefinite) #}
+        {% for val in selezionati|filter(v => v not in scelte|keys) %}
+            <button type="button" class="chip chip--on chip--custom" data-chip-value="{{ val }}">
+                {{ val }} <span class="chip__x" aria-hidden="true">×</span>
+            </button>
+        {% endfor %}
+    </div>
+    {% if custom %}
+        <div class="chip-picker__add">
+            <input type="text" data-chip-input placeholder="{{ placeholder|default('Aggiungi una voce…') }}" class="chip-picker__input">
+            <button type="button" class="btn" data-chip-add>+ Aggiungi</button>
+        </div>
+    {% endif %}
+    <input type="hidden" name="{{ name }}" data-chip-hidden value="{{ selezionati|json_encode }}">
+</div>
+{# Il JS del componente è in _partials/_chip_picker_js.html.twig: includerlo una
+   volta nel blocco javascripts della pagina che usa uno o più chip picker. #}

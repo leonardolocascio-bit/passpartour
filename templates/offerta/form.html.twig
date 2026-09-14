@@ -11,6 +11,26 @@
         {{ form_row(form.sottotitolo) }}
         {{ form_row(form.claim) }}
 
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+            {{ form_row(form.destinazioneMacro) }}
+            {{ form_row(form.destinazioneMicro) }}
+        </div>
+
+        {{ include('_partials/_chip_picker.html.twig', {
+            name: 'tipologie',
+            label: 'Tipologia di viaggio',
+            scelte: tipologie_scelte,
+            selezionati: offerta.tipologie,
+            placeholder: 'Aggiungi una tipologia…',
+        }) }}
+        {{ include('_partials/_chip_picker.html.twig', {
+            name: 'temi',
+            label: 'Tema / occasione',
+            scelte: temi_scelte,
+            selezionati: offerta.temi,
+            placeholder: 'Aggiungi un tema…',
+        }) }}
+
         {{ include('_partials/_image_picker.html.twig', {
             form: form,
             unsplash_configurato: unsplash_configurato,
@@ -51,4 +71,5 @@
         {% endif %}
     </div>
 </div></div>
+{{ include('_partials/_chip_picker_js.html.twig') }}
 {% endblock %}

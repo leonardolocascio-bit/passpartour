@@ -193,6 +193,22 @@
                 text-transform: uppercase; letter-spacing: .06em; padding: 3px 8px; border-radius: 6px;
             }
             .muted { color: var(--muted); }
+
+            /* Chip picker (multi-selezione con voci custom) */
+            .chip-picker__label { display: block; font-weight: 600; font-size: 13px; margin-bottom: 8px; }
+            .chip-picker__chips { display: flex; flex-wrap: wrap; gap: 8px; }
+            .chip {
+                display: inline-flex; align-items: center; gap: 5px; cursor: pointer;
+                padding: 6px 12px; border-radius: 20px; font-size: 13px; font-weight: 600;
+                background: #eef2f7; color: var(--muted); border: 1px solid var(--line);
+                transition: background .12s, color .12s, border-color .12s;
+            }
+            .chip:hover { border-color: var(--cyan); }
+            .chip--on { background: var(--cyan); color: #fff; border-color: var(--cyan); }
+            .chip--custom.chip--on { background: var(--navy-600); border-color: var(--navy-600); }
+            .chip__x { font-weight: 800; opacity: .8; }
+            .chip-picker__add { display: flex; gap: 8px; margin-top: 10px; }
+            .chip-picker__input { flex: 1; }
         </style>
         {% endblock %}
         {% block javascripts %}{% endblock %}

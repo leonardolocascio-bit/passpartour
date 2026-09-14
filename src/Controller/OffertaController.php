@@ -4,6 +4,8 @@ namespace App\Controller;
 
 use App\Entity\Lead;
 use App\Entity\Offerta;
+use App\Enum\TemaViaggio;
+use App\Enum\TipologiaViaggio;
 use App\Form\OffertaType;
 use App\Service\UnsplashClient;
 use App\Service\UploaderImmagini;
@@ -67,6 +69,10 @@ class OffertaController extends AbstractController
                 }
             }
 
+            // multi-selezioni gestite dal chip picker (hidden JSON, non mappate nel form)
+            $offerta->setTipologie($this->decodeChip($request->request->get('tipologie')));
+            $offerta->setTemi($this->decodeChip($request->request->get('temi')));
+
             if ($isNuovo) {
                 $em->persist($offerta);
             }
@@ -80,8 +86,33 @@ class OffertaController extends AbstractController
             'form' => $form,
             'offerta' => $offerta,
             'unsplash_configurato' => $unsplash->isConfigured(),
+            'tipologie_scelte' => TipologiaViaggio::scelte(),
+            'temi_scelte' => TemaViaggio::scelte(),
             'titolo' => $isNuovo ? 'Nuova offerta' : 'Modifica offerta',
         ]);
+    }
+
+    /**
+     * Decodifica i valori di un chip picker (hidden JSON: array di stringhe).
+     *
+     * @return list<string>
+     */
+    private function decodeChip(?string $json): array
+    {
+        $dati = json_decode((string) $json ?: '[]', true);
+        if (!\is_array($dati)) {
+            return [];
+        }
+
+        $out = [];
+        foreach ($dati as $v) {
+            $v = trim((string) $v);
+            if ($v !== '') {
+                $out[] = mb_substr($v, 0, 60);
+            }
+        }
+
+        return array_values(array_unique($out));
     }
 
     /**

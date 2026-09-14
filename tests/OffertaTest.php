@@ -115,6 +115,32 @@ class OffertaTest extends WebTestCase
         self::assertSame('rabc12', $varianti[3]['campo']);
     }
 
+    public function testGeneraleTassonomieSalvate(): void
+    {
+        $offerta = $this->em->getRepository(Offerta::class)->findOneBy([]);
+        $id = $offerta->getId();
+
+        $crawler = $this->client->request('GET', '/offerte/' . $id . '/modifica');
+        $form = $crawler->selectButton('Salva')->form();
+        $form['offerta[destinazioneMacro]'] = 'Oceano Indiano';
+        $form['offerta[destinazioneMicro]'] = 'Maldive';
+        // chip picker: hidden JSON con voci enum + una custom, con un duplicato da deduplicare
+        $form['tipologie'] = json_encode(['mare', 'nozze', 'mare']);
+        $form['temi'] = json_encode(['estate', 'Luna di miele']);
+        $this->client->submit($form);
+        self::assertResponseRedirects();
+
+        $this->em->clear();
+        $offerta = $this->em->getRepository(Offerta::class)->find($id);
+        self::assertSame('Oceano Indiano', $offerta->getDestinazioneMacro());
+        self::assertSame('Maldive', $offerta->getDestinazioneMicro());
+        self::assertSame(['mare', 'nozze'], $offerta->getTipologie());
+        self::assertSame(['Mare', 'Viaggio di nozze'], $offerta->getTipologieLabel());
+        // la voce custom resta invariata, l'enum viene risolto in label
+        self::assertSame(['estate', 'Luna di miele'], $offerta->getTemi());
+        self::assertSame(['Estate', 'Luna di miele'], $offerta->getTemiLabel());
+    }
+
     public function testCaptionIncludeLeVarianti(): void
     {
         $offerta = $this->em->getRepository(Offerta::class)->findOneBy([]);

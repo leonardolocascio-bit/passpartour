@@ -2,6 +2,8 @@
 
 namespace App\Entity;
 
+use App\Enum\TemaViaggio;
+use App\Enum\TipologiaViaggio;
 use Doctrine\ORM\Mapping as ORM;
 
 /**
@@ -25,6 +27,30 @@ class Offerta
     /** Claim/slogan per i contenuti social e stampa (facoltativo). */
     #[ORM\Column(length: 200, nullable: true)]
     private ?string $claim = null;
+
+    /** Destinazione macro (area/regione, es. "Oceano Indiano"). Badge in scheda/catalogo. */
+    #[ORM\Column(length: 120, nullable: true)]
+    private ?string $destinazioneMacro = null;
+
+    /** Destinazione micro (meta specifica, es. "Maldive"). Badge in scheda/catalogo. */
+    #[ORM\Column(length: 120, nullable: true)]
+    private ?string $destinazioneMicro = null;
+
+    /**
+     * Tipologie di viaggio selezionate (valori di TipologiaViaggio o voci custom).
+     *
+     * @var list<string>|null
+     */
+    #[ORM\Column(type: 'json', nullable: true)]
+    private ?array $tipologie = null;
+
+    /**
+     * Temi/occasioni selezionati (valori di TemaViaggio o voci custom).
+     *
+     * @var list<string>|null
+     */
+    #[ORM\Column(type: 'json', nullable: true)]
+    private ?array $temi = null;
 
     /**
      * Righe/opzioni del viaggio compilate nel configuratore offerta:
@@ -134,6 +160,70 @@ class Offerta
         $this->claim = $claim;
 
         return $this;
+    }
+
+    public function getDestinazioneMacro(): ?string
+    {
+        return $this->destinazioneMacro;
+    }
+
+    public function setDestinazioneMacro(?string $destinazioneMacro): static
+    {
+        $this->destinazioneMacro = $destinazioneMacro ?: null;
+
+        return $this;
+    }
+
+    public function getDestinazioneMicro(): ?string
+    {
+        return $this->destinazioneMicro;
+    }
+
+    public function setDestinazioneMicro(?string $destinazioneMicro): static
+    {
+        $this->destinazioneMicro = $destinazioneMicro ?: null;
+
+        return $this;
+    }
+
+    /** @return list<string> */
+    public function getTipologie(): array
+    {
+        return $this->tipologie ?? [];
+    }
+
+    /** @param list<string>|null $tipologie */
+    public function setTipologie(?array $tipologie): static
+    {
+        $this->tipologie = $tipologie ? array_values(array_unique(array_filter($tipologie))) : null;
+
+        return $this;
+    }
+
+    /** Label pronte per i badge (risolve gli enum noti, lascia intatte le voci custom). */
+    public function getTipologieLabel(): array
+    {
+        return array_map(TipologiaViaggio::etichetta(...), $this->getTipologie());
+    }
+
+    /** @return list<string> */
+    public function getTemi(): array
+    {
+        return $this->temi ?? [];
+    }
+
+    /** @param list<string>|null $temi */
+    public function setTemi(?array $temi): static
+    {
+        $this->temi = $temi ? array_values(array_unique(array_filter($temi))) : null;
+
+        return $this;
+    }
+
+    /** Label pronte per i badge (risolve gli enum noti, lascia intatte le voci custom). */
+    public function getTemiLabel(): array
+    {
+        return array_map(TemaViaggio::etichetta(...), $this->getTemi());
     }
 
     /** @return list<array<string, mixed>> */

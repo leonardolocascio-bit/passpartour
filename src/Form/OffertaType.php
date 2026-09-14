@@ -24,6 +24,8 @@ class OffertaType extends AbstractType
             ->add('titolo', TextType::class, ['label' => 'Titolo', 'attr' => ['placeholder' => 'Es. Maldive da sogno']])
             ->add('sottotitolo', TextType::class, ['label' => 'Sottotitolo', 'required' => false, 'attr' => ['placeholder' => 'Es. 7 notti in overwater']])
             ->add('claim', TextType::class, ['label' => 'Claim (per social e stampa)', 'required' => false, 'attr' => ['placeholder' => 'Es. Il paradiso esiste, prenotalo']])
+            ->add('destinazioneMacro', TextType::class, ['label' => 'Destinazione macro (area/regione)', 'required' => false, 'attr' => ['placeholder' => 'Es. Oceano Indiano']])
+            ->add('destinazioneMicro', TextType::class, ['label' => 'Destinazione micro (meta)', 'required' => false, 'attr' => ['placeholder' => 'Es. Maldive']])
             ->add('immagineFile', FileType::class, [
                 'label' => 'Immagine',
                 'mapped' => false,

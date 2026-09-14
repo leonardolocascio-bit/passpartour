@@ -1,0 +1,64 @@
+{# JS del chip picker. Includere UNA volta nel blocco javascripts della pagina.
+   Inizializza tutti i [data-chip-picker] presenti e mantiene l'hidden JSON in sync. #}
+<script>
+(function () {
+    function initPicker(root) {
+        if (root.dataset.chipInit) return;
+        root.dataset.chipInit = '1';
+        var hidden = root.querySelector('[data-chip-hidden]');
+        var list = root.querySelector('[data-chip-list]');
+        var input = root.querySelector('[data-chip-input]');
+        var addBtn = root.querySelector('[data-chip-add]');
+
+        function sync() {
+            var vals = [];
+            list.querySelectorAll('.chip--on').forEach(function (c) { vals.push(c.dataset.chipValue); });
+            hidden.value = JSON.stringify(vals);
+        }
+
+        list.addEventListener('click', function (e) {
+            var chip = e.target.closest('.chip');
+            if (!chip) return;
+            if (chip.classList.contains('chip--custom') && e.target.classList.contains('chip__x')) {
+                chip.remove();
+            } else {
+                chip.classList.toggle('chip--on');
+            }
+            sync();
+        });
+
+        function addCustom() {
+            var v = (input.value || '').trim();
+            if (!v) return;
+            var dup = Array.from(list.querySelectorAll('.chip')).some(function (c) {
+                return (c.dataset.chipValue || '').toLowerCase() === v.toLowerCase();
+            });
+            if (!dup) {
+                var b = document.createElement('button');
+                b.type = 'button';
+                b.className = 'chip chip--on chip--custom';
+                b.dataset.chipValue = v;
+                b.appendChild(document.createTextNode(v + ' '));
+                var x = document.createElement('span');
+                x.className = 'chip__x'; x.setAttribute('aria-hidden', 'true'); x.textContent = '×';
+                b.appendChild(x);
+                list.appendChild(b);
+                sync();
+            }
+            input.value = '';
+            input.focus();
+        }
+
+        if (addBtn) addBtn.addEventListener('click', addCustom);
+        if (input) input.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter') { e.preventDefault(); addCustom(); }
+        });
+    }
+    function initAll() { document.querySelectorAll('[data-chip-picker]').forEach(initPicker); }
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initAll);
+    } else {
+        initAll();
+    }
+})();
+</script>
