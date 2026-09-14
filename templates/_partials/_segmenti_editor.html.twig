@@ -1,0 +1,19 @@
+{# Editor ripetibile generico guidato da uno schema di campi. Va DENTRO #form-offerta:
+   serializza in un hidden JSON al submit. Richiede _segmenti_editor_js una volta per pagina.
+
+   Parametri:
+     name       nome dell'hidden (es. 'voli') letto dal controller
+     label      titolo del blocco
+     dati       list<array> valori esistenti (es. offerta.voli)
+     campi      list di {key, label, type: text|datetime|select|textarea, options?, placeholder?}
+     add_label  testo del pulsante di aggiunta (es. 'Volo')
+     hint       (facoltativo) testo di aiuto
+#}
+<fieldset class="seg" data-segmenti data-name="{{ name }}" style="border:1px solid var(--line);border-radius:10px;padding:14px;margin:0">
+    <legend style="font-weight:700;padding:0 6px">{{ label }}</legend>
+    {% if hint is defined and hint %}<p class="muted" style="font-size:12px;margin:0 0 10px">{{ hint }}</p>{% endif %}
+    <script type="application/json" data-seg-config>{{ {campi: campi}|json_encode|raw }}</script>
+    <div data-seg-box style="display:grid;gap:10px"></div>
+    <div style="margin-top:10px"><button type="button" class="btn" data-seg-add>+ {{ add_label }}</button></div>
+    <input type="hidden" name="{{ name }}" data-seg-hidden value="{{ dati|default([])|json_encode }}">
+</fieldset>

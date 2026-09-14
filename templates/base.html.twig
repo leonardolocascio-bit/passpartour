@@ -206,6 +206,12 @@
             .tab-panel { display: grid; gap: 14px; }
             .section-hint { color: var(--muted); font-size: 13px; padding: 18px; border: 1px dashed var(--line); border-radius: 10px; text-align: center; }
 
+            /* Editor ripetibile (voli, treni, navi, trasferimenti, extra) */
+            .seg-item { position: relative; border: 1px solid var(--line); border-radius: 8px; padding: 10px 34px 10px 10px; background: #fbfcfe; }
+            .seg-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px; }
+            .seg-del { position: absolute; top: 8px; right: 8px; border: none; background: none; color: var(--danger); cursor: pointer; font-size: 14px; font-weight: 800; line-height: 1; }
+            .seg-del:hover { color: #b3313e; }
+
             /* Chip picker (multi-selezione con voci custom) */
             .chip-picker__label { display: block; font-weight: 600; font-size: 13px; margin-bottom: 8px; }
             .chip-picker__chips { display: flex; flex-wrap: wrap; gap: 8px; }

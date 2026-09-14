@@ -1,0 +1,95 @@
+{# JS dell'editor ripetibile generico. Includere UNA volta per pagina.
+   Inizializza tutti i [data-segmenti], mantiene l'hidden JSON in sync al submit. #}
+<script>
+(function () {
+    function initSeg(root) {
+        if (root.dataset.segInit) return;
+        root.dataset.segInit = '1';
+        var cfg = JSON.parse(root.querySelector('[data-seg-config]').textContent || '{}');
+        var campi = cfg.campi || [];
+        var box = root.querySelector('[data-seg-box]');
+        var hidden = root.querySelector('[data-seg-hidden]');
+        var addBtn = root.querySelector('[data-seg-add]');
+        var dati;
+        try { dati = JSON.parse(hidden.value || '[]'); } catch (e) { dati = []; }
+        if (!Array.isArray(dati)) dati = [];
+
+        function campoInput(c, item) {
+            var el;
+            if (c.type === 'select') {
+                el = document.createElement('select');
+                var empty = document.createElement('option');
+                empty.value = ''; empty.textContent = '—';
+                el.appendChild(empty);
+                Object.keys(c.options || {}).forEach(function (val) {
+                    var o = document.createElement('option');
+                    o.value = val; o.textContent = c.options[val];
+                    el.appendChild(o);
+                });
+                el.value = item[c.key] || '';
+            } else if (c.type === 'textarea') {
+                el = document.createElement('textarea');
+                el.rows = 2; el.value = item[c.key] || '';
+            } else {
+                el = document.createElement('input');
+                el.type = c.type === 'datetime' ? 'datetime-local' : 'text';
+                el.value = item[c.key] || '';
+            }
+            if (c.placeholder) el.placeholder = c.placeholder;
+            el.addEventListener('input', function () { item[c.key] = el.value; });
+            el.addEventListener('change', function () { item[c.key] = el.value; });
+            return el;
+        }
+
+        function render() {
+            box.innerHTML = '';
+            dati.forEach(function (item, i) {
+                var wrap = document.createElement('div');
+                wrap.className = 'seg-item';
+
+                var grid = document.createElement('div');
+                grid.className = 'seg-grid';
+                campi.forEach(function (c) {
+                    var cell = document.createElement('div');
+                    if (c.type === 'textarea') cell.style.gridColumn = '1 / -1';
+                    var lab = document.createElement('label');
+                    lab.textContent = c.label; lab.style.fontSize = '12px';
+                    cell.appendChild(lab);
+                    cell.appendChild(campoInput(c, item));
+                    grid.appendChild(cell);
+                });
+
+                var del = document.createElement('button');
+                del.type = 'button'; del.className = 'seg-del'; del.title = 'Rimuovi';
+                del.textContent = '✕';
+                del.addEventListener('click', function () { dati.splice(i, 1); render(); });
+
+                wrap.appendChild(grid);
+                wrap.appendChild(del);
+                box.appendChild(wrap);
+            });
+            if (!dati.length) {
+                box.innerHTML = '<p class="muted" style="font-size:12px;margin:0">Nessuna voce.</p>';
+            }
+        }
+
+        addBtn.addEventListener('click', function () { dati.push({}); render(); });
+
+        var form = root.closest('form');
+        if (form) form.addEventListener('submit', function () {
+            var puliti = dati.filter(function (item) {
+                return Object.keys(item).some(function (k) { return (item[k] || '').toString().trim() !== ''; });
+            });
+            hidden.value = JSON.stringify(puliti);
+        });
+
+        render();
+    }
+    function initAll() { document.querySelectorAll('[data-segmenti]').forEach(initSeg); }
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initAll);
+    } else {
+        initAll();
+    }
+})();
+</script>

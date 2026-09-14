@@ -81,6 +81,13 @@ class OffertaController extends AbstractController
             // alloggio: campi manuali name="alloggio[...]" (persistiti come JSON)
             $offerta->setAlloggio($this->normalizzaAlloggio($request->request->all('alloggio')));
 
+            // trasporti: editor ripetibile (hidden JSON), whitelist chiavi per sezione
+            $offerta->setVoli($this->decodeSegmenti($request->request->get('voli'), ['tipo', 'da', 'a', 'data', 'stay', 'compagnia', 'descrizione']));
+            $offerta->setTreni($this->decodeSegmenti($request->request->get('treni'), ['da', 'a', 'data', 'compagnia', 'descrizione']));
+            $offerta->setNavi($this->decodeSegmenti($request->request->get('navi'), ['da', 'a', 'data', 'compagnia', 'descrizione']));
+            $offerta->setTrasferimenti($this->decodeSegmenti($request->request->get('trasferimenti'), ['descrizione', 'da', 'a', 'data', 'compagnia']));
+            $offerta->setBagaglio($this->normalizzaBagaglio($request->request->all('bagaglio')));
+
             if ($isNuovo) {
                 $em->persist($offerta);
             }
@@ -121,6 +128,71 @@ class OffertaController extends AbstractController
             $v = trim((string) ($dati[$k] ?? ''));
             if ($v !== '') {
                 $out[$k] = mb_substr($v, 0, 180);
+            }
+        }
+
+        return $out;
+    }
+
+    /**
+     * Decodifica una sezione ripetibile (voli/treni/navi/trasferimenti): filtra le
+     * chiavi ammesse, trima, scarta le voci completamente vuote.
+     *
+     * @param list<string> $chiavi
+     *
+     * @return list<array<string, string>>
+     */
+    private function decodeSegmenti(?string $json, array $chiavi): array
+    {
+        $dati = json_decode((string) $json ?: '[]', true);
+        if (!\is_array($dati)) {
+            return [];
+        }
+
+        $out = [];
+        foreach ($dati as $item) {
+            if (!\is_array($item)) {
+                continue;
+            }
+            $riga = [];
+            foreach ($chiavi as $k) {
+                $v = trim((string) ($item[$k] ?? ''));
+                if ($v !== '') {
+                    $riga[$k] = mb_substr($v, 0, 500);
+                }
+            }
+            if ($riga !== []) {
+                $out[] = $riga;
+            }
+        }
+
+        return $out;
+    }
+
+    /**
+     * Normalizza il bagaglio: flag booleani + numero/kg solo se la voce è attiva.
+     *
+     * @param array<string, mixed> $dati
+     *
+     * @return array<string, mixed>
+     */
+    private function normalizzaBagaglio(array $dati): array
+    {
+        $out = [];
+        if (!empty($dati['borsaPiccola'])) {
+            $out['borsaPiccola'] = true;
+        }
+        foreach (['mano', 'stiva'] as $tipo) {
+            if (!empty($dati[$tipo])) {
+                $out[$tipo] = true;
+                $num = trim((string) ($dati[$tipo . 'Num'] ?? ''));
+                $kg = trim((string) ($dati[$tipo . 'Kg'] ?? ''));
+                if ($num !== '') {
+                    $out[$tipo . 'Num'] = (int) $num;
+                }
+                if ($kg !== '') {
+                    $out[$tipo . 'Kg'] = (float) $kg;
+                }
             }
         }
 

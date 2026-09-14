@@ -53,6 +53,100 @@
     </div>
 </fieldset>
 
+{# ---------- VOLI ---------- #}
+{{ include('_partials/_segmenti_editor.html.twig', {
+    name: 'voli',
+    label: 'Voli',
+    dati: offerta.voli,
+    add_label: 'Volo',
+    hint: 'Andata, ritorno o tratte interne. Per gli scali indica la durata nel campo Scalo.',
+    campi: [
+        {key: 'tipo', label: 'Tipo', type: 'select', options: {andata: 'Andata', ritorno: 'Ritorno', interno: 'Interno'}},
+        {key: 'da', label: 'Da', type: 'text', placeholder: 'Aeroporto / città'},
+        {key: 'a', label: 'A', type: 'text', placeholder: 'Aeroporto / città'},
+        {key: 'data', label: 'Data e ora', type: 'datetime'},
+        {key: 'stay', label: 'Scalo (durata)', type: 'text', placeholder: 'es. 2h 30m'},
+        {key: 'compagnia', label: 'Compagnia', type: 'text'},
+        {key: 'descrizione', label: 'Note', type: 'textarea'},
+    ],
+}) }}
+
+{# ---------- BAGAGLIO ---------- #}
+{% set bg = offerta.bagaglio %}
+<fieldset style="border:1px solid var(--line);border-radius:10px;padding:14px;margin:0">
+    <legend style="font-weight:700;padding:0 6px">Bagaglio</legend>
+    <div style="display:grid;gap:10px">
+        <label style="display:flex;align-items:center;gap:8px;font-weight:500;cursor:pointer">
+            <input type="checkbox" name="bagaglio[borsaPiccola]" value="1"{{ bg.borsaPiccola|default(false) ? ' checked' }}> Borsa piccola (sotto il sedile)
+        </label>
+
+        <div>
+            <label style="display:flex;align-items:center;gap:8px;font-weight:500;cursor:pointer">
+                <input type="checkbox" name="bagaglio[mano]" value="1" data-bag-toggle="bag-mano"{{ bg.mano|default(false) ? ' checked' }}> Bagaglio a mano
+            </label>
+            <div id="bag-mano" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px{{ bg.mano|default(false) ? '' : ';display:none' }}">
+                <div><label>Numero</label><input type="number" min="0" name="bagaglio[manoNum]" value="{{ bg.manoNum|default('') }}"></div>
+                <div><label>Kg</label><input type="number" min="0" step="0.1" name="bagaglio[manoKg]" value="{{ bg.manoKg|default('') }}"></div>
+            </div>
+        </div>
+
+        <div>
+            <label style="display:flex;align-items:center;gap:8px;font-weight:500;cursor:pointer">
+                <input type="checkbox" name="bagaglio[stiva]" value="1" data-bag-toggle="bag-stiva"{{ bg.stiva|default(false) ? ' checked' }}> Bagaglio da stiva
+            </label>
+            <div id="bag-stiva" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px{{ bg.stiva|default(false) ? '' : ';display:none' }}">
+                <div><label>Numero</label><input type="number" min="0" name="bagaglio[stivaNum]" value="{{ bg.stivaNum|default('') }}"></div>
+                <div><label>Kg</label><input type="number" min="0" step="0.1" name="bagaglio[stivaKg]" value="{{ bg.stivaKg|default('') }}"></div>
+            </div>
+        </div>
+    </div>
+</fieldset>
+
+{# ---------- TRENI ---------- #}
+{{ include('_partials/_segmenti_editor.html.twig', {
+    name: 'treni',
+    label: 'Treni',
+    dati: offerta.treni,
+    add_label: 'Treno',
+    campi: [
+        {key: 'da', label: 'Da', type: 'text'},
+        {key: 'a', label: 'A', type: 'text'},
+        {key: 'data', label: 'Data e ora', type: 'datetime'},
+        {key: 'compagnia', label: 'Compagnia', type: 'text'},
+        {key: 'descrizione', label: 'Note', type: 'textarea'},
+    ],
+}) }}
+
+{# ---------- NAVI ---------- #}
+{{ include('_partials/_segmenti_editor.html.twig', {
+    name: 'navi',
+    label: 'Navi',
+    dati: offerta.navi,
+    add_label: 'Nave',
+    campi: [
+        {key: 'da', label: 'Da', type: 'text'},
+        {key: 'a', label: 'A', type: 'text'},
+        {key: 'data', label: 'Data e ora', type: 'datetime'},
+        {key: 'compagnia', label: 'Compagnia', type: 'text'},
+        {key: 'descrizione', label: 'Note', type: 'textarea'},
+    ],
+}) }}
+
+{# ---------- ALTRI TRASFERIMENTI ---------- #}
+{{ include('_partials/_segmenti_editor.html.twig', {
+    name: 'trasferimenti',
+    label: 'Altri trasferimenti',
+    dati: offerta.trasferimenti,
+    add_label: 'Trasferimento',
+    campi: [
+        {key: 'descrizione', label: 'Descrizione', type: 'text', placeholder: 'es. Transfer privato aeroporto-hotel'},
+        {key: 'da', label: 'Da', type: 'text'},
+        {key: 'a', label: 'A', type: 'text'},
+        {key: 'data', label: 'Data e ora', type: 'datetime'},
+        {key: 'compagnia', label: 'Compagnia / operatore', type: 'text'},
+    ],
+}) }}
+
 {# ---------- ASSICURAZIONI ---------- #}
 {{ include('_partials/_chip_picker.html.twig', {
     name: 'assicurazioni',

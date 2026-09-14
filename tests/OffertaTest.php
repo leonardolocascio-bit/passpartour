@@ -174,6 +174,53 @@ class OffertaTest extends WebTestCase
         self::assertSame('Mance e spese personali', $offerta->getNonComprende());
     }
 
+    public function testCaratteristicheTrasportiEBagaglio(): void
+    {
+        $offerta = $this->em->getRepository(Offerta::class)->findOneBy([]);
+        $id = $offerta->getId();
+
+        $crawler = $this->client->request('GET', '/offerte/' . $id . '/modifica');
+        $form = $crawler->selectButton('Salva')->form();
+        $form['voli'] = json_encode([
+            ['tipo' => 'andata', 'da' => 'MXP', 'a' => 'MLE', 'data' => '2026-07-20T10:30', 'stay' => '', 'compagnia' => 'Emirates', 'descrizione' => 'via Dubai', 'x' => 'ignorato'],
+            ['tipo' => 'ritorno', 'da' => 'MLE', 'a' => 'MXP', 'data' => '2026-07-27T22:00', 'compagnia' => 'Emirates'],
+            ['tipo' => '', 'da' => '  ', 'a' => ''], // vuoto: scartato
+        ]);
+        $form['treni'] = json_encode([['da' => 'Milano C.le', 'a' => 'Roma T.ni', 'data' => '2026-07-19T09:00', 'compagnia' => 'Italo', 'descrizione' => '']]);
+        $form['trasferimenti'] = json_encode([['descrizione' => 'Transfer privato', 'da' => 'Aeroporto', 'a' => 'Resort', 'data' => '', 'compagnia' => 'Local DMC']]);
+        $form['bagaglio[borsaPiccola]']->tick();
+        $form['bagaglio[mano]']->tick();
+        $form['bagaglio[manoNum]'] = '1';
+        $form['bagaglio[manoKg]'] = '8';
+        // stiva NON spuntata: numero/kg eventuali vanno ignorati
+        $form['bagaglio[stivaNum]'] = '2';
+        $this->client->submit($form);
+        self::assertResponseRedirects();
+
+        $this->em->clear();
+        $offerta = $this->em->getRepository(Offerta::class)->find($id);
+
+        $voli = $offerta->getVoli();
+        self::assertCount(2, $voli); // la voce vuota è scartata
+        self::assertSame('andata', $voli[0]['tipo']);
+        self::assertSame('MLE', $voli[0]['a']);
+        self::assertArrayNotHasKey('x', $voli[0]); // chiave non ammessa filtrata
+        self::assertArrayNotHasKey('stay', $voli[0]); // campo vuoto non salvato
+
+        self::assertCount(1, $offerta->getTreni());
+        self::assertSame('Italo', $offerta->getTreni()[0]['compagnia']);
+        self::assertCount(1, $offerta->getTrasferimenti());
+        self::assertSame('Transfer privato', $offerta->getTrasferimenti()[0]['descrizione']);
+
+        $bg = $offerta->getBagaglio();
+        self::assertTrue($bg['borsaPiccola']);
+        self::assertTrue($bg['mano']);
+        self::assertSame(1, $bg['manoNum']);
+        self::assertSame(8.0, $bg['manoKg']);
+        self::assertArrayNotHasKey('stiva', $bg);
+        self::assertArrayNotHasKey('stivaNum', $bg); // ignorato perché stiva non attiva
+    }
+
     public function testCaptionIncludeLeVarianti(): void
     {
         $offerta = $this->em->getRepository(Offerta::class)->findOneBy([]);

@@ -104,7 +104,17 @@
 </div></div>
 
 {{ include('_partials/_chip_picker_js.html.twig') }}
+{{ include('_partials/_segmenti_editor_js.html.twig') }}
 <script>
+(function () {
+    // bagaglio: mostra numero/kg quando la relativa casella è spuntata
+    document.querySelectorAll('[data-bag-toggle]').forEach(function (cb) {
+        cb.addEventListener('change', function () {
+            var box = document.getElementById(cb.dataset.bagToggle);
+            if (box) box.style.display = cb.checked ? 'grid' : 'none';
+        });
+    });
+})();
 (function () {
     var tabs = document.querySelectorAll('.tab-btn');
     var panels = document.querySelectorAll('.tab-panel');

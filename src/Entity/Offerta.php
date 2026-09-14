@@ -82,6 +82,46 @@ class Offerta
     private ?string $nonComprende = null;
 
     /**
+     * Voli: [{tipo: 'andata'|'ritorno'|'interno', da, a, data, stay, compagnia, descrizione}, …].
+     *
+     * @var list<array<string, string>>|null
+     */
+    #[ORM\Column(type: 'json', nullable: true)]
+    private ?array $voli = null;
+
+    /**
+     * Bagaglio: {borsaPiccola: bool, mano: bool, manoNum, manoKg, stiva: bool, stivaNum, stivaKg}.
+     *
+     * @var array<string, mixed>|null
+     */
+    #[ORM\Column(type: 'json', nullable: true)]
+    private ?array $bagaglio = null;
+
+    /**
+     * Treni: [{da, a, data, compagnia, descrizione}, …].
+     *
+     * @var list<array<string, string>>|null
+     */
+    #[ORM\Column(type: 'json', nullable: true)]
+    private ?array $treni = null;
+
+    /**
+     * Navi: [{da, a, data, compagnia, descrizione}, …].
+     *
+     * @var list<array<string, string>>|null
+     */
+    #[ORM\Column(type: 'json', nullable: true)]
+    private ?array $navi = null;
+
+    /**
+     * Altri trasferimenti: [{descrizione, da, a, data, compagnia}, …].
+     *
+     * @var list<array<string, string>>|null
+     */
+    #[ORM\Column(type: 'json', nullable: true)]
+    private ?array $trasferimenti = null;
+
+    /**
      * Righe/opzioni del viaggio compilate nel configuratore offerta:
      * [{id, icona, argomento, testo, evidenza}, …]. L'impaginatore le eredita.
      *
@@ -326,6 +366,76 @@ class Offerta
     public function setNonComprende(?string $nonComprende): static
     {
         $this->nonComprende = $nonComprende;
+
+        return $this;
+    }
+
+    /** @return list<array<string, string>> */
+    public function getVoli(): array
+    {
+        return $this->voli ?? [];
+    }
+
+    /** @param list<array<string, string>>|null $voli */
+    public function setVoli(?array $voli): static
+    {
+        $this->voli = $voli ?: null;
+
+        return $this;
+    }
+
+    /** @return array<string, mixed> */
+    public function getBagaglio(): array
+    {
+        return $this->bagaglio ?? [];
+    }
+
+    /** @param array<string, mixed>|null $bagaglio */
+    public function setBagaglio(?array $bagaglio): static
+    {
+        $this->bagaglio = $bagaglio ?: null;
+
+        return $this;
+    }
+
+    /** @return list<array<string, string>> */
+    public function getTreni(): array
+    {
+        return $this->treni ?? [];
+    }
+
+    /** @param list<array<string, string>>|null $treni */
+    public function setTreni(?array $treni): static
+    {
+        $this->treni = $treni ?: null;
+
+        return $this;
+    }
+
+    /** @return list<array<string, string>> */
+    public function getNavi(): array
+    {
+        return $this->navi ?? [];
+    }
+
+    /** @param list<array<string, string>>|null $navi */
+    public function setNavi(?array $navi): static
+    {
+        $this->navi = $navi ?: null;
+
+        return $this;
+    }
+
+    /** @return list<array<string, string>> */
+    public function getTrasferimenti(): array
+    {
+        return $this->trasferimenti ?? [];
+    }
+
+    /** @param list<array<string, string>>|null $trasferimenti */
+    public function setTrasferimenti(?array $trasferimenti): static
+    {
+        $this->trasferimenti = $trasferimenti ?: null;
 
         return $this;
     }
