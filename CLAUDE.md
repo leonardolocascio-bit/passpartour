@@ -44,7 +44,9 @@ Tutti i dati sono **demo**, rigenerabili dalle fixtures. Nessun dato reale.
 - **M5 ✓** automazioni di conversione: RegolaNurturing per stato → attività auto (MotoreNurturing), Agenda azioni, pagina Automazioni.
 - **M6 ✓** dashboard direzionale (CruscottoService): KPI, lead per fonte/campagna, valore pipeline, performance agenti.
 
-Tutte le 6 milestone core completate. Extra: PDF nativo preventivo (dompdf), commissioni + icone per categoria, viste calendario (giorno/settimana/mese/anno) e sync bidirezionale Google Calendar. 29 test (`php bin/phpunit`).
+Tutte le 6 milestone core completate. Extra: PDF nativo preventivo (dompdf), commissioni + icone per categoria, viste calendario (giorno/settimana/mese/anno) e sync bidirezionale Google Calendar. 47 test (`php bin/phpunit`).
+
+**Impaginatore offerte** (`/offerte/{id}/impaginatore`, `ImpaginatoreController`): genera contenuti social Instagram 3:4 (1080×1440, carosello max 20 slide, anteprima/export via canvas JS) e stampa A4/A3 verticale/orizzontale (`/offerte/{id}/stampa/{a4v|a4o|a3v|a3o}`, layout base — l'editor di stampa avanzato è in attesa di specifiche dall'utente). Stato salvato in `Offerta.impaginato` (JSON: slides con sfondo/righe icona-argomento-testo/toggle elementi + caption) + campo `claim`. Sfondi scelti da Unsplash e scaricati in locale (niente CORS sul canvas). Caption con tono di voce: `CaptionGenerator` usa l'API Claude se `ANTHROPIC_API_KEY` è in `.env.local`, altrimenti template deterministici — mantenere sempre il fallback.
 
 **Google Calendar**: serve un progetto Google Cloud con Calendar API + ID client OAuth "App web"; redirect `<host>/impostazioni/google/callback`; credenziali in `.env` (`GOOGLE_OAUTH_CLIENT_ID/SECRET`). Sync manuale dalla pagina Impostazioni o `php bin/console app:google:sincronizza` (cron). Calendario/anno: usare `setDate()`, non `modify('first day of <meseIT>')`.
 
