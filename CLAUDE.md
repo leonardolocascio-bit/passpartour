@@ -48,6 +48,10 @@ Tutte le 6 milestone core completate. Extra: PDF nativo preventivo (dompdf), com
 
 **Google Calendar**: serve un progetto Google Cloud con Calendar API + ID client OAuth "App web"; redirect `<host>/impostazioni/google/callback`; credenziali in `.env` (`GOOGLE_OAUTH_CLIENT_ID/SECRET`). Sync manuale dalla pagina Impostazioni o `php bin/console app:google:sincronizza` (cron). Calendario/anno: usare `setDate()`, non `modify('first day of <meseIT>')`.
 
+**Unsplash** (ricerca immagini per la libreria Destinazioni): `App\Service\UnsplashClient` (server-side, cache oraria, trackDownload obbligatorio, attribuzione UTM) + `App\Controller\Api\UnsplashController` (`/api/unsplash/search|photo/{id}|select`). Chiave in `.env.local` → `UNSPLASH_ACCESS_KEY=...` (in `.env` solo il segnaposto vuoto). Wiring via `#[Autowire]` sui parametri `$accessKey`/`$cache` (NON in un file di config sotto packages: verrebbe sovrascritto dal glob `App\` di services.yaml). Il form Destinazioni mostra il box di ricerca solo se `isConfigured()`.
+
+**Config chiavi API**: tutte le chiavi/segreti delle integrazioni (Unsplash, Twilio, MAILER/SMTP, OAuth Google) stanno in `.env`/`.env.local` — decisione dell'utente: NIENTE pannello di configurazione in UI. Non riproporlo.
+
 Nota preventivatore: i plurali IT (`scenari`, `voci`) non sono inflettibili da Symfony; le CollectionType usano `by_reference: true` + setter tolleranti `setScenari(iterable)`/`setVoci(iterable)` sulle entità. Non rimuoverli.
 
 Nota login/CSRF (convivenza con altre app Symfony su 127.0.0.1): i cookie ignorano la porta, quindi app diverse su 127.0.0.1 condividono i cookie. Per evitare "Invalid CSRF token" al login: `framework.session.name = PASSPARTOUR_SESSID` (cookie sessione univoco) e CSRF **basato su sessione** (`csrf.yaml` con solo `csrf_protection.enabled: true`, NON stateless). Non riabilitare il CSRF stateless (richiede il controller JS Stimulus, qui non caricato).
