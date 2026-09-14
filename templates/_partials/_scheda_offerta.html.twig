@@ -1,0 +1,144 @@
+{# Corpo read-only della scheda offerta (client-facing, SENZA costi/MOL).
+   Parametro: offerta. Riutilizzabile in pagina dettaglio ed eventuali anteprime. #}
+{% set voliLabel = {andata: 'Andata', ritorno: 'Ritorno', interno: 'Tratta interna'} %}
+{% set quotaLabel = {persona: 'Per persona', gruppo: 'Quota gruppo'} %}
+
+{% macro tratta(v, voliLabel) %}
+    <div class="sk-item">
+        <div style="font-weight:600">
+            {% if v.tipo is defined and voliLabel[v.tipo] is defined %}<span class="badge" style="margin-right:6px">{{ voliLabel[v.tipo] }}</span>{% endif %}
+            {{ v.da|default('') }}{% if v.a|default('') %} → {{ v.a }}{% endif %}
+        </div>
+        <div class="muted" style="font-size:13px;margin-top:2px">
+            {% if v.data|default('') %}🕑 {{ v.data|date('d/m/Y H:i') }}{% endif %}
+            {% if v.stay|default('') %} · scalo {{ v.stay }}{% endif %}
+            {% if v.compagnia|default('') %} · {{ v.compagnia }}{% endif %}
+        </div>
+        {% if v.descrizione|default('') %}<div style="font-size:13px;margin-top:2px">{{ v.descrizione }}</div>{% endif %}
+    </div>
+{% endmacro %}
+{% import _self as sk %}
+
+{# ---------- BADGE ---------- #}
+<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px">
+    {% if offerta.destinazioneMacro %}<span class="badge" style="background:#e9eff9;color:#1c5099">📍 {{ offerta.destinazioneMacro }}</span>{% endif %}
+    {% if offerta.destinazioneMicro %}<span class="badge" style="background:#e4f4fb;color:#1889bd">{{ offerta.destinazioneMicro }}</span>{% endif %}
+    {% for t in offerta.tipologieLabel %}<span class="badge" style="background:#fdece1;color:#d2551b">{{ t }}</span>{% endfor %}
+    {% for t in offerta.temiLabel %}<span class="badge" style="background:#fdf3e0;color:#c98314">{{ t }}</span>{% endfor %}
+    {% if offerta.earlyBooking %}<span class="badge" style="background:#e6f6ec;color:#1f9d54">Early booking</span>{% endif %}
+    {% if offerta.lastMinute %}<span class="badge" style="background:#fdecee;color:#cc3c4c">Last minute</span>{% endif %}
+    {% if offerta.cancellazioneGratuita %}<span class="badge" style="background:#e6f6ec;color:#1f9d54">Cancellazione gratuita{% if offerta.cancellazioneEntroGiorni %} (entro {{ offerta.cancellazioneEntroGiorni }}gg){% endif %}</span>{% endif %}
+</div>
+
+{% if offerta.descrizione %}
+    <p style="white-space:pre-line;line-height:1.6;margin:0 0 20px">{{ offerta.descrizione }}</p>
+{% endif %}
+
+{# ---------- QUOTE ---------- #}
+{% if offerta.quote|length or offerta.supplementoSingola %}
+    <section class="sk-sec">
+        <h3 class="sk-h">Quote <span class="muted" style="font-weight:400;font-size:12px">(IVA inclusa)</span></h3>
+        <div style="display:grid;gap:6px">
+            {% for q in offerta.quote %}
+                <div style="display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid var(--line)">
+                    <span>{{ quotaLabel[q.tipo]|default(q.tipo|default('')) }}{% if q.sistemazione|default('') %} · {{ q.sistemazione }}{% endif %}</span>
+                    <strong>{{ offerta.valuta }} {{ q.importo|default('') }}</strong>
+                </div>
+            {% endfor %}
+            {% if offerta.supplementoSingola %}
+                <div style="display:flex;justify-content:space-between;gap:12px;padding:8px 0">
+                    <span class="muted">Supplemento singola</span><span>{{ offerta.valuta }} {{ offerta.supplementoSingola }}</span>
+                </div>
+            {% endif %}
+        </div>
+    </section>
+{% endif %}
+
+{# ---------- ALLOGGIO ---------- #}
+{% set al = offerta.alloggio %}
+{% if al|length %}
+    <section class="sk-sec">
+        <h3 class="sk-h">Alloggio</h3>
+        <div style="font-weight:600;font-size:15px">
+            {{ al.nome|default('Struttura') }}
+            {% if offerta.alloggioStelleLabel %}<span style="color:var(--amber)">{{ offerta.alloggioStelleLabel }}</span>{% endif %}
+        </div>
+        <div class="muted" style="font-size:13px;margin-top:2px">
+            {% if offerta.alloggioTipologiaLabel %}{{ offerta.alloggioTipologiaLabel }}{% endif %}
+            {% if offerta.alloggioTrattamentoLabel %} · {{ offerta.alloggioTrattamentoLabel }}{% endif %}
+            {% if al.citta|default('') %} · {{ al.citta }}{% endif %}{% if al.indirizzo|default('') %}, {{ al.indirizzo }}{% endif %}
+        </div>
+    </section>
+{% endif %}
+
+{# ---------- TRASPORTI ---------- #}
+{% if offerta.voli|length %}
+    <section class="sk-sec"><h3 class="sk-h">✈️ Voli</h3><div style="display:grid;gap:8px">
+        {% for v in offerta.voli %}{{ sk.tratta(v, voliLabel) }}{% endfor %}
+    </div></section>
+{% endif %}
+{% if offerta.treni|length %}
+    <section class="sk-sec"><h3 class="sk-h">🚆 Treni</h3><div style="display:grid;gap:8px">
+        {% for v in offerta.treni %}{{ sk.tratta(v, voliLabel) }}{% endfor %}
+    </div></section>
+{% endif %}
+{% if offerta.navi|length %}
+    <section class="sk-sec"><h3 class="sk-h">🛳️ Navi</h3><div style="display:grid;gap:8px">
+        {% for v in offerta.navi %}{{ sk.tratta(v, voliLabel) }}{% endfor %}
+    </div></section>
+{% endif %}
+{% if offerta.trasferimenti|length %}
+    <section class="sk-sec"><h3 class="sk-h">🚐 Trasferimenti</h3><div style="display:grid;gap:8px">
+        {% for v in offerta.trasferimenti %}{{ sk.tratta(v, voliLabel) }}{% endfor %}
+    </div></section>
+{% endif %}
+
+{# ---------- BAGAGLIO ---------- #}
+{% set bg = offerta.bagaglio %}
+{% if bg|length %}
+    <section class="sk-sec"><h3 class="sk-h">🧳 Bagaglio</h3>
+        <ul style="margin:0;padding-left:18px;line-height:1.7">
+            {% if bg.borsaPiccola|default(false) %}<li>Borsa piccola (sotto il sedile)</li>{% endif %}
+            {% if bg.mano|default(false) %}<li>Bagaglio a mano{% if bg.manoNum is defined %} — {{ bg.manoNum }}{% if bg.manoKg is defined %} × {{ bg.manoKg }} kg{% endif %}{% endif %}</li>{% endif %}
+            {% if bg.stiva|default(false) %}<li>Bagaglio da stiva{% if bg.stivaNum is defined %} — {{ bg.stivaNum }}{% if bg.stivaKg is defined %} × {{ bg.stivaKg }} kg{% endif %}{% endif %}</li>{% endif %}
+        </ul>
+    </section>
+{% endif %}
+
+{# ---------- EXTRA ---------- #}
+{% if offerta.extra|length %}
+    <section class="sk-sec"><h3 class="sk-h">Extra e servizi</h3><div style="display:grid;gap:8px">
+        {% for e in offerta.extra %}
+            <div class="sk-item">
+                <div style="font-weight:600">{{ e.tipo|default('Extra') }}</div>
+                {% if e.descrizione|default('') %}<div style="font-size:13px">{{ e.descrizione }}</div>{% endif %}
+                {% if e.da|default('') or e.a|default('') or e.data|default('') or e.compagnia|default('') %}
+                    <div class="muted" style="font-size:13px;margin-top:2px">
+                        {{ e.da|default('') }}{% if e.a|default('') %} → {{ e.a }}{% endif %}
+                        {% if e.data|default('') %} · {{ e.data|date('d/m/Y H:i') }}{% endif %}
+                        {% if e.compagnia|default('') %} · {{ e.compagnia }}{% endif %}
+                    </div>
+                {% endif %}
+            </div>
+        {% endfor %}
+    </div></section>
+{% endif %}
+
+{# ---------- ASSICURAZIONI ---------- #}
+{% if offerta.assicurazioni|length %}
+    <section class="sk-sec"><h3 class="sk-h">🛡️ Assicurazioni</h3>
+        <div style="display:flex;flex-wrap:wrap;gap:8px">
+            {% for a in offerta.assicurazioniLabel %}<span class="badge">{{ a }}</span>{% endfor %}
+        </div>
+    </section>
+{% endif %}
+
+{# ---------- CONDIZIONI ---------- #}
+{% if offerta.comprende or offerta.nonComprende %}
+    <section class="sk-sec"><h3 class="sk-h">Condizioni</h3>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+            {% if offerta.comprende %}<div><div style="font-weight:600;color:var(--ok);margin-bottom:4px">Il pacchetto comprende</div><div style="white-space:pre-line;font-size:14px">{{ offerta.comprende }}</div></div>{% endif %}
+            {% if offerta.nonComprende %}<div><div style="font-weight:600;color:var(--danger);margin-bottom:4px">Non comprende</div><div style="white-space:pre-line;font-size:14px">{{ offerta.nonComprende }}</div></div>{% endif %}
+        </div>
+    </section>
+{% endif %}

@@ -13,21 +13,32 @@
     <div class="grid" style="grid-template-columns:repeat(3,1fr)">
         {% for o in offerte %}
             <div class="card" style="overflow:hidden;{{ not o.attiva ? 'opacity:.6' }}">
-                <div style="height:150px;background:#eef1f6;position:relative">
-                    {% if o.immagineFile %}
-                        <img src="{{ asset('uploads/destinazioni/' ~ o.immagineFile) }}" alt="{{ o.titolo }}" style="width:100%;height:100%;object-fit:cover;display:block">
-                    {% else %}
-                        <div style="width:100%;height:100%;display:grid;place-items:center;color:var(--muted);font-size:13px">nessuna immagine</div>
-                    {% endif %}
-                    {% if o.prezzoDa %}
-                        <div style="position:absolute;bottom:10px;right:10px;background:var(--brand);color:#fff;font-weight:800;padding:4px 10px;border-radius:8px;font-size:14px">da € {{ o.prezzoDa|number_format(0, ',', '.') }}</div>
-                    {% endif %}
-                    {% if not o.attiva %}<div style="position:absolute;top:10px;left:10px" class="badge">Sospesa</div>{% endif %}
-                </div>
+                <a href="{{ path('app_offerta_dettaglio', {id: o.id}) }}" style="display:block;text-decoration:none">
+                    <div style="height:150px;background:#eef1f6;position:relative">
+                        {% if o.immagineFile %}
+                            <img src="{{ asset('uploads/destinazioni/' ~ o.immagineFile) }}" alt="{{ o.titolo }}" style="width:100%;height:100%;object-fit:cover;display:block">
+                        {% else %}
+                            <div style="width:100%;height:100%;display:grid;place-items:center;color:var(--muted);font-size:13px">nessuna immagine</div>
+                        {% endif %}
+                        {% if o.prezzoDa %}
+                            <div style="position:absolute;bottom:10px;right:10px;background:var(--brand);color:#fff;font-weight:800;padding:4px 10px;border-radius:8px;font-size:14px">da € {{ o.prezzoDa|number_format(0, ',', '.') }}</div>
+                        {% endif %}
+                        {% if not o.attiva %}<div style="position:absolute;top:10px;left:10px" class="badge">Sospesa</div>{% endif %}
+                        {% if o.earlyBooking or o.lastMinute %}
+                            <div class="badge" style="position:absolute;top:10px;right:10px;background:var(--brand);color:#fff">{{ o.lastMinute ? 'Last minute' : 'Early booking' }}</div>
+                        {% endif %}
+                    </div>
+                </a>
                 <div class="card-pad" style="padding:14px 16px">
-                    <div style="font-weight:700">{{ o.titolo }}</div>
+                    <a href="{{ path('app_offerta_dettaglio', {id: o.id}) }}" style="font-weight:700;text-decoration:none;color:inherit">{{ o.titolo }}</a>
                     {% if o.sottotitolo %}<div class="muted" style="font-size:13px">{{ o.sottotitolo }}</div>{% endif %}
-                    <div class="muted" style="font-size:12px;margin-top:6px">
+                    {% if o.destinazioneMicro or o.tipologieLabel|length %}
+                        <div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:8px">
+                            {% if o.destinazioneMicro %}<span class="badge" style="background:#e4f4fb;color:#1889bd">{{ o.destinazioneMicro }}</span>{% endif %}
+                            {% for t in o.tipologieLabel|slice(0, 2) %}<span class="badge" style="background:#fdece1;color:#d2551b">{{ t }}</span>{% endfor %}
+                        </div>
+                    {% endif %}
+                    <div class="muted" style="font-size:12px;margin-top:8px">
                         {% if o.durata %}{{ o.durata }}{% endif %}
                         {% if o.validoAl %}{% if o.durata %} · {% endif %}valida fino al {{ o.validoAl|date('d/m/Y') }}{% endif %}
                     </div>

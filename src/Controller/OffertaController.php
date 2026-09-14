@@ -46,6 +46,12 @@ class OffertaController extends AbstractController
         return $this->salva(new Offerta(), $request, $em, $unsplash, $uploader, true);
     }
 
+    #[Route('/offerte/{id}', name: 'app_offerta_dettaglio', requirements: ['id' => '\d+'])]
+    public function dettaglio(Offerta $offerta): Response
+    {
+        return $this->render('offerta/dettaglio.html.twig', ['offerta' => $offerta]);
+    }
+
     #[Route('/offerte/{id}/modifica', name: 'app_offerta_modifica', requirements: ['id' => '\d+'])]
     public function modifica(Offerta $offerta, Request $request, EntityManagerInterface $em, UnsplashClient $unsplash, UploaderImmagini $uploader): Response
     {

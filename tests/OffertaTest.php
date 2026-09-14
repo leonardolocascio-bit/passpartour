@@ -303,6 +303,32 @@ class OffertaTest extends WebTestCase
         self::assertSelectorTextContains('body', '340,00'); // commissione lorda = 1990 - 1650
     }
 
+    public function testSchedaDettaglioMostraDatiSenzaMol(): void
+    {
+        $offerta = $this->em->getRepository(Offerta::class)->findOneBy([]);
+        $offerta->setDestinazioneMicro('Maldive')
+            ->setTipologie(['mare'])
+            ->setAlloggio(['nome' => 'Katikies', 'stelle' => '5s', 'tipologia' => 'resort'])
+            ->setAssicurazioni(['annullamento'])
+            ->setComprende('Voli e transfer')
+            ->setQuote([['tipo' => 'persona', 'sistemazione' => 'In doppia', 'importo' => '1990']])
+            ->setCosti(['quotaVendita' => '1990', 'tipo' => 'netta', 'quotaNetta' => '1650']);
+        $this->em->flush();
+        $id = $offerta->getId();
+
+        $this->client->request('GET', '/offerte/' . $id);
+        self::assertResponseIsSuccessful();
+        $body = (string) $this->client->getResponse()->getContent();
+        self::assertStringContainsString('Maldive', $body);
+        self::assertStringContainsString('Katikies', $body);
+        self::assertStringContainsString('Assicurazione annullamento', $body);
+        self::assertStringContainsString('Voli e transfer', $body);
+        self::assertStringContainsString('In doppia', $body);
+        // il MOL è dato interno: NON deve comparire nella scheda client-facing
+        self::assertStringNotContainsString('MOL', $body);
+        self::assertStringNotContainsString('Quota netta', $body);
+    }
+
     public function testCaptionIncludeLeVarianti(): void
     {
         $offerta = $this->em->getRepository(Offerta::class)->findOneBy([]);
