@@ -43,6 +43,25 @@ class OffertaTest extends WebTestCase
         self::assertSelectorTextContains('h1, [class]', 'Impaginatore');
     }
 
+    public function testImpaginatoreEmbedSenzaSidebar(): void
+    {
+        $offerta = $this->em->getRepository(Offerta::class)->findOneBy([]);
+        $id = $offerta->getId();
+
+        // embed: pagina nuda (senza sidebar CRM), per l'iframe nella scheda
+        $this->client->request('GET', '/offerte/' . $id . '/impaginatore?embed=1');
+        self::assertResponseIsSuccessful();
+        $body = (string) $this->client->getResponse()->getContent();
+        self::assertStringContainsString('Tema colore del post', $body); // selettore tema presente
+        self::assertStringNotContainsString('class="nav"', $body);        // niente sidebar
+
+        // la scheda offerta incorpora l'impaginatore come tab con iframe
+        $this->client->request('GET', '/offerte/' . $id . '/modifica');
+        $form = (string) $this->client->getResponse()->getContent();
+        self::assertStringContainsString('data-tab="impaginatore"', $form);
+        self::assertStringContainsString('data-impaginatore-src', $form);
+    }
+
     public function testImpaginatoreSalvaStato(): void
     {
         $offerta = $this->em->getRepository(Offerta::class)->findOneBy([]);

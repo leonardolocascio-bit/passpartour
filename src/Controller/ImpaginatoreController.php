@@ -30,7 +30,7 @@ class ImpaginatoreController extends AbstractController
     ];
 
     #[Route('/offerte/{id}/impaginatore', name: 'app_offerta_impaginatore', requirements: ['id' => '\d+'])]
-    public function editor(Offerta $offerta, UnsplashClient $unsplash, CaptionGenerator $caption, EntityManagerInterface $em): Response
+    public function editor(Offerta $offerta, Request $request, UnsplashClient $unsplash, CaptionGenerator $caption, EntityManagerInterface $em): Response
     {
         $this->migraRigheLegacy($offerta, $em);
 
@@ -39,6 +39,7 @@ class ImpaginatoreController extends AbstractController
             'unsplash_configurato' => $unsplash->isConfigured(),
             'ai_configurata' => $caption->isConfigured(),
             'toni' => CaptionGenerator::TONI,
+            'embed' => $request->query->getBoolean('embed'),
         ]);
     }
 

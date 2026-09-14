@@ -14,7 +14,7 @@
         <button type="button" class="tab-btn" data-tab="offerta">Offerta</button>
         <button type="button" class="tab-btn" data-tab="info">Info utili</button>
         {% if offerta.id %}
-            <a class="tab-btn tab-link" href="{{ path('app_offerta_impaginatore', {id: offerta.id}) }}">Impaginatore ↗</a>
+            <button type="button" class="tab-btn" data-tab="impaginatore">Post social</button>
             <a class="tab-btn tab-link" href="{{ path('app_offerta_anteprima', {id: offerta.id}) }}" target="_blank">Anteprima ↗</a>
         {% endif %}
     </div>
@@ -219,6 +219,18 @@
         <div class="section-hint">Clima nel periodo, dress code e usi locali: in arrivo.</div>
     </section>
 
+    {% if offerta.id %}
+        {# Impaginatore embeddato: l'editor del post social vive dentro la scheda #}
+        <section class="tab-panel" data-panel="impaginatore" hidden>
+            <div style="display:flex;justify-content:flex-end;margin-bottom:8px">
+                <a class="btn" href="{{ path('app_offerta_impaginatore', {id: offerta.id}) }}" target="_blank">Apri a tutta pagina ↗</a>
+            </div>
+            <iframe data-impaginatore-src="{{ path('app_offerta_impaginatore', {id: offerta.id}) }}?embed=1"
+                    style="width:100%;height:1700px;border:1px solid var(--line);border-radius:10px;background:#fff"
+                    title="Impaginatore post social"></iframe>
+        </section>
+    {% endif %}
+
     {{ form_end(form) }}
 
     {# form di eliminazione: separato (NON annidato nel form principale) #}
@@ -268,6 +280,9 @@
         btn.addEventListener('click', function () {
             tabs.forEach(function (b) { b.classList.toggle('is-active', b === btn); });
             panels.forEach(function (p) { p.hidden = (p.dataset.panel !== btn.dataset.tab); });
+            // lazy-load dell'iframe impaginatore alla prima apertura
+            var att = document.querySelector('[data-panel="' + btn.dataset.tab + '"] iframe[data-impaginatore-src]');
+            if (att && !att.src) att.src = att.getAttribute('data-impaginatore-src');
         });
     });
 })();

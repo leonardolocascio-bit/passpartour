@@ -1,4 +1,4 @@
-{% extends 'app.html.twig' %}
+{% extends embed|default(false) ? 'layout_nudo.html.twig' : 'app.html.twig' %}
 
 {% block title %}Impaginatore · {{ offerta.titolo }} · Passpartour{% endblock %}
 {% block page_title %}Impaginatore — {{ offerta.titolo }}{% endblock %}
@@ -158,7 +158,9 @@
         destinazioneMicro: {{ offerta.destinazioneMicro|json_encode|raw }},
         tipologie: {{ offerta.tipologieLabel|json_encode|raw }},
         durata: {{ offerta.durata|json_encode|raw }},
-        prezzoDa: {{ offerta.prezzoDa ? offerta.prezzoDa|number_format(0, ',', '.')|json_encode|raw : 'null' }},
+        prezzoDa: {{ offerta.prezzoDa
+            ? (offerta.prezzoDa|number_format(0, ',', '.')|json_encode|raw)
+            : (offerta.quote|length ? (offerta.quote|first).importo|json_encode|raw : 'null') }},
         immagine: {{ offerta.immagineFile|json_encode|raw }},
         fotografo: {{ offerta.fotografoEffettivo|json_encode|raw }},
         fotografoUrl: {{ offerta.fotografoUrlEffettivo|json_encode|raw }},

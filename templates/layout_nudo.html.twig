@@ -1,0 +1,9 @@
+{# Layout minimale (senza sidebar CRM): per embedding in iframe, es. impaginatore
+   dentro la scheda offerta. Riusa il design system di base.html.twig. #}
+{% extends 'base.html.twig' %}
+
+{% block body %}
+    <div style="padding:16px">
+        {% block main %}{% endblock %}
+    </div>
+{% endblock %}
