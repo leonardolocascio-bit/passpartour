@@ -4,9 +4,18 @@
 {% block page_title %}{{ titolo }}{% endblock %}
 
 {% block main %}
-<div class="card" style="max-width:640px"><div class="card-pad">
+<div class="card" style="max-width:760px"><div class="card-pad">
     {{ form_start(form, {attr: {id: 'form-offerta'}}) }}
-    <div style="display:grid;gap:14px">
+
+    <div class="tabs" role="tablist">
+        <button type="button" class="tab-btn is-active" data-tab="generale">Generale</button>
+        <button type="button" class="tab-btn" data-tab="caratteristiche">Caratteristiche</button>
+        <button type="button" class="tab-btn" data-tab="offerta">Offerta</button>
+        <button type="button" class="tab-btn" data-tab="info">Info utili</button>
+    </div>
+
+    {# ---------- GENERALE ---------- #}
+    <section class="tab-panel" data-panel="generale">
         {{ form_row(form.titolo) }}
         {{ form_row(form.sottotitolo) }}
         {{ form_row(form.claim) }}
@@ -41,7 +50,15 @@
 
         {{ form_row(form.destinazione) }}
         {{ form_row(form.descrizione) }}
+    </section>
 
+    {# ---------- CARATTERISTICHE (Fase B) ---------- #}
+    <section class="tab-panel" data-panel="caratteristiche" hidden>
+        <div class="section-hint">Alloggio, voli, treni, navi, trasferimenti, extra, assicurazioni e condizioni: in arrivo.</div>
+    </section>
+
+    {# ---------- OFFERTA (economics) ---------- #}
+    <section class="tab-panel" data-panel="offerta" hidden>
         {{ include('_partials/_righe_editor.html.twig', {offerta: offerta}) }}
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
             {{ form_row(form.prezzoDa) }}
@@ -54,7 +71,13 @@
         <label style="display:flex;align-items:center;gap:8px;font-weight:500;cursor:pointer">
             {{ form_widget(form.attiva) }} Offerta attiva (visibile nel catalogo)
         </label>
-    </div>
+    </section>
+
+    {# ---------- INFO UTILI (Fase D) ---------- #}
+    <section class="tab-panel" data-panel="info" hidden>
+        <div class="section-hint">Clima nel periodo, dress code e usi locali: in arrivo.</div>
+    </section>
+
     {{ form_end(form) }}
 
     {# form di eliminazione: separato (NON annidato nel form principale) #}
@@ -71,5 +94,18 @@
         {% endif %}
     </div>
 </div></div>
+
 {{ include('_partials/_chip_picker_js.html.twig') }}
+<script>
+(function () {
+    var tabs = document.querySelectorAll('.tab-btn');
+    var panels = document.querySelectorAll('.tab-panel');
+    tabs.forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            tabs.forEach(function (b) { b.classList.toggle('is-active', b === btn); });
+            panels.forEach(function (p) { p.hidden = (p.dataset.panel !== btn.dataset.tab); });
+        });
+    });
+})();
+</script>
 {% endblock %}

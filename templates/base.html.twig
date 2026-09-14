@@ -194,6 +194,18 @@
             }
             .muted { color: var(--muted); }
 
+            /* Tabs (schede di un form lungo) */
+            .tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--line); margin-bottom: 20px; flex-wrap: wrap; }
+            .tab-btn {
+                appearance: none; background: none; border: none; border-bottom: 2px solid transparent;
+                padding: 10px 16px; font-size: 14px; font-weight: 700; color: var(--muted); cursor: pointer;
+                margin-bottom: -1px;
+            }
+            .tab-btn:hover { color: var(--navy); }
+            .tab-btn.is-active { color: var(--navy); border-bottom-color: var(--brand); }
+            .tab-panel { display: grid; gap: 14px; }
+            .section-hint { color: var(--muted); font-size: 13px; padding: 18px; border: 1px dashed var(--line); border-radius: 10px; text-align: center; }
+
             /* Chip picker (multi-selezione con voci custom) */
             .chip-picker__label { display: block; font-weight: 600; font-size: 13px; margin-bottom: 8px; }
             .chip-picker__chips { display: flex; flex-wrap: wrap; gap: 8px; }
