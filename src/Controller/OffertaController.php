@@ -4,8 +4,12 @@ namespace App\Controller;
 
 use App\Entity\Lead;
 use App\Entity\Offerta;
+use App\Enum\StelleAlloggio;
 use App\Enum\TemaViaggio;
+use App\Enum\TipoAssicurazione;
+use App\Enum\TipologiaAlloggio;
 use App\Enum\TipologiaViaggio;
+use App\Enum\TrattamentoHotel;
 use App\Form\OffertaType;
 use App\Service\UnsplashClient;
 use App\Service\UploaderImmagini;
@@ -72,6 +76,10 @@ class OffertaController extends AbstractController
             // multi-selezioni gestite dal chip picker (hidden JSON, non mappate nel form)
             $offerta->setTipologie($this->decodeChip($request->request->get('tipologie')));
             $offerta->setTemi($this->decodeChip($request->request->get('temi')));
+            $offerta->setAssicurazioni($this->decodeChip($request->request->get('assicurazioni')));
+
+            // alloggio: campi manuali name="alloggio[...]" (persistiti come JSON)
+            $offerta->setAlloggio($this->normalizzaAlloggio($request->request->all('alloggio')));
 
             if ($isNuovo) {
                 $em->persist($offerta);
@@ -88,8 +96,35 @@ class OffertaController extends AbstractController
             'unsplash_configurato' => $unsplash->isConfigured(),
             'tipologie_scelte' => TipologiaViaggio::scelte(),
             'temi_scelte' => TemaViaggio::scelte(),
+            'assicurazioni_scelte' => TipoAssicurazione::scelte(),
+            'tipologia_alloggio_scelte' => TipologiaAlloggio::scelte(),
+            'stelle_scelte' => StelleAlloggio::scelte(),
+            'trattamento_scelte' => array_combine(
+                array_map(static fn (TrattamentoHotel $t) => $t->value, TrattamentoHotel::cases()),
+                array_map(static fn (TrattamentoHotel $t) => $t->label(), TrattamentoHotel::cases()),
+            ),
             'titolo' => $isNuovo ? 'Nuova offerta' : 'Modifica offerta',
         ]);
+    }
+
+    /**
+     * Normalizza i campi dell'alloggio dal form (whitelist chiavi, trim, tagli).
+     *
+     * @param array<string, mixed> $dati
+     *
+     * @return array<string, string>
+     */
+    private function normalizzaAlloggio(array $dati): array
+    {
+        $out = [];
+        foreach (['nome', 'citta', 'indirizzo', 'tipologia', 'stelle', 'trattamento'] as $k) {
+            $v = trim((string) ($dati[$k] ?? ''));
+            if ($v !== '') {
+                $out[$k] = mb_substr($v, 0, 180);
+            }
+        }
+
+        return $out;
     }
 
     /**

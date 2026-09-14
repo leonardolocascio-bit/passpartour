@@ -2,8 +2,12 @@
 
 namespace App\Entity;
 
+use App\Enum\StelleAlloggio;
 use App\Enum\TemaViaggio;
+use App\Enum\TipoAssicurazione;
+use App\Enum\TipologiaAlloggio;
 use App\Enum\TipologiaViaggio;
+use App\Enum\TrattamentoHotel;
 use Doctrine\ORM\Mapping as ORM;
 
 /**
@@ -51,6 +55,31 @@ class Offerta
      */
     #[ORM\Column(type: 'json', nullable: true)]
     private ?array $temi = null;
+
+    /**
+     * Alloggio: {nome, citta, indirizzo, tipologia, stelle, trattamento}.
+     * tipologia = TipologiaAlloggio, stelle = StelleAlloggio, trattamento = TrattamentoHotel (valori string).
+     *
+     * @var array<string, string>|null
+     */
+    #[ORM\Column(type: 'json', nullable: true)]
+    private ?array $alloggio = null;
+
+    /**
+     * Coperture assicurative (valori di TipoAssicurazione o voci custom).
+     *
+     * @var list<string>|null
+     */
+    #[ORM\Column(type: 'json', nullable: true)]
+    private ?array $assicurazioni = null;
+
+    /** Condizioni: cosa comprende il pacchetto (testo, generato dalle caratteristiche ma editabile). */
+    #[ORM\Column(type: 'text', nullable: true)]
+    private ?string $comprende = null;
+
+    /** Condizioni: cosa NON comprende il pacchetto. */
+    #[ORM\Column(type: 'text', nullable: true)]
+    private ?string $nonComprende = null;
 
     /**
      * Righe/opzioni del viaggio compilate nel configuratore offerta:
@@ -224,6 +253,81 @@ class Offerta
     public function getTemiLabel(): array
     {
         return array_map(TemaViaggio::etichetta(...), $this->getTemi());
+    }
+
+    /** @return array<string, string> {nome, citta, indirizzo, tipologia, stelle, trattamento} */
+    public function getAlloggio(): array
+    {
+        return $this->alloggio ?? [];
+    }
+
+    /** @param array<string, string>|null $alloggio */
+    public function setAlloggio(?array $alloggio): static
+    {
+        $this->alloggio = array_filter($alloggio ?? [], static fn ($v) => $v !== '' && $v !== null) ?: null;
+
+        return $this;
+    }
+
+    public function getAlloggioTipologiaLabel(): ?string
+    {
+        return TipologiaAlloggio::etichetta($this->getAlloggio()['tipologia'] ?? null);
+    }
+
+    public function getAlloggioStelleLabel(): ?string
+    {
+        return StelleAlloggio::etichetta($this->getAlloggio()['stelle'] ?? null);
+    }
+
+    public function getAlloggioTrattamentoLabel(): ?string
+    {
+        $v = $this->getAlloggio()['trattamento'] ?? null;
+
+        return $v ? (TrattamentoHotel::tryFrom($v)?->label() ?? $v) : null;
+    }
+
+    /** @return list<string> */
+    public function getAssicurazioni(): array
+    {
+        return $this->assicurazioni ?? [];
+    }
+
+    /** @param list<string>|null $assicurazioni */
+    public function setAssicurazioni(?array $assicurazioni): static
+    {
+        $this->assicurazioni = $assicurazioni ? array_values(array_unique(array_filter($assicurazioni))) : null;
+
+        return $this;
+    }
+
+    /** @return list<string> label pronte (enum risolti, custom intatte). */
+    public function getAssicurazioniLabel(): array
+    {
+        return array_map(TipoAssicurazione::etichetta(...), $this->getAssicurazioni());
+    }
+
+    public function getComprende(): ?string
+    {
+        return $this->comprende;
+    }
+
+    public function setComprende(?string $comprende): static
+    {
+        $this->comprende = $comprende;
+
+        return $this;
+    }
+
+    public function getNonComprende(): ?string
+    {
+        return $this->nonComprende;
+    }
+
+    public function setNonComprende(?string $nonComprende): static
+    {
+        $this->nonComprende = $nonComprende;
+
+        return $this;
     }
 
     /** @return list<array<string, mixed>> */

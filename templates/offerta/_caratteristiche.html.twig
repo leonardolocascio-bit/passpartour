@@ -1,0 +1,72 @@
+{# Scheda "Caratteristiche" dell'offerta. Va DENTRO #form-offerta.
+   Parametri: form, offerta, tipologia_alloggio_scelte, stelle_scelte,
+   trattamento_scelte, assicurazioni_scelte. #}
+{% set al = offerta.alloggio %}
+
+{# ---------- ALLOGGIO ---------- #}
+<fieldset style="border:1px solid var(--line);border-radius:10px;padding:14px;margin:0">
+    <legend style="font-weight:700;padding:0 6px">Alloggio</legend>
+    <div style="display:grid;gap:12px">
+        <div>
+            <label for="al_nome">Nome struttura</label>
+            <input type="text" id="al_nome" name="alloggio[nome]" value="{{ al.nome|default('') }}" placeholder="Es. Katikies Suites">
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+            <div>
+                <label for="al_citta">Città</label>
+                <input type="text" id="al_citta" name="alloggio[citta]" value="{{ al.citta|default('') }}" placeholder="Es. Oia">
+            </div>
+            <div>
+                <label for="al_indirizzo">Indirizzo</label>
+                <input type="text" id="al_indirizzo" name="alloggio[indirizzo]" value="{{ al.indirizzo|default('') }}" placeholder="Via / zona">
+            </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
+            <div>
+                <label for="al_tipologia">Tipologia</label>
+                <select id="al_tipologia" name="alloggio[tipologia]">
+                    <option value="">—</option>
+                    {% for val, lab in tipologia_alloggio_scelte %}
+                        <option value="{{ val }}"{{ (al.tipologia|default('')) == val ? ' selected' }}>{{ lab }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label for="al_stelle">Stelle</label>
+                <select id="al_stelle" name="alloggio[stelle]">
+                    <option value="">—</option>
+                    {% for val, lab in stelle_scelte %}
+                        <option value="{{ val }}"{{ (al.stelle|default('')) == val ? ' selected' }}>{{ lab }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label for="al_trattamento">Trattamento</label>
+                <select id="al_trattamento" name="alloggio[trattamento]">
+                    <option value="">—</option>
+                    {% for val, lab in trattamento_scelte %}
+                        <option value="{{ val }}"{{ (al.trattamento|default('')) == val ? ' selected' }}>{{ lab }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+    </div>
+</fieldset>
+
+{# ---------- ASSICURAZIONI ---------- #}
+{{ include('_partials/_chip_picker.html.twig', {
+    name: 'assicurazioni',
+    label: 'Assicurazioni',
+    scelte: assicurazioni_scelte,
+    selezionati: offerta.assicurazioni,
+    placeholder: 'Aggiungi una copertura…',
+}) }}
+
+{# ---------- CONDIZIONI ---------- #}
+<fieldset style="border:1px solid var(--line);border-radius:10px;padding:14px;margin:0">
+    <legend style="font-weight:700;padding:0 6px">Condizioni</legend>
+    <div style="display:grid;gap:12px">
+        {{ form_row(form.comprende) }}
+        {{ form_row(form.nonComprende) }}
+    </div>
+</fieldset>

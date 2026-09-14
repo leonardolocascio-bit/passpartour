@@ -43,6 +43,8 @@ class OffertaType extends AbstractType
                 'query_builder' => fn (EntityRepository $r) => $r->createQueryBuilder('d')->orderBy('d.nome', 'ASC'),
             ])
             ->add('descrizione', TextareaType::class, ['label' => 'Descrizione', 'required' => false])
+            ->add('comprende', TextareaType::class, ['label' => 'Il pacchetto comprende', 'required' => false, 'attr' => ['rows' => 4, 'placeholder' => 'Generato dalle caratteristiche, modificabile a mano']])
+            ->add('nonComprende', TextareaType::class, ['label' => 'Il pacchetto non comprende', 'required' => false, 'attr' => ['rows' => 3]])
             ->add('prezzoDa', TextType::class, ['label' => 'Prezzo a partire da (€)', 'required' => false, 'attr' => ['inputmode' => 'decimal']])
             ->add('durata', TextType::class, ['label' => 'Durata', 'required' => false, 'attr' => ['placeholder' => 'Es. 7 notti']])
             ->add('validoDal', DateType::class, ['label' => 'Valida dal', 'required' => false, 'widget' => 'single_text', 'input' => 'datetime_immutable'])
