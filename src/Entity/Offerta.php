@@ -122,6 +122,14 @@ class Offerta
     private ?array $trasferimenti = null;
 
     /**
+     * Extra/servizi: [{tipo, descrizione, da, a, data, compagnia}, …].
+     *
+     * @var list<array<string, string>>|null
+     */
+    #[ORM\Column(type: 'json', nullable: true)]
+    private ?array $extra = null;
+
+    /**
      * Righe/opzioni del viaggio compilate nel configuratore offerta:
      * [{id, icona, argomento, testo, evidenza}, …]. L'impaginatore le eredita.
      *
@@ -436,6 +444,20 @@ class Offerta
     public function setTrasferimenti(?array $trasferimenti): static
     {
         $this->trasferimenti = $trasferimenti ?: null;
+
+        return $this;
+    }
+
+    /** @return list<array<string, string>> */
+    public function getExtra(): array
+    {
+        return $this->extra ?? [];
+    }
+
+    /** @param list<array<string, string>>|null $extra */
+    public function setExtra(?array $extra): static
+    {
+        $this->extra = $extra ?: null;
 
         return $this;
     }

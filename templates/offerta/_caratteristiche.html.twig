@@ -147,6 +147,23 @@
     ],
 }) }}
 
+{# ---------- EXTRA ---------- #}
+{{ include('_partials/_segmenti_editor.html.twig', {
+    name: 'extra',
+    label: 'Extra e servizi',
+    dati: offerta.extra,
+    add_label: 'Extra',
+    hint: 'Scegli un tipo dai suggerimenti o scrivine uno tuo, poi dettaglia (facoltativo).',
+    campi: [
+        {key: 'tipo', label: 'Tipo', type: 'datalist', options: extra_scelte},
+        {key: 'descrizione', label: 'Descrizione', type: 'text'},
+        {key: 'da', label: 'Da', type: 'text'},
+        {key: 'a', label: 'A', type: 'text'},
+        {key: 'data', label: 'Data e ora', type: 'datetime'},
+        {key: 'compagnia', label: 'Compagnia / fornitore', type: 'text'},
+    ],
+}) }}
+
 {# ---------- ASSICURAZIONI ---------- #}
 {{ include('_partials/_chip_picker.html.twig', {
     name: 'assicurazioni',

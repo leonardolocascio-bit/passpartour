@@ -221,6 +221,30 @@ class OffertaTest extends WebTestCase
         self::assertArrayNotHasKey('stivaNum', $bg); // ignorato perché stiva non attiva
     }
 
+    public function testCaratteristicheExtra(): void
+    {
+        $offerta = $this->em->getRepository(Offerta::class)->findOneBy([]);
+        $id = $offerta->getId();
+
+        $crawler = $this->client->request('GET', '/offerte/' . $id . '/modifica');
+        $form = $crawler->selectButton('Salva')->form();
+        $form['extra'] = json_encode([
+            ['tipo' => 'Wi-Fi incluso', 'descrizione' => 'In tutte le aree', 'da' => '', 'a' => '', 'data' => '', 'compagnia' => ''],
+            ['tipo' => 'Massaggio ayurvedico', 'descrizione' => 'Extra personalizzato', 'compagnia' => 'SPA resort'],
+            ['tipo' => '', 'descrizione' => ''], // vuoto: scartato
+        ]);
+        $this->client->submit($form);
+        self::assertResponseRedirects();
+
+        $this->em->clear();
+        $offerta = $this->em->getRepository(Offerta::class)->find($id);
+        $extra = $offerta->getExtra();
+        self::assertCount(2, $extra);
+        self::assertSame('Wi-Fi incluso', $extra[0]['tipo']);
+        self::assertSame('Massaggio ayurvedico', $extra[1]['tipo']); // voce custom conservata
+        self::assertSame('SPA resort', $extra[1]['compagnia']);
+    }
+
     public function testCaptionIncludeLeVarianti(): void
     {
         $offerta = $this->em->getRepository(Offerta::class)->findOneBy([]);

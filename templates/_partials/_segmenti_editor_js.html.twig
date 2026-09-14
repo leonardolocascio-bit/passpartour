@@ -27,6 +27,19 @@
                     el.appendChild(o);
                 });
                 el.value = item[c.key] || '';
+            } else if (c.type === 'datalist') {
+                el = document.createElement('input');
+                el.type = 'text'; el.value = item[c.key] || '';
+                var dlId = 'dl_' + Math.random().toString(36).slice(2, 9);
+                var dl = document.createElement('datalist');
+                dl.id = dlId;
+                (c.options || []).forEach(function (opt) {
+                    var o = document.createElement('option');
+                    o.value = opt;
+                    dl.appendChild(o);
+                });
+                el.setAttribute('list', dlId);
+                el.__datalist = dl; // agganciato alla cella in render()
             } else if (c.type === 'textarea') {
                 el = document.createElement('textarea');
                 el.rows = 2; el.value = item[c.key] || '';
@@ -55,7 +68,9 @@
                     var lab = document.createElement('label');
                     lab.textContent = c.label; lab.style.fontSize = '12px';
                     cell.appendChild(lab);
-                    cell.appendChild(campoInput(c, item));
+                    var input = campoInput(c, item);
+                    cell.appendChild(input);
+                    if (input.__datalist) cell.appendChild(input.__datalist);
                     grid.appendChild(cell);
                 });
 

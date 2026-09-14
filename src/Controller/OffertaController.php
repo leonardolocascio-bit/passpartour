@@ -7,6 +7,7 @@ use App\Entity\Offerta;
 use App\Enum\StelleAlloggio;
 use App\Enum\TemaViaggio;
 use App\Enum\TipoAssicurazione;
+use App\Enum\TipoExtra;
 use App\Enum\TipologiaAlloggio;
 use App\Enum\TipologiaViaggio;
 use App\Enum\TrattamentoHotel;
@@ -86,6 +87,7 @@ class OffertaController extends AbstractController
             $offerta->setTreni($this->decodeSegmenti($request->request->get('treni'), ['da', 'a', 'data', 'compagnia', 'descrizione']));
             $offerta->setNavi($this->decodeSegmenti($request->request->get('navi'), ['da', 'a', 'data', 'compagnia', 'descrizione']));
             $offerta->setTrasferimenti($this->decodeSegmenti($request->request->get('trasferimenti'), ['descrizione', 'da', 'a', 'data', 'compagnia']));
+            $offerta->setExtra($this->decodeSegmenti($request->request->get('extra'), ['tipo', 'descrizione', 'da', 'a', 'data', 'compagnia']));
             $offerta->setBagaglio($this->normalizzaBagaglio($request->request->all('bagaglio')));
 
             if ($isNuovo) {
@@ -104,6 +106,7 @@ class OffertaController extends AbstractController
             'tipologie_scelte' => TipologiaViaggio::scelte(),
             'temi_scelte' => TemaViaggio::scelte(),
             'assicurazioni_scelte' => TipoAssicurazione::scelte(),
+            'extra_scelte' => TipoExtra::labels(),
             'tipologia_alloggio_scelte' => TipologiaAlloggio::scelte(),
             'stelle_scelte' => StelleAlloggio::scelte(),
             'trattamento_scelte' => array_combine(
