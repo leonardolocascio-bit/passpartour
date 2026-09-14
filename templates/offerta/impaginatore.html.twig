@@ -65,6 +65,15 @@
         </div></div>
 
         <div class="card"><div class="card-pad">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+                <strong>Varianti</strong>
+                <a class="btn" href="{{ path('app_offerta_modifica', {id: offerta.id}) }}">✎ Modifica nel configuratore</a>
+            </div>
+            <div id="varianti-box" style="display:grid;gap:6px"></div>
+            <p class="muted" style="font-size:11px;margin:8px 0 0">Le varianti di durata con prezzo sostituiscono il prezzo unico sulla slide; partenze e validità compaiono come righe; le varianti di riga si aggiungono alla riga.</p>
+        </div></div>
+
+        <div class="card"><div class="card-pad">
             <strong>Sfondo della slide</strong>
             <div id="sfondi-correnti" style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap"></div>
             {% if unsplash_configurato %}
@@ -142,6 +151,7 @@
         fotografo: {{ offerta.fotografoEffettivo|json_encode|raw }},
         fotografoUrl: {{ offerta.fotografoUrlEffettivo|json_encode|raw }},
         righe: {{ offerta.righe|json_encode|raw }},
+        varianti: {{ offerta.varianti|json_encode|raw }},
     };
     const URLS = {
         salva: {{ path('app_offerta_impaginatore_salva', {id: offerta.id})|json_encode|raw }},
@@ -156,10 +166,12 @@
 
     /* ---------- Stato ---------- */
     const tuttiGliId = () => OFFERTA.righe.map(r => r.id);
+    const tuttiGliIdVar = () => OFFERTA.varianti.map(v => v.id);
     const nuovaSlide = () => ({
         sfondo: OFFERTA.immagine ? { file: OFFERTA.immagine, fotografo: OFFERTA.fotografo || '', fotografoUrl: OFFERTA.fotografoUrl || '' } : null,
         mostra: { titolo: true, claim: true, durata: true, prezzo: true, logo: true },
         righe: tuttiGliId(),
+        varianti: tuttiGliIdVar(),
     });
 
     let stato = {{ offerta.impaginato ? offerta.impaginato|json_encode|raw : 'null' }};
@@ -168,15 +180,43 @@
     }
     stato.caption = stato.caption || { tono: 'professionale', testo: '' };
     if (!Array.isArray(stato.caption.righe)) stato.caption.righe = tuttiGliId();
-    // le slide referenziano le righe dell'offerta per id: scarta id orfani
-    stato.slides.forEach(s => s.righe = (s.righe || []).filter(id => typeof id === 'string' && tuttiGliId().includes(id)));
+    if (!Array.isArray(stato.caption.varianti)) stato.caption.varianti = tuttiGliIdVar();
+    // le slide referenziano righe e varianti dell'offerta per id: scarta id orfani
+    stato.slides.forEach(s => {
+        s.righe = (s.righe || []).filter(id => typeof id === 'string' && tuttiGliId().includes(id));
+        s.varianti = Array.isArray(s.varianti) ? s.varianti.filter(id => tuttiGliIdVar().includes(id)) : tuttiGliIdVar();
+    });
     stato.caption.righe = stato.caption.righe.filter(id => tuttiGliId().includes(id));
+    stato.caption.varianti = stato.caption.varianti.filter(id => tuttiGliIdVar().includes(id));
     let corrente = 0;
     let sporco = false;
 
     /** Righe dell'offerta selezionate (in ordine di configuratore) dato un elenco di id. */
     function righeDaId(ids) {
         return OFFERTA.righe.filter(r => (ids || []).includes(r.id));
+    }
+
+    function variantiDaId(ids) {
+        return OFFERTA.varianti.filter(v => (ids || []).includes(v.id));
+    }
+
+    /** Etichetta umana del campo di una variante ('durata' | 'validita' | 'partenza' | id riga). */
+    function etichettaCampo(v) {
+        if (v.campo === 'durata') return 'Durata';
+        if (v.campo === 'validita') return 'Validità';
+        if (v.campo === 'partenza') return 'Partenza da';
+        const riga = OFFERTA.righe.find(r => r.id === v.campo);
+        return riga ? (riga.argomento || riga.testo || 'Riga') : 'Opzioni';
+    }
+
+    function prezzoLabel(p) {
+        p = (p || '').trim();
+        return p ? (p.includes('€') ? p : '€ ' + p) : '';
+    }
+
+    function variantePiuPrezzo(v) {
+        const pr = prezzoLabel(v.prezzo);
+        return v.valore + (pr ? ' ' + pr : '');
     }
 
     /* ---------- Riferimenti DOM ---------- */
@@ -256,9 +296,28 @@
 
         // Blocco inferiore: righe → titolo/claim → prezzo (dal basso verso l'alto)
         let yBasso = H - 64;
+        const vSel = variantiDaId(s.varianti);
 
-        // Prezzo in evidenza
-        if (s.mostra.prezzo && OFFERTA.prezzoDa) {
+        // Prezzo in evidenza: pillole per le varianti di durata, altrimenti prezzo unico
+        const vDurata = vSel.filter(v => v.campo === 'durata' && (v.valore || '').trim());
+        if (s.mostra.prezzo && vDurata.length) {
+            for (let i = vDurata.length - 1; i >= 0; i--) {
+                const val = vDurata[i].valore.toUpperCase();
+                const pr = prezzoLabel(vDurata[i].prezzo);
+                c.font = '800 46px ' + FONT; const vw = c.measureText(val).width;
+                c.font = '900 76px ' + FONT; const pw = pr ? c.measureText(pr).width : 0;
+                const bh = 108, bx = PAD - 18, tot = 36 + vw + (pr ? 30 + pw : 0) + 36;
+                const by = yBasso - bh + 10;
+                c.fillStyle = '#ea5b24'; c.beginPath(); c.roundRect(bx, by, tot, bh, 20); c.fill();
+                c.textBaseline = 'middle';
+                c.fillStyle = 'rgba(255,255,255,.9)'; c.font = '800 46px ' + FONT;
+                c.fillText(val, bx + 36, by + bh / 2 + 2);
+                if (pr) { c.fillStyle = '#fff'; c.font = '900 76px ' + FONT; c.fillText(pr, bx + 36 + vw + 30, by + bh / 2 + 4); }
+                c.textBaseline = 'alphabetic';
+                yBasso = by - 20;
+            }
+            yBasso -= 20;
+        } else if (s.mostra.prezzo && OFFERTA.prezzoDa) {
             const pv = '€ ' + OFFERTA.prezzoDa;
             c.font = '900 120px ' + FONT;
             const pw = c.measureText(pv).width;
@@ -273,8 +332,16 @@
             yBasso = by - 40;
         }
 
-        // Righe del viaggio selezionate per questa slide
-        const righe = righeDaId(s.righe).filter(r => (r.argomento || r.testo));
+        // Righe del viaggio selezionate per questa slide (+ varianti di riga come suffisso)
+        const righe = righeDaId(s.righe).filter(r => (r.argomento || r.testo)).map(r => {
+            const extra = vSel.filter(v => v.campo === r.id).map(variantePiuPrezzo).join(' · ');
+            return extra ? { ...r, testo: (r.testo ? r.testo + ' · ' : '') + extra } : r;
+        });
+        // partenze e validità come righe virtuali
+        const vPartenza = vSel.filter(v => v.campo === 'partenza');
+        if (vPartenza.length) righe.push({ icona: '🛫', argomento: 'PARTENZE DA', testo: vPartenza.map(variantePiuPrezzo).join(' · ') });
+        const vValidita = vSel.filter(v => v.campo === 'validita');
+        if (vValidita.length) righe.push({ icona: '📅', argomento: 'VALIDITÀ', testo: vValidita.map(variantePiuPrezzo).join(' · ') });
         if (righe.length) {
             const hRiga = 74;
             let y = yBasso - righe.length * hRiga + 48;
@@ -452,6 +519,52 @@
         });
     }
 
+    /* ---------- Selezione varianti (ereditate dal configuratore offerta) ---------- */
+    function renderVarianti() {
+        const box = $('varianti-box'); box.innerHTML = '';
+        if (!OFFERTA.varianti.length) {
+            box.innerHTML = '<p class="muted" style="font-size:12px;margin:0">Nessuna variante sull\'offerta: compilale nel configuratore.</p>';
+            return;
+        }
+
+        const testata = document.createElement('div');
+        testata.className = 'muted';
+        testata.style.cssText = 'display:grid;grid-template-columns:1fr 52px 52px;gap:6px;font-size:10px;text-transform:uppercase;letter-spacing:.5px';
+        testata.innerHTML = '<span></span><span style="text-align:center">📱 Slide</span><span style="text-align:center">💬 Caption</span>';
+        box.appendChild(testata);
+
+        const s = slide();
+        OFFERTA.varianti.forEach(v => {
+            const div = document.createElement('div');
+            div.style.cssText = 'display:grid;grid-template-columns:1fr 52px 52px;gap:6px;align-items:center;font-size:13px';
+
+            const etichetta = document.createElement('div');
+            etichetta.style.cssText = 'display:flex;gap:6px;align-items:baseline;min-width:0';
+            etichetta.innerHTML = '<strong style="color:var(--brand);font-size:12px">' + etichettaCampo(v).toUpperCase() + '</strong>'
+                + '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + (v.valore || '') + '</span>'
+                + (prezzoLabel(v.prezzo) ? '<span style="color:#ea5b24;font-weight:700">' + prezzoLabel(v.prezzo) + '</span>' : '');
+
+            const cbSlide = document.createElement('input');
+            cbSlide.type = 'checkbox'; cbSlide.style.justifySelf = 'center';
+            cbSlide.checked = s.varianti.includes(v.id);
+            cbSlide.addEventListener('change', () => {
+                s.varianti = cbSlide.checked ? [...s.varianti, v.id] : s.varianti.filter(id => id !== v.id);
+                segnaSporco(); ridisegna();
+            });
+
+            const cbCaption = document.createElement('input');
+            cbCaption.type = 'checkbox'; cbCaption.style.justifySelf = 'center';
+            cbCaption.checked = stato.caption.varianti.includes(v.id);
+            cbCaption.addEventListener('change', () => {
+                stato.caption.varianti = cbCaption.checked ? [...stato.caption.varianti, v.id] : stato.caption.varianti.filter(id => id !== v.id);
+                segnaSporco();
+            });
+
+            div.append(etichetta, cbSlide, cbCaption);
+            box.appendChild(div);
+        });
+    }
+
     /* ---------- Sfondi ---------- */
     function renderSfondiCorrenti() {
         const box = $('sfondi-correnti'); box.innerHTML = '';
@@ -551,9 +664,12 @@
         const b = $('btn-genera-caption'); b.disabled = true; b.textContent = '… genero';
         try {
             const righe = righeDaId(stato.caption.righe).filter(r => r.argomento || r.testo);
+            const varianti = variantiDaId(stato.caption.varianti)
+                .filter(v => (v.valore || '').trim())
+                .map(v => ({ campo: etichettaCampo(v), valore: v.valore, prezzo: v.prezzo || '' }));
             const r = await fetch(URLS.caption, {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ tono: selTono.value, righe, claim: $('inp-claim').value }),
+                body: JSON.stringify({ tono: selTono.value, righe, varianti, claim: $('inp-claim').value }),
             });
             const data = await r.json();
             if (data.caption) { txtCaption.value = data.caption; stato.caption.testo = data.caption; segnaSporco(); aggiornaContatore(); }
@@ -612,6 +728,7 @@
         const m = slide().mostra;
         Object.entries(chk).forEach(([k, el]) => el.checked = !!m[k]);
         renderRighe();
+        renderVarianti();
         renderSfondiCorrenti();
         ridisegna();
     }

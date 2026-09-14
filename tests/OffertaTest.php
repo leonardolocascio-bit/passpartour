@@ -87,16 +87,53 @@ class OffertaTest extends WebTestCase
             ['icona' => '➕', 'argomento' => '', 'testo' => ''], // riga vuota: scartata
             ['icona' => '🍽️', 'argomento' => 'TRATTAMENTO', 'testo' => 'All inclusive'], // senza id: generato
         ]);
+        $form['varianti_json'] = json_encode([
+            ['id' => 'vdue', 'campo' => 'durata', 'valore' => '2 notti', 'prezzo' => '120'],
+            ['campo' => 'durata', 'valore' => '4 notti', 'prezzo' => '250'], // senza id: generato
+            ['campo' => 'partenza', 'valore' => 'Milano', 'prezzo' => '+50'],
+            ['campo' => 'rabc12', 'valore' => 'Notturna', 'prezzo' => ''], // applicata a una riga
+            ['campo' => 'rNONesiste', 'valore' => 'Orfana'], // riga inesistente: scartata
+            ['campo' => 'durata', 'valore' => ''], // valore vuoto: scartata
+        ]);
         $this->client->submit($form);
         self::assertResponseRedirects();
 
         $this->em->clear();
-        $righe = $this->em->getRepository(Offerta::class)->find($id)->getRighe();
+        $offerta = $this->em->getRepository(Offerta::class)->find($id);
+        $righe = $offerta->getRighe();
         self::assertCount(2, $righe);
         self::assertSame('rabc12', $righe[0]['id']);
         self::assertTrue($righe[0]['evidenza']);
         self::assertSame('TRATTAMENTO', $righe[1]['argomento']);
         self::assertNotEmpty($righe[1]['id']);
+
+        $varianti = $offerta->getVarianti();
+        self::assertCount(4, $varianti);
+        self::assertSame(['vdue', 'durata', '2 notti', '120'], [$varianti[0]['id'], $varianti[0]['campo'], $varianti[0]['valore'], $varianti[0]['prezzo']]);
+        self::assertNotEmpty($varianti[1]['id']);
+        self::assertSame('+50', $varianti[2]['prezzo']);
+        self::assertSame('rabc12', $varianti[3]['campo']);
+    }
+
+    public function testCaptionIncludeLeVarianti(): void
+    {
+        $offerta = $this->em->getRepository(Offerta::class)->findOneBy([]);
+
+        $this->client->request('POST', '/offerte/' . $offerta->getId() . '/impaginatore/caption', server: [
+            'CONTENT_TYPE' => 'application/json',
+        ], content: json_encode([
+            'tono' => 'professionale',
+            'righe' => [],
+            'varianti' => [
+                ['campo' => 'Durata', 'valore' => '2 notti', 'prezzo' => '120'],
+                ['campo' => 'Durata', 'valore' => '4 notti', 'prezzo' => '250'],
+                ['campo' => 'Partenza da', 'valore' => 'Milano', 'prezzo' => '+50'],
+            ],
+        ]));
+        self::assertResponseIsSuccessful();
+        $caption = json_decode($this->client->getResponse()->getContent(), true)['caption'];
+        self::assertStringContainsString('2 notti € 120 · 4 notti € 250', $caption);
+        self::assertStringContainsString('Partenza da: Milano € +50', $caption);
     }
 
     public function testMigrazioneRigheLegacyVersoOfferta(): void

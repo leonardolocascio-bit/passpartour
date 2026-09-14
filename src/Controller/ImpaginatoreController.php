@@ -133,8 +133,19 @@ class ImpaginatoreController extends AbstractController
             }
         }
 
+        $varianti = [];
+        foreach ((array) ($dati['varianti'] ?? []) as $v) {
+            if (\is_array($v)) {
+                $varianti[] = [
+                    'campo' => (string) ($v['campo'] ?? ''),
+                    'valore' => (string) ($v['valore'] ?? ''),
+                    'prezzo' => (string) ($v['prezzo'] ?? ''),
+                ];
+            }
+        }
+
         return $this->json([
-            'caption' => $generator->genera($offerta, (string) ($dati['tono'] ?? 'professionale'), $righe),
+            'caption' => $generator->genera($offerta, (string) ($dati['tono'] ?? 'professionale'), $righe, $varianti),
             'ai' => $generator->isConfigured(),
         ]);
     }

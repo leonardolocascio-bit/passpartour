@@ -36,6 +36,16 @@ class Offerta
     private ?array $righe = null;
 
     /**
+     * Varianti dell'offerta che possono incidere sul prezzo:
+     * [{id, campo, valore, prezzo}, …] dove campo è 'durata' | 'validita' |
+     * 'partenza' oppure l'id di una riga (es. "2 notti" € 120, "4 notti" € 250).
+     *
+     * @var list<array<string, mixed>>|null
+     */
+    #[ORM\Column(type: 'json', nullable: true)]
+    private ?array $varianti = null;
+
+    /**
      * Stato dell'impaginatore social/stampa: slide del carosello (sfondo,
      * id delle righe selezionate, elementi visibili), caption e tono di voce.
      *
@@ -136,6 +146,20 @@ class Offerta
     public function setRighe(?array $righe): static
     {
         $this->righe = $righe ?: null;
+
+        return $this;
+    }
+
+    /** @return list<array<string, mixed>> */
+    public function getVarianti(): array
+    {
+        return $this->varianti ?? [];
+    }
+
+    /** @param list<array<string, mixed>>|null $varianti */
+    public function setVarianti(?array $varianti): static
+    {
+        $this->varianti = $varianti ?: null;
 
         return $this;
     }

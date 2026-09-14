@@ -39,24 +39,55 @@ class CaptionGenerator
     }
 
     /**
-     * @param list<array{icona?: string, argomento?: string, testo?: string}> $righe righe della slide (icona/argomento/testo)
+     * @param list<array{icona?: string, argomento?: string, testo?: string}> $righe    righe selezionate (icona/argomento/testo)
+     * @param list<array{campo?: string, valore?: string, prezzo?: string}>   $varianti varianti selezionate (campo già in etichetta umana)
      */
-    public function genera(Offerta $offerta, string $tono, array $righe = []): string
+    public function genera(Offerta $offerta, string $tono, array $righe = [], array $varianti = []): string
     {
         $tono = \array_key_exists($tono, self::TONI) ? $tono : 'professionale';
 
         if ($this->isConfigured()) {
-            $caption = $this->generaConClaude($offerta, $tono, $righe);
+            $caption = $this->generaConClaude($offerta, $tono, $righe, $varianti);
             if ($caption !== null) {
                 return $caption;
             }
         }
 
-        return $this->generaDaTemplate($offerta, $tono, $righe);
+        return $this->generaDaTemplate($offerta, $tono, $righe, $varianti);
     }
 
-    /** @param list<array{icona?: string, argomento?: string, testo?: string}> $righe */
-    private function generaConClaude(Offerta $offerta, string $tono, array $righe): ?string
+    /**
+     * Raggruppa le varianti per campo in etichette leggibili:
+     * ['Durata' => '2 notti € 120 · 4 notti € 250', …].
+     *
+     * @param list<array{campo?: string, valore?: string, prezzo?: string}> $varianti
+     *
+     * @return array<string, string>
+     */
+    private function gruppiVarianti(array $varianti): array
+    {
+        $gruppi = [];
+        foreach ($varianti as $v) {
+            $valore = trim((string) ($v['valore'] ?? ''));
+            if ($valore === '') {
+                continue;
+            }
+            $prezzo = trim((string) ($v['prezzo'] ?? ''));
+            if ($prezzo !== '' && !str_contains($prezzo, '€')) {
+                $prezzo = '€ ' . $prezzo;
+            }
+            $campo = trim((string) ($v['campo'] ?? '')) ?: 'Opzioni';
+            $gruppi[$campo][] = $valore . ($prezzo !== '' ? ' ' . $prezzo : '');
+        }
+
+        return array_map(fn (array $voci) => implode(' · ', $voci), $gruppi);
+    }
+
+    /**
+     * @param list<array{icona?: string, argomento?: string, testo?: string}> $righe
+     * @param list<array{campo?: string, valore?: string, prezzo?: string}>   $varianti
+     */
+    private function generaConClaude(Offerta $offerta, string $tono, array $righe, array $varianti): ?string
     {
         $dettagli = [];
         foreach ($righe as $r) {
@@ -77,6 +108,11 @@ class CaptionGenerator
             . ($offerta->getValidoAl() ? 'Offerta valida fino al: ' . $offerta->getValidoAl()->format('d/m/Y') . "\n" : '')
             . ($offerta->getDescrizione() ? 'Descrizione: ' . mb_substr($offerta->getDescrizione(), 0, 600) . "\n" : '')
             . ($dettagli ? 'Dettagli inclusi: ' . implode('; ', $dettagli) . "\n" : '')
+            . array_reduce(
+                array_keys($gruppi = $this->gruppiVarianti($varianti)),
+                fn (string $acc, string $campo) => $acc . 'Varianti ' . $campo . ': ' . $gruppi[$campo] . "\n",
+                ''
+            )
             . "Regole: massimo 2200 caratteri, le prime 125 battute devono catturare l'attenzione (è la parte visibile prima del \"altro\"), "
             . "vai a capo per separare i blocchi, chiudi con una call to action e 8-12 hashtag pertinenti in italiano (viaggi, destinazione). "
             . 'Rispondi SOLO con la caption, senza premesse né commenti.';
@@ -104,8 +140,11 @@ class CaptionGenerator
         }
     }
 
-    /** @param list<array{icona?: string, argomento?: string, testo?: string}> $righe */
-    private function generaDaTemplate(Offerta $offerta, string $tono, array $righe): string
+    /**
+     * @param list<array{icona?: string, argomento?: string, testo?: string}> $righe
+     * @param list<array{campo?: string, valore?: string, prezzo?: string}>   $varianti
+     */
+    private function generaDaTemplate(Offerta $offerta, string $tono, array $righe, array $varianti = []): string
     {
         $titolo = $offerta->getTitolo();
         $durata = $offerta->getDurata();
@@ -140,7 +179,11 @@ class CaptionGenerator
             $icona = trim((string) ($r['icona'] ?? '')) ?: '▪️';
             $dettagli[] = $icona . ' ' . trim(($arg !== '' ? ucfirst(mb_strtolower($arg)) . ': ' : '') . $txt);
         }
-        if ($prezzo) {
+        $iconaCampo = ['Durata' => '🗓️', 'Validità' => '📅', 'Partenza da' => '🛫'];
+        foreach ($this->gruppiVarianti($varianti) as $campo => $voci) {
+            $dettagli[] = ($iconaCampo[$campo] ?? '▪️') . ' ' . $campo . ': ' . $voci;
+        }
+        if ($prezzo && !\array_key_exists('Durata', $this->gruppiVarianti($varianti))) {
             $dettagli[] = '💶 ' . ucfirst($prezzo) . ' a persona';
         }
         if ($dettagli) {

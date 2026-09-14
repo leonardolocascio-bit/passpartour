@@ -47,6 +47,7 @@ class OffertaController extends AbstractController
 
         if ($form->isSubmitted() && $form->isValid()) {
             $offerta->setRighe($this->decodificaRighe((string) $request->request->get('righe_json')));
+            $offerta->setVarianti($this->decodificaVarianti((string) $request->request->get('varianti_json'), $offerta->getRighe()));
 
             /** @var UploadedFile|null $file */
             $file = $form->get('immagineFile')->getData();
@@ -115,6 +116,43 @@ class OffertaController extends AbstractController
         }
 
         return $righe;
+    }
+
+    /**
+     * Normalizza le varianti serializzate dal configuratore. `campo` è
+     * 'durata' | 'validita' | 'partenza' oppure l'id di una riga esistente.
+     *
+     * @param list<array<string, mixed>> $righe
+     *
+     * @return list<array{id: string, campo: string, valore: string, prezzo: string}>
+     */
+    private function decodificaVarianti(string $json, array $righe): array
+    {
+        $dati = json_decode($json ?: '[]', true);
+        if (!\is_array($dati)) {
+            return [];
+        }
+
+        $idRighe = array_column($righe, 'id');
+        $varianti = [];
+        foreach ($dati as $v) {
+            if (!\is_array($v)) {
+                continue;
+            }
+            $campo = (string) ($v['campo'] ?? '');
+            $valore = trim((string) ($v['valore'] ?? ''));
+            if ($valore === '' || (!\in_array($campo, ['durata', 'validita', 'partenza'], true) && !\in_array($campo, $idRighe, true))) {
+                continue;
+            }
+            $varianti[] = [
+                'id' => preg_replace('/[^a-z0-9]/', '', (string) ($v['id'] ?? '')) ?: 'v' . bin2hex(random_bytes(4)),
+                'campo' => $campo,
+                'valore' => mb_substr($valore, 0, 120),
+                'prezzo' => mb_substr(trim((string) ($v['prezzo'] ?? '')), 0, 40),
+            ];
+        }
+
+        return $varianti;
     }
 
     #[Route('/offerte/{id}/elimina', name: 'app_offerta_elimina', requirements: ['id' => '\d+'], methods: ['POST'])]

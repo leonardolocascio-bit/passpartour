@@ -11,6 +11,14 @@
     <input type="hidden" name="righe_json" id="righe_json">
 </div>
 
+<div style="border-top:1px solid var(--line);padding-top:14px">
+    <label>Varianti (con effetto sul prezzo)</label>
+    <p class="muted" style="font-size:12px;margin:2px 0 8px">Es. Durata: «2 notti» € 120, «4 notti» € 250. Applicabili a durata, validità, partenza da o a una riga. Prezzo facoltativo (anche «+50»).</p>
+    <div id="varianti-box" style="display:grid;gap:8px"></div>
+    <div style="margin-top:8px"><button type="button" class="btn" id="variante-aggiungi">+ Variante</button></div>
+    <input type="hidden" name="varianti_json" id="varianti_json">
+</div>
+
 <div id="icone-popover" style="display:none;position:absolute;z-index:50;background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:0 12px 32px rgba(0,0,0,.18);padding:10px;width:320px;max-height:300px;overflow:auto"></div>
 
 <datalist id="lista-argomenti">
@@ -45,7 +53,9 @@
     };
 
     const righe = {{ offerta.righe|json_encode|raw }} || [];
+    const varianti = {{ offerta.varianti|json_encode|raw }} || [];
     const nuovoId = () => 'r' + Math.random().toString(36).slice(2, 10);
+    const nuovoIdVar = () => 'v' + Math.random().toString(36).slice(2, 10);
 
     const box = document.getElementById('righe-box');
     const popover = document.getElementById('icone-popover');
@@ -95,7 +105,72 @@
             box.appendChild(div);
         });
         if (!righe.length) box.innerHTML = '<p class="muted" style="font-size:12px;margin:0">Nessuna riga: usa i preset qui sopra o «+ Riga».</p>';
+        renderVarianti(); // le opzioni "campo" delle varianti includono le righe correnti
     }
+
+    /* ---------- Varianti ---------- */
+    const boxVar = document.getElementById('varianti-box');
+
+    function opzioniCampo() {
+        const fisse = [
+            { valore: 'durata', etichetta: 'Durata' },
+            { valore: 'validita', etichetta: 'Validità' },
+            { valore: 'partenza', etichetta: 'Partenza da' },
+        ];
+        const daRighe = righe.map(r => ({
+            valore: r.id,
+            etichetta: 'Riga: ' + (r.icona ? r.icona + ' ' : '') + (r.argomento || r.testo || 'senza nome'),
+        }));
+        return fisse.concat(daRighe);
+    }
+
+    function renderVarianti() {
+        boxVar.innerHTML = '';
+        varianti.forEach((v, i) => {
+            const div = document.createElement('div');
+            div.style.cssText = 'display:grid;grid-template-columns:160px 1fr 110px auto;gap:6px;align-items:center';
+
+            const sel = document.createElement('select');
+            sel.style.fontSize = '12px';
+            opzioniCampo().forEach(o => {
+                const opt = document.createElement('option');
+                opt.value = o.valore; opt.textContent = o.etichetta;
+                sel.appendChild(opt);
+            });
+            if (![...sel.options].some(o => o.value === v.campo)) v.campo = 'durata'; // riga eliminata
+            sel.value = v.campo;
+            sel.addEventListener('change', () => v.campo = sel.value);
+
+            const iValore = document.createElement('input');
+            iValore.type = 'text'; iValore.placeholder = 'Valore (es. 2 notti / Milano / agosto)'; iValore.value = v.valore || '';
+            iValore.style.fontSize = '12px';
+            iValore.addEventListener('input', () => v.valore = iValore.value);
+
+            const iPrezzo = document.createElement('input');
+            iPrezzo.type = 'text'; iPrezzo.placeholder = '€ (es. 120)'; iPrezzo.value = v.prezzo || '';
+            iPrezzo.style.fontSize = '12px'; iPrezzo.setAttribute('inputmode', 'decimal');
+            iPrezzo.addEventListener('input', () => v.prezzo = iPrezzo.value);
+
+            const strumenti = document.createElement('div');
+            strumenti.style.cssText = 'display:flex;gap:3px;align-items:center';
+            strumenti.append(
+                mkBtn('↑', 'Sposta su', () => { if (i > 0) { [varianti[i - 1], varianti[i]] = [varianti[i], varianti[i - 1]]; renderVarianti(); } }),
+                mkBtn('↓', 'Sposta giù', () => { if (i < varianti.length - 1) { [varianti[i + 1], varianti[i]] = [varianti[i], varianti[i + 1]]; renderVarianti(); } }),
+                mkBtn('✕', 'Elimina variante', () => { varianti.splice(i, 1); renderVarianti(); }, 'var(--danger)'),
+            );
+
+            div.append(sel, iValore, iPrezzo, strumenti);
+            boxVar.appendChild(div);
+        });
+        if (!varianti.length) boxVar.innerHTML = '<p class="muted" style="font-size:12px;margin:0">Nessuna variante.</p>';
+    }
+
+    document.getElementById('variante-aggiungi').addEventListener('click', () => {
+        varianti.push({ id: nuovoIdVar(), campo: 'durata', valore: '', prezzo: '' });
+        renderVarianti();
+        const inputs = boxVar.querySelectorAll('input');
+        if (inputs.length) inputs[inputs.length - 2].focus();
+    });
 
     const chips = document.getElementById('preset-chips');
     PRESET.forEach(p => {
@@ -147,6 +222,7 @@
     // serializza al submit del form offerta
     document.getElementById('form-offerta').addEventListener('submit', () => {
         document.getElementById('righe_json').value = JSON.stringify(righe);
+        document.getElementById('varianti_json').value = JSON.stringify(varianti);
     });
 
     render();

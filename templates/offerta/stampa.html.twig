@@ -77,15 +77,32 @@
         </div>
 
         {% set righe = offerta.righe %}
-        {% if righe|length %}
+        {% set vPartenza = offerta.varianti|filter(v => v.campo == 'partenza') %}
+        {% set vValidita = offerta.varianti|filter(v => v.campo == 'validita') %}
+        {% if righe|length or vPartenza|length or vValidita|length %}
             <div class="righe">
                 {% for r in righe %}
                     <div class="riga{{ r.evidenza|default(false) ? ' evidenza' }}">
                         <span>{{ r.icona|default('▪️') }}</span>
                         {% if r.argomento|default('') %}<span class="argomento">{{ r.argomento }}</span>{% endif %}
-                        <span>{{ r.testo|default('') }}</span>
+                        <span>
+                            {{ r.testo|default('') }}
+                            {%- for v in offerta.varianti|filter(v => v.campo == r.id) %}{{ loop.first and r.testo|default('') ? ' ·' }} {{ v.valore }}{% if v.prezzo %} <strong>{{ '€' in v.prezzo ? v.prezzo : '€ ' ~ v.prezzo }}</strong>{% endif %}{{ not loop.last ? ' ·' }}{% endfor %}
+                        </span>
                     </div>
                 {% endfor %}
+                {% if vPartenza|length %}
+                    <div class="riga">
+                        <span>🛫</span><span class="argomento">Partenze da</span>
+                        <span>{% for v in vPartenza %}{{ v.valore }}{% if v.prezzo %} <strong>{{ '€' in v.prezzo ? v.prezzo : '€ ' ~ v.prezzo }}</strong>{% endif %}{{ not loop.last ? ' · ' }}{% endfor %}</span>
+                    </div>
+                {% endif %}
+                {% if vValidita|length %}
+                    <div class="riga">
+                        <span>📅</span><span class="argomento">Validità</span>
+                        <span>{% for v in vValidita %}{{ v.valore }}{% if v.prezzo %} <strong>{{ '€' in v.prezzo ? v.prezzo : '€ ' ~ v.prezzo }}</strong>{% endif %}{{ not loop.last ? ' · ' }}{% endfor %}</span>
+                    </div>
+                {% endif %}
             </div>
         {% elseif offerta.descrizione %}
             <div class="descrizione">{{ offerta.descrizione }}</div>
@@ -96,7 +113,17 @@
                 {% if offerta.validoAl %}Offerta valida fino al {{ offerta.validoAl|date('d/m/Y') }}.<br>{% endif %}
                 Quota per persona, soggetta a disponibilità.
             </div>
-            {% if offerta.prezzoDa %}
+            {% set vDurata = offerta.varianti|filter(v => v.campo == 'durata') %}
+            {% if vDurata|length %}
+                <div style="display:grid;gap:2mm;justify-items:end">
+                    {% for v in vDurata %}
+                        <div class="prezzo" style="display:flex;align-items:baseline;gap:4mm;padding:2.5mm 6mm">
+                            <span style="font-weight:800;text-transform:uppercase;font-size:{{ carta == 'A3' ? '14pt' : '10pt' }}">{{ v.valore }}</span>
+                            {% if v.prezzo %}<span style="font-weight:900;font-size:{{ carta == 'A3' ? '26pt' : '18pt' }}">{{ '€' in v.prezzo ? v.prezzo : '€ ' ~ v.prezzo }}</span>{% endif %}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% elseif offerta.prezzoDa %}
                 <div class="prezzo">
                     <div class="da">a partire da</div>
                     <div class="valore">€ {{ offerta.prezzoDa|number_format(0, ',', '.') }}</div>
