@@ -4,16 +4,16 @@ namespace App\Controller;
 
 use App\Entity\Destinazione;
 use App\Form\DestinazioneType;
-use App\Service\UnsplashService;
+use App\Service\UnsplashClient;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\File\Exception\FileException;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
-use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\String\Slugger\SluggerInterface;
+use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 class DestinazioneController extends AbstractController
 {
@@ -25,28 +25,19 @@ class DestinazioneController extends AbstractController
         ]);
     }
 
-    #[Route('/destinazioni/unsplash/cerca', name: 'app_destinazione_unsplash', methods: ['GET'])]
-    public function cercaUnsplash(Request $request, UnsplashService $unsplash): JsonResponse
-    {
-        return new JsonResponse([
-            'configurato' => $unsplash->configurato(),
-            'risultati' => $unsplash->cerca((string) $request->query->get('q', '')),
-        ]);
-    }
-
     #[Route('/destinazioni/nuovo', name: 'app_destinazione_nuovo')]
-    public function nuovo(Request $request, EntityManagerInterface $em, SluggerInterface $slugger, UnsplashService $unsplash): Response
+    public function nuovo(Request $request, EntityManagerInterface $em, SluggerInterface $slugger, UnsplashClient $unsplash, HttpClientInterface $http): Response
     {
-        return $this->salva(new Destinazione(), $request, $em, $slugger, $unsplash, true);
+        return $this->salva(new Destinazione(), $request, $em, $slugger, $unsplash, $http, true);
     }
 
     #[Route('/destinazioni/{id}/modifica', name: 'app_destinazione_modifica', requirements: ['id' => '\d+'])]
-    public function modifica(Destinazione $destinazione, Request $request, EntityManagerInterface $em, SluggerInterface $slugger, UnsplashService $unsplash): Response
+    public function modifica(Destinazione $destinazione, Request $request, EntityManagerInterface $em, SluggerInterface $slugger, UnsplashClient $unsplash, HttpClientInterface $http): Response
     {
-        return $this->salva($destinazione, $request, $em, $slugger, $unsplash, false);
+        return $this->salva($destinazione, $request, $em, $slugger, $unsplash, $http, false);
     }
 
-    private function salva(Destinazione $destinazione, Request $request, EntityManagerInterface $em, SluggerInterface $slugger, UnsplashService $unsplash, bool $isNuovo): Response
+    private function salva(Destinazione $destinazione, Request $request, EntityManagerInterface $em, SluggerInterface $slugger, UnsplashClient $unsplash, HttpClientInterface $http, bool $isNuovo): Response
     {
         $form = $this->createForm(DestinazioneType::class, $destinazione);
         $form->handleRequest($request);
@@ -54,7 +45,8 @@ class DestinazioneController extends AbstractController
         if ($form->isSubmitted() && $form->isValid()) {
             /** @var UploadedFile|null $file */
             $file = $form->get('immagineFile')->getData();
-            $unsplashUrl = trim((string) $request->request->get('unsplash_full'));
+            // URL immagine già "tracciata" restituita da POST /api/unsplash/select
+            $unsplashUrl = trim((string) $request->request->get('unsplash_url'));
 
             if ($file !== null) {
                 // upload manuale ha la precedenza
@@ -64,7 +56,7 @@ class DestinazioneController extends AbstractController
                     $destinazione->setFotografo(null)->setFotografoUrl(null);
                 }
             } elseif ($unsplashUrl !== '') {
-                $img = $unsplash->scarica($unsplashUrl, $request->request->get('unsplash_download') ?: null);
+                $img = $this->scaricaUrl($http, $unsplashUrl);
                 if ($img !== null) {
                     $nomeFile = $this->salvaBytes($img['contenuto'], $img['ext'], $slugger, $destinazione->getNome());
                     if ($nomeFile !== null) {
@@ -87,7 +79,7 @@ class DestinazioneController extends AbstractController
         return $this->render('destinazione/form.html.twig', [
             'form' => $form,
             'destinazione' => $destinazione,
-            'unsplash_configurato' => $unsplash->configurato(),
+            'unsplash_configurato' => $unsplash->isConfigured(),
             'titolo' => $isNuovo ? 'Nuova destinazione' : 'Modifica ' . $destinazione->getNome(),
         ]);
     }
@@ -115,6 +107,28 @@ class DestinazioneController extends AbstractController
         }
 
         return $nomeFile;
+    }
+
+    /**
+     * Scarica un'immagine da URL (Unsplash) e ne ricava l'estensione.
+     * @return array{contenuto:string,ext:string}|null
+     */
+    private function scaricaUrl(HttpClientInterface $http, string $url): ?array
+    {
+        try {
+            $resp = $http->request('GET', $url, ['timeout' => 20]);
+            $contenuto = $resp->getContent();
+            $tipo = $resp->getHeaders(false)['content-type'][0] ?? 'image/jpeg';
+            $ext = match (true) {
+                str_contains($tipo, 'png') => 'png',
+                str_contains($tipo, 'webp') => 'webp',
+                default => 'jpg',
+            };
+
+            return ['contenuto' => $contenuto, 'ext' => $ext];
+        } catch (\Throwable) {
+            return null;
+        }
     }
 
     private function salvaBytes(string $bytes, string $ext, SluggerInterface $slugger, string $nome): ?string
