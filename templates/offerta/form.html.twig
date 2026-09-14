@@ -10,8 +10,13 @@
     <div class="tabs" role="tablist">
         <button type="button" class="tab-btn is-active" data-tab="generale">Generale</button>
         <button type="button" class="tab-btn" data-tab="caratteristiche">Caratteristiche</button>
+        <button type="button" class="tab-btn" data-tab="itinerario">Itinerario</button>
         <button type="button" class="tab-btn" data-tab="offerta">Offerta</button>
         <button type="button" class="tab-btn" data-tab="info">Info utili</button>
+        {% if offerta.id %}
+            <a class="tab-btn tab-link" href="{{ path('app_offerta_impaginatore', {id: offerta.id}) }}">Impaginatore ↗</a>
+            <a class="tab-btn tab-link" href="{{ path('app_offerta_anteprima', {id: offerta.id}) }}" target="_blank">Anteprima ↗</a>
+        {% endif %}
     </div>
 
     {# ---------- GENERALE ---------- #}
@@ -62,6 +67,25 @@
             trattamento_scelte: trattamento_scelte,
             assicurazioni_scelte: assicurazioni_scelte,
             extra_scelte: extra_scelte,
+        }) }}
+    </section>
+
+    {# ---------- ITINERARIO (tab a sé, per tutte le offerte) ---------- #}
+    <section class="tab-panel" data-panel="itinerario" hidden>
+        <p class="muted" style="font-size:13px;margin:0">Componi l'itinerario giorno per giorno. Eredita le caratteristiche del viaggio (voli, tappe, alloggio) e le organizza in tappe pubblicabili su web, social e stampa.</p>
+        {{ include('_partials/_segmenti_editor.html.twig', {
+            name: 'itinerario',
+            label: 'Tappe dell\'itinerario',
+            dati: offerta.itinerario,
+            add_label: 'Tappa',
+            hint: 'Giorno, porto/città, orari e descrizione.',
+            campi: [
+                {key: 'giorno', label: 'Giorno', type: 'text', placeholder: 'es. Giorno 1'},
+                {key: 'luogo', label: 'Porto / città', type: 'text'},
+                {key: 'arrivo', label: 'Arrivo', type: 'text', placeholder: 'es. 08:00'},
+                {key: 'partenza', label: 'Partenza', type: 'text', placeholder: 'es. 18:00'},
+                {key: 'descrizione', label: 'Descrizione', type: 'textarea'},
+            ],
         }) }}
     </section>
 
@@ -224,21 +248,6 @@
         });
     });
 
-    // itinerario: visibile solo se tra le tipologie c'è crociera o tour
-    var pickerTip = document.getElementById('chip_tipologie');
-    var sezItin = document.getElementById('sez-itinerario');
-    if (pickerTip && sezItin) {
-        var aggiornaItin = function () {
-            var mostra = ['crociera', 'tour'].some(function (v) {
-                var el = pickerTip.querySelector('[data-chip-value="' + v + '"]');
-                return el && el.classList.contains('chip--on');
-            });
-            sezItin.hidden = !mostra;
-        };
-        pickerTip.addEventListener('click', function () { setTimeout(aggiornaItin, 0); });
-        aggiornaItin();
-    }
-
     // costi: mostra i campi in base alla modalità (netta / commissionabile)
     var tipoSel = document.querySelector('[data-costi-tipo]');
     if (tipoSel) {
@@ -253,7 +262,7 @@
     }
 })();
 (function () {
-    var tabs = document.querySelectorAll('.tab-btn');
+    var tabs = document.querySelectorAll('.tab-btn:not(.tab-link)');
     var panels = document.querySelectorAll('.tab-panel');
     tabs.forEach(function (btn) {
         btn.addEventListener('click', function () {

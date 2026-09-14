@@ -52,6 +52,13 @@ class OffertaController extends AbstractController
         return $this->render('offerta/dettaglio.html.twig', ['offerta' => $offerta]);
     }
 
+    /** Anteprima pubblica dell'offerta: come apparirà sul sito (senza chrome del CRM). */
+    #[Route('/offerte/{id}/anteprima', name: 'app_offerta_anteprima', requirements: ['id' => '\d+'])]
+    public function anteprima(Offerta $offerta): Response
+    {
+        return $this->render('offerta/anteprima.html.twig', ['offerta' => $offerta]);
+    }
+
     #[Route('/offerte/{id}/modifica', name: 'app_offerta_modifica', requirements: ['id' => '\d+'])]
     public function modifica(Offerta $offerta, Request $request, EntityManagerInterface $em, UnsplashClient $unsplash, UploaderImmagini $uploader): Response
     {

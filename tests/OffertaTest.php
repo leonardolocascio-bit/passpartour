@@ -354,6 +354,22 @@ class OffertaTest extends WebTestCase
         self::assertStringNotContainsString('Quota netta', $body);
     }
 
+    public function testAnteprimaPubblicaSenzaMol(): void
+    {
+        $offerta = $this->em->getRepository(Offerta::class)->findOneBy([]);
+        $offerta->setCosti(['quotaVendita' => '1990', 'tipo' => 'netta', 'quotaNetta' => '1650']);
+        $this->em->flush();
+
+        $this->client->request('GET', '/offerte/' . $offerta->getId() . '/anteprima');
+        self::assertResponseIsSuccessful();
+        $body = (string) $this->client->getResponse()->getContent();
+        self::assertStringContainsString($offerta->getTitolo(), $body);
+        self::assertStringContainsString('Anteprima', $body);
+        // niente sidebar CRM nell'anteprima pubblica, né dati interni
+        self::assertStringNotContainsString('MOL', $body);
+        self::assertStringNotContainsString('1650', $body);
+    }
+
     public function testItinerarioCrociera(): void
     {
         $offerta = $this->em->getRepository(Offerta::class)->findOneBy([]);
