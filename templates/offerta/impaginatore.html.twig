@@ -37,6 +37,13 @@
         <div class="card"><div class="card-pad" style="display:grid;gap:12px">
             <strong>Elementi in evidenza</strong>
             <div>
+                <label>Tema colore del post</label>
+                <select id="sel-tema">
+                    <option value="scuro">Dark — set bianco</option>
+                    <option value="chiaro">Light — set blu Passpartour</option>
+                </select>
+            </div>
+            <div>
                 <label>Claim (facoltativo)</label>
                 <input type="text" id="inp-claim" maxlength="200" placeholder="Es. Il paradiso esiste, prenotalo" value="{{ offerta.claim }}">
             </div>
@@ -166,6 +173,7 @@
         unsplashSelect: {{ path('api_unsplash_select')|json_encode|raw }},
         uploads: {{ asset('uploads/destinazioni/')|json_encode|raw }},
         logo: {{ asset('images/passpartour-white.png')|json_encode|raw }},
+        logoColor: {{ asset('images/passpartour-color.png')|json_encode|raw }},
     };
     const CSRF = {{ csrf_token('impaginatore_' ~ offerta.id)|json_encode|raw }};
 
@@ -175,6 +183,7 @@
     const nuovaSlide = () => ({
         sfondo: OFFERTA.immagine ? { file: OFFERTA.immagine, fotografo: OFFERTA.fotografo || '', fotografoUrl: OFFERTA.fotografoUrl || '' } : null,
         mostra: { titolo: true, destinazione: true, tipologia: true, claim: true, durata: true, prezzo: true, logo: true },
+        tema: 'scuro',
         righe: tuttiGliId(),
         varianti: tuttiGliIdVar(),
     });
@@ -273,36 +282,65 @@
             c.fillStyle = g; c.fillRect(0, 0, W, H);
         }
 
-        // Velature per leggibilità
-        let g = c.createLinearGradient(0, 0, 0, 320);
-        g.addColorStop(0, 'rgba(10,22,44,.55)'); g.addColorStop(1, 'rgba(10,22,44,0)');
-        c.fillStyle = g; c.fillRect(0, 0, W, 320);
-        g = c.createLinearGradient(0, H * .38, 0, H);
-        g.addColorStop(0, 'rgba(10,22,44,0)'); g.addColorStop(.45, 'rgba(10,22,44,.62)'); g.addColorStop(1, 'rgba(10,22,44,.92)');
-        c.fillStyle = g; c.fillRect(0, H * .38, W, H * .62);
-        // tinta calda brand (duotone leggero verso il basso)
-        g = c.createLinearGradient(0, H * .32, 0, H);
-        g.addColorStop(0, 'rgba(234,91,36,0)'); g.addColorStop(1, 'rgba(234,91,36,.30)');
-        c.fillStyle = g; c.fillRect(0, H * .32, W, H * .68);
+        // ===== Tema colore: 'scuro' (set bianco) | 'chiaro' (set blu Passpartour) =====
+        const TEMA = s.tema || 'scuro';
+        const chiaro = TEMA === 'chiaro';
+        const ink = chiaro ? '#123a72' : '#ffffff';           // logo/testi/icone
+        const halo = chiaro ? 'rgba(255,255,255,.55)' : 'rgba(0,0,0,.45)';
+        const badgeBg = chiaro ? '#123a72' : '#f6a41f';       // badge coordinato al tema
+        const accent = chiaro ? '#123a72' : '#f6a41f';        // claim/accento
+
+        // Velature per leggibilità (coordinate al tema + duotone brand)
+        let g;
+        if (chiaro) {
+            g = c.createLinearGradient(0, 0, 0, H);
+            g.addColorStop(0, 'rgba(255,255,255,.30)'); g.addColorStop(.5, 'rgba(255,255,255,.45)'); g.addColorStop(1, 'rgba(255,248,240,.72)');
+            c.fillStyle = g; c.fillRect(0, 0, W, H);
+            g = c.createLinearGradient(0, H * .32, 0, H);
+            g.addColorStop(0, 'rgba(246,164,31,0)'); g.addColorStop(1, 'rgba(246,164,31,.28)');
+            c.fillStyle = g; c.fillRect(0, H * .32, W, H * .68);
+        } else {
+            g = c.createLinearGradient(0, 0, 0, 320);
+            g.addColorStop(0, 'rgba(10,22,44,.55)'); g.addColorStop(1, 'rgba(10,22,44,0)');
+            c.fillStyle = g; c.fillRect(0, 0, W, 320);
+            g = c.createLinearGradient(0, H * .38, 0, H);
+            g.addColorStop(0, 'rgba(10,22,44,0)'); g.addColorStop(.45, 'rgba(10,22,44,.62)'); g.addColorStop(1, 'rgba(10,22,44,.92)');
+            c.fillStyle = g; c.fillRect(0, H * .38, W, H * .62);
+            g = c.createLinearGradient(0, H * .32, 0, H);
+            g.addColorStop(0, 'rgba(234,91,36,0)'); g.addColorStop(1, 'rgba(234,91,36,.30)');
+            c.fillStyle = g; c.fillRect(0, H * .32, W, H * .68);
+        }
 
         const FONT = "-apple-system,'Segoe UI',Roboto,'Helvetica Neue',sans-serif";
+
+        // Emoji tinta nel colore del tema (canvas offscreen + source-atop)
+        function iconaTinta(emoji, size, color) {
+            const off = document.createElement('canvas'); off.width = size; off.height = size;
+            const oc = off.getContext('2d');
+            oc.font = '400 ' + Math.round(size * 0.82) + 'px ' + FONT;
+            oc.textAlign = 'center'; oc.textBaseline = 'middle';
+            oc.fillText(emoji, size / 2, size / 2 + size * 0.06);
+            oc.globalCompositeOperation = 'source-atop';
+            oc.fillStyle = color; oc.fillRect(0, 0, size, size);
+            return off;
+        }
 
         // ===== Cover in stile brand: logo centrato → tipologia (corsivo) → destinazione → prezzo → righe =====
         const vSel = variantiDaId(s.varianti);
         const vDurata = vSel.filter(v => v.campo === 'durata' && (v.valore || '').trim());
 
-        // Logo centrato in alto
+        // Logo centrato in alto (bianco su scuro, quadricromia su chiaro)
         c.textAlign = 'center';
         let yTop = 130;
         if (s.mostra.logo) {
-            const logo = await caricaImg(URLS.logo);
+            const logo = await caricaImg(chiaro ? URLS.logoColor : URLS.logo);
             if (logo) { const lw = 250, lh = lw * logo.height / logo.width; c.drawImage(logo, (W - lw) / 2, 92, lw, lh); yTop = 92 + lh + 64; }
         }
 
         // Eyebrow: tipologia in corsivo (es. "Tour del …")
         if (s.mostra.tipologia && OFFERTA.tipologie && OFFERTA.tipologie.length) {
-            c.font = 'italic 600 60px ' + FONT; c.fillStyle = '#fff';
-            c.shadowColor = 'rgba(0,0,0,.35)'; c.shadowBlur = 12; c.shadowOffsetY = 3;
+            c.font = 'italic 600 60px ' + FONT; c.fillStyle = ink;
+            c.shadowColor = halo; c.shadowBlur = 12; c.shadowOffsetY = 3;
             c.fillText(OFFERTA.tipologie[0], W / 2, yTop + 46);
             c.shadowColor = 'transparent'; c.shadowBlur = 0; c.shadowOffsetY = 0;
             yTop += 62;
@@ -317,18 +355,18 @@
             let size = 200;
             c.font = '900 ' + size + 'px ' + FONT;
             while (c.measureText(t).width > W - 2 * PAD && size > 80) { size -= 6; c.font = '900 ' + size + 'px ' + FONT; }
-            c.fillStyle = '#fff';
-            c.shadowColor = 'rgba(0,0,0,.45)'; c.shadowBlur = 22; c.shadowOffsetY = 5;
+            c.fillStyle = ink;
+            c.shadowColor = halo; c.shadowBlur = 22; c.shadowOffsetY = 5;
             c.fillText(t, W / 2, yTop + size);
             c.shadowColor = 'transparent'; c.shadowBlur = 0; c.shadowOffsetY = 0;
             yTop += size + 16;
         }
 
-        // Claim centrato (corsivo, ambra)
+        // Claim centrato (corsivo, accento del tema)
         if (s.mostra.claim) {
             const claim = $('inp-claim').value.trim();
             if (claim) {
-                c.font = 'italic 600 46px ' + FONT; c.fillStyle = '#f6a41f';
+                c.font = 'italic 600 46px ' + FONT; c.fillStyle = accent;
                 c.fillText(claim, W / 2, yTop + 46);
                 yTop += 74;
             }
@@ -341,7 +379,7 @@
             c.font = '900 84px ' + FONT; const pw = c.measureText(pTxt).width;
             c.font = '700 42px ' + FONT; const daw = c.measureText('da ').width;
             const bh = 112, bx = PAD, by = yTop + 34, bw = 44 + daw + pw + 44;
-            c.fillStyle = '#f6a41f'; c.beginPath(); c.roundRect(bx, by, bw, bh, 10); c.fill();
+            c.fillStyle = badgeBg; c.beginPath(); c.roundRect(bx, by, bw, bh, 10); c.fill();
             c.textBaseline = 'middle';
             c.fillStyle = 'rgba(255,255,255,.92)'; c.font = '700 42px ' + FONT; c.fillText('da ', bx + 44, by + bh / 2 + 2);
             c.fillStyle = '#fff'; c.font = '900 84px ' + FONT; c.fillText(pTxt, bx + 44 + daw, by + bh / 2 + 4);
@@ -376,12 +414,12 @@
                 }
                 if (cur.length) linee.push(cur);
 
-                c.font = '400 46px ' + FONT; c.fillStyle = '#fff'; c.fillText(r.icona || '▪️', iconX, y + 40);
+                c.drawImage(iconaTinta(r.icona || '▪️', 56, ink), iconX, y + 8);
                 let ly = y + 38;
                 for (const linea of linee) {
                     let x = textX;
                     for (const tok of linea) {
-                        c.font = (tok.bold ? '800 40px ' : '500 40px ') + FONT; c.fillStyle = '#fff';
+                        c.font = (tok.bold ? '800 40px ' : '500 40px ') + FONT; c.fillStyle = ink;
                         c.fillText(tok.p, x, ly);
                         x += c.measureText(tok.p + ' ').width;
                     }
@@ -393,7 +431,7 @@
 
         // Credito foto (obbligo attribuzione Unsplash)
         if (s.sfondo && s.sfondo.fotografo) {
-            c.font = '400 24px ' + FONT; c.fillStyle = 'rgba(255,255,255,.7)';
+            c.font = '400 24px ' + FONT; c.fillStyle = chiaro ? 'rgba(18,58,114,.7)' : 'rgba(255,255,255,.7)';
             c.fillText('Foto: ' + s.sfondo.fotografo + ' / Unsplash', PAD, H - 24);
         }
     }
@@ -464,6 +502,7 @@
     const chk = { titolo: $('chk-titolo'), destinazione: $('chk-destinazione'), tipologia: $('chk-tipologia'), claim: $('chk-claim'), durata: $('chk-durata'), prezzo: $('chk-prezzo'), logo: $('chk-logo') };
     Object.entries(chk).forEach(([k, el]) => el.addEventListener('change', () => { slide().mostra[k] = el.checked; segnaSporco(); ridisegna(); }));
     $('inp-claim').addEventListener('input', () => { segnaSporco(); ridisegna(); });
+    $('sel-tema').addEventListener('change', () => { slide().tema = $('sel-tema').value; segnaSporco(); ridisegna(); });
 
     /* ---------- Selezione righe (ereditate dal configuratore offerta) ---------- */
     function renderRighe() {
@@ -720,6 +759,7 @@
         renderTabs();
         const m = slide().mostra;
         Object.entries(chk).forEach(([k, el]) => el.checked = !!m[k]);
+        $('sel-tema').value = slide().tema || 'scuro';
         renderRighe();
         renderVarianti();
         renderSfondiCorrenti();
