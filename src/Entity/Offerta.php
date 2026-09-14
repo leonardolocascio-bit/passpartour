@@ -159,6 +159,16 @@ class Offerta
     private ?int $cancellazioneEntroGiorni = null;
 
     /**
+     * Costi/MOL (dato interno, non pubblicabile): {quotaVendita, tipo:'netta'|'commissionabile',
+     * quotaNetta, commissioneModo:'percentuale'|'fisso', commissioneValore, nettaLordoIva:bool,
+     * ivaPercentuale, ritenutaPercentuale}. Il calcolo del MOL è in CalcolatoreMargine.
+     *
+     * @var array<string, mixed>|null
+     */
+    #[ORM\Column(type: 'json', nullable: true)]
+    private ?array $costi = null;
+
+    /**
      * Righe/opzioni del viaggio compilate nel configuratore offerta:
      * [{id, icona, argomento, testo, evidenza}, …]. L'impaginatore le eredita.
      *
@@ -573,6 +583,20 @@ class Offerta
     public function setCancellazioneEntroGiorni(?int $cancellazioneEntroGiorni): static
     {
         $this->cancellazioneEntroGiorni = $cancellazioneEntroGiorni;
+
+        return $this;
+    }
+
+    /** @return array<string, mixed> */
+    public function getCosti(): array
+    {
+        return $this->costi ?? [];
+    }
+
+    /** @param array<string, mixed>|null $costi */
+    public function setCosti(?array $costi): static
+    {
+        $this->costi = $costi ?: null;
 
         return $this;
     }

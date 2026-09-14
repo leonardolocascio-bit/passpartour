@@ -277,6 +277,32 @@ class OffertaTest extends WebTestCase
         self::assertSame(30, $offerta->getCancellazioneEntroGiorni());
     }
 
+    public function testOffertaCostiMolSalvatoEMostrato(): void
+    {
+        $offerta = $this->em->getRepository(Offerta::class)->findOneBy([]);
+        $id = $offerta->getId();
+
+        $crawler = $this->client->request('GET', '/offerte/' . $id . '/modifica');
+        $form = $crawler->selectButton('Salva')->form();
+        $form['costi[quotaVendita]'] = '1990';
+        $form['costi[tipo]'] = 'netta';
+        $form['costi[quotaNetta]'] = '1650';
+        $form['costi[ivaPercentuale]'] = '22';
+        $this->client->submit($form);
+        self::assertResponseRedirects();
+
+        $this->em->clear();
+        $offerta = $this->em->getRepository(Offerta::class)->find($id);
+        self::assertSame('netta', $offerta->getCosti()['tipo']);
+        self::assertSame('1650', $offerta->getCosti()['quotaNetta']);
+
+        // riaprendo la scheda il MOL è calcolato e mostrato
+        $this->client->request('GET', '/offerte/' . $id . '/modifica');
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('body', 'MOL (imponibile)');
+        self::assertSelectorTextContains('body', '340,00'); // commissione lorda = 1990 - 1650
+    }
+
     public function testCaptionIncludeLeVarianti(): void
     {
         $offerta = $this->em->getRepository(Offerta::class)->findOneBy([]);

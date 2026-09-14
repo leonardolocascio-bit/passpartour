@@ -12,6 +12,7 @@ use App\Enum\TipologiaAlloggio;
 use App\Enum\TipologiaViaggio;
 use App\Enum\TrattamentoHotel;
 use App\Form\OffertaType;
+use App\Service\CalcolatoreMargine;
 use App\Service\UnsplashClient;
 use App\Service\UploaderImmagini;
 use Doctrine\ORM\EntityManagerInterface;
@@ -27,6 +28,10 @@ use Symfony\Component\Routing\Attribute\Route;
 
 class OffertaController extends AbstractController
 {
+    public function __construct(private readonly CalcolatoreMargine $margine)
+    {
+    }
+
     #[Route('/offerte', name: 'app_offerta_index')]
     public function index(EntityManagerInterface $em): Response
     {
@@ -93,6 +98,9 @@ class OffertaController extends AbstractController
             // quote di vendita (editor ripetibile)
             $offerta->setQuote($this->decodeSegmenti($request->request->get('quote'), ['tipo', 'sistemazione', 'importo']));
 
+            // costi/MOL (dato interno)
+            $offerta->setCosti($this->normalizzaCosti($request->request->all('costi')));
+
             if ($isNuovo) {
                 $em->persist($offerta);
             }
@@ -106,6 +114,7 @@ class OffertaController extends AbstractController
             'form' => $form,
             'offerta' => $offerta,
             'unsplash_configurato' => $unsplash->isConfigured(),
+            'margine' => $this->margine->calcola($offerta),
             'tipologie_scelte' => TipologiaViaggio::scelte(),
             'temi_scelte' => TemaViaggio::scelte(),
             'assicurazioni_scelte' => TipoAssicurazione::scelte(),
@@ -170,6 +179,37 @@ class OffertaController extends AbstractController
             if ($riga !== []) {
                 $out[] = $riga;
             }
+        }
+
+        return $out;
+    }
+
+    /**
+     * Normalizza i campi costi/MOL dal form (whitelist + flag lordo IVA).
+     *
+     * @param array<string, mixed> $dati
+     *
+     * @return array<string, mixed>
+     */
+    private function normalizzaCosti(array $dati): array
+    {
+        $out = [];
+        foreach (['quotaVendita', 'quotaNetta', 'commissioneValore', 'ivaPercentuale', 'ritenutaPercentuale'] as $k) {
+            $v = trim((string) ($dati[$k] ?? ''));
+            if ($v !== '') {
+                $out[$k] = $v;
+            }
+        }
+        $tipo = (string) ($dati['tipo'] ?? '');
+        if (\in_array($tipo, ['netta', 'commissionabile'], true)) {
+            $out['tipo'] = $tipo;
+        }
+        $modo = (string) ($dati['commissioneModo'] ?? '');
+        if (\in_array($modo, ['percentuale', 'fisso'], true)) {
+            $out['commissioneModo'] = $modo;
+        }
+        if (!empty($dati['nettaLordoIva'])) {
+            $out['nettaLordoIva'] = true;
         }
 
         return $out;
