@@ -3,7 +3,12 @@ framework:
     secret: '%env(APP_SECRET)%'
 
     # Note that the session will be started ONLY if you read or write from it.
-    session: true
+    # Nome cookie univoco: evita collisioni con le altre app Symfony su 127.0.0.1
+    # (i cookie ignorano la porta e condividerebbero la stessa sessione/CSRF).
+    session:
+        name: PASSPARTOUR_SESSID
+        cookie_secure: auto
+        cookie_samesite: lax
 
     #esi: true
     #fragments: true

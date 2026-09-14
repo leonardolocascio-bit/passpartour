@@ -1,11 +1,5 @@
-# Enable stateless CSRF protection for forms and logins/logouts
+# CSRF basato su sessione (non stateless): funziona senza JS e resta isolato
+# per-app grazie al nome cookie di sessione univoco (vedi framework.yaml).
 framework:
-    form:
-        csrf_protection:
-            token_id: submit
-
     csrf_protection:
-        stateless_token_ids:
-            - submit
-            - authenticate
-            - logout
+        enabled: true
