@@ -41,7 +41,9 @@
                 <input type="text" id="inp-claim" maxlength="200" placeholder="Es. Il paradiso esiste, prenotalo" value="{{ offerta.claim }}">
             </div>
             <div style="display:flex;gap:14px;flex-wrap:wrap;font-size:13px">
-                <label style="display:flex;gap:6px;align-items:center;cursor:pointer"><input type="checkbox" id="chk-titolo"> Destinazione/titolo</label>
+                <label style="display:flex;gap:6px;align-items:center;cursor:pointer"><input type="checkbox" id="chk-titolo"> Titolo</label>
+                <label style="display:flex;gap:6px;align-items:center;cursor:pointer"><input type="checkbox" id="chk-destinazione"> Destinazione</label>
+                <label style="display:flex;gap:6px;align-items:center;cursor:pointer"><input type="checkbox" id="chk-tipologia"> Tipologia</label>
                 <label style="display:flex;gap:6px;align-items:center;cursor:pointer"><input type="checkbox" id="chk-claim"> Claim</label>
                 <label style="display:flex;gap:6px;align-items:center;cursor:pointer"><input type="checkbox" id="chk-durata"> Durata</label>
                 <label style="display:flex;gap:6px;align-items:center;cursor:pointer"><input type="checkbox" id="chk-prezzo"> Prezzo</label>
@@ -145,6 +147,9 @@
         id: {{ offerta.id }},
         titolo: {{ offerta.titolo|json_encode|raw }},
         sottotitolo: {{ offerta.sottotitolo|json_encode|raw }},
+        destinazioneMacro: {{ offerta.destinazioneMacro|json_encode|raw }},
+        destinazioneMicro: {{ offerta.destinazioneMicro|json_encode|raw }},
+        tipologie: {{ offerta.tipologieLabel|json_encode|raw }},
         durata: {{ offerta.durata|json_encode|raw }},
         prezzoDa: {{ offerta.prezzoDa ? offerta.prezzoDa|number_format(0, ',', '.')|json_encode|raw : 'null' }},
         immagine: {{ offerta.immagineFile|json_encode|raw }},
@@ -169,7 +174,7 @@
     const tuttiGliIdVar = () => OFFERTA.varianti.map(v => v.id);
     const nuovaSlide = () => ({
         sfondo: OFFERTA.immagine ? { file: OFFERTA.immagine, fotografo: OFFERTA.fotografo || '', fotografoUrl: OFFERTA.fotografoUrl || '' } : null,
-        mostra: { titolo: true, claim: true, durata: true, prezzo: true, logo: true },
+        mostra: { titolo: true, destinazione: true, tipologia: true, claim: true, durata: true, prezzo: true, logo: true },
         righe: tuttiGliId(),
         varianti: tuttiGliIdVar(),
     });
@@ -388,7 +393,8 @@
             }
         }
 
-        // Titolo / destinazione
+        // Titolo
+        let yTitoloTop = yBasso;
         if (s.mostra.titolo && OFFERTA.titolo) {
             c.font = '900 96px ' + FONT; c.fillStyle = '#fff';
             c.shadowColor = 'rgba(0,0,0,.45)'; c.shadowBlur = 18; c.shadowOffsetY = 4;
@@ -396,6 +402,31 @@
             const altezza = misuraACapo(c, t, W - 2 * PAD, 104);
             testoACapo(c, t, PAD, yBasso - altezza + 88, W - 2 * PAD, 104);
             c.shadowColor = 'transparent'; c.shadowBlur = 0; c.shadowOffsetY = 0;
+            yTitoloTop = yBasso - altezza; // top visivo del titolo
+        }
+
+        // Destinazione (eyebrow sopra il titolo)
+        if (s.mostra.destinazione) {
+            const dest = [OFFERTA.destinazioneMacro, OFFERTA.destinazioneMicro].filter(Boolean).join(' · ');
+            if (dest) {
+                c.font = '800 34px ' + FONT; c.fillStyle = '#1f9fd6';
+                c.fillText('📍 ' + dest.toUpperCase(), PAD, yTitoloTop - 6);
+                yTitoloTop -= 52;
+            }
+        }
+
+        // Tipologia (pillole in alto a sinistra, sotto il logo)
+        if (s.mostra.tipologia && OFFERTA.tipologie && OFFERTA.tipologie.length) {
+            let tx = PAD, ty = s.mostra.logo ? 190 : 70;
+            c.font = '700 30px ' + FONT;
+            for (const tip of OFFERTA.tipologie.slice(0, 4)) {
+                const et = tip.toUpperCase(), tw = c.measureText(et).width, bw = tw + 40;
+                if (tx + bw > W - PAD) { tx = PAD; ty += 58; }
+                c.fillStyle = 'rgba(18,58,114,.85)'; c.beginPath(); c.roundRect(tx, ty, bw, 46, 23); c.fill();
+                c.fillStyle = '#fff'; c.textBaseline = 'middle'; c.fillText(et, tx + 20, ty + 25);
+                c.textBaseline = 'alphabetic';
+                tx += bw + 12;
+            }
         }
 
         // Credito foto (obbligo attribuzione Unsplash)
@@ -446,7 +477,7 @@
     $('slide-aggiungi').addEventListener('click', () => {
         if (stato.slides.length >= 20) return alert('Instagram consente al massimo 20 slide per carosello.');
         const copia = JSON.parse(JSON.stringify(slide()));
-        copia.mostra = { titolo: false, claim: false, durata: false, prezzo: false, logo: true };
+        copia.mostra = { titolo: false, destinazione: false, tipologia: false, claim: false, durata: false, prezzo: false, logo: true };
         stato.slides.splice(corrente + 1, 0, copia);
         corrente++; segnaSporco(); renderTutto();
     });
@@ -468,7 +499,7 @@
     });
 
     /* ---------- UI elementi in evidenza ---------- */
-    const chk = { titolo: $('chk-titolo'), claim: $('chk-claim'), durata: $('chk-durata'), prezzo: $('chk-prezzo'), logo: $('chk-logo') };
+    const chk = { titolo: $('chk-titolo'), destinazione: $('chk-destinazione'), tipologia: $('chk-tipologia'), claim: $('chk-claim'), durata: $('chk-durata'), prezzo: $('chk-prezzo'), logo: $('chk-logo') };
     Object.entries(chk).forEach(([k, el]) => el.addEventListener('change', () => { slide().mostra[k] = el.checked; segnaSporco(); ridisegna(); }));
     $('inp-claim').addEventListener('input', () => { segnaSporco(); ridisegna(); });
 
