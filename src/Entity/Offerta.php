@@ -22,6 +22,19 @@ class Offerta
     #[ORM\Column(length: 200, nullable: true)]
     private ?string $sottotitolo = null;
 
+    /** Claim/slogan per i contenuti social e stampa (facoltativo). */
+    #[ORM\Column(length: 200, nullable: true)]
+    private ?string $claim = null;
+
+    /**
+     * Stato dell'impaginatore social/stampa: slide del carosello (sfondo, righe
+     * icona/argomento/testo, elementi visibili), caption e tono di voce.
+     *
+     * @var array<string, mixed>|null
+     */
+    #[ORM\Column(type: 'json', nullable: true)]
+    private ?array $impaginato = null;
+
     /** Immagine dalla libreria destinazioni. */
     #[ORM\ManyToOne(targetEntity: Destinazione::class)]
     #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
@@ -88,6 +101,32 @@ class Offerta
     public function setSottotitolo(?string $sottotitolo): static
     {
         $this->sottotitolo = $sottotitolo;
+
+        return $this;
+    }
+
+    public function getClaim(): ?string
+    {
+        return $this->claim;
+    }
+
+    public function setClaim(?string $claim): static
+    {
+        $this->claim = $claim;
+
+        return $this;
+    }
+
+    /** @return array<string, mixed>|null */
+    public function getImpaginato(): ?array
+    {
+        return $this->impaginato;
+    }
+
+    /** @param array<string, mixed>|null $impaginato */
+    public function setImpaginato(?array $impaginato): static
+    {
+        $this->impaginato = $impaginato;
 
         return $this;
     }

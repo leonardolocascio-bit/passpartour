@@ -1,0 +1,118 @@
+{# Layout di stampa base (A4/A3, verticale/orizzontale). Stampa/PDF dal browser (⌘P).
+   L'editor di stampa avanzato arriverà con le istruzioni dedicate. #}
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<title>{{ offerta.titolo }} · Stampa {{ carta }} {{ orientamento == 'portrait' ? 'verticale' : 'orizzontale' }}</title>
+<style>
+    :root {
+        --navy: #123a72; --arancio: #ea5b24; --ciano: #1f9fd6; --ambra: #f6a41f;
+        {% if carta == 'A4' %}
+        --pw: {{ orientamento == 'portrait' ? '210mm' : '297mm' }};
+        --ph: {{ orientamento == 'portrait' ? '297mm' : '210mm' }};
+        {% else %}
+        --pw: {{ orientamento == 'portrait' ? '297mm' : '420mm' }};
+        --ph: {{ orientamento == 'portrait' ? '420mm' : '297mm' }};
+        {% endif %}
+    }
+    @page { size: {{ carta }} {{ orientamento }}; margin: 0; }
+    * { box-sizing: border-box; margin: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    body { font-family: -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif; background: #555; }
+    .pagina {
+        width: var(--pw); height: var(--ph); margin: 10mm auto; background: #fff;
+        overflow: hidden; display: flex; box-shadow: 0 6px 24px rgba(0,0,0,.4);
+        flex-direction: {{ orientamento == 'portrait' ? 'column' : 'row' }};
+    }
+    @media print { body { background: none } .pagina { margin: 0; box-shadow: none } .toolbar { display: none } }
+
+    .hero {
+        position: relative; background: linear-gradient(135deg, var(--navy), var(--ciano));
+        {{ orientamento == 'portrait' ? 'height: 48%;' : 'width: 48%; height: 100%;' }}
+    }
+    .hero img.foto { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .hero .logo { position: absolute; top: 10mm; left: 10mm; width: 46mm; height: auto; }
+    .hero .durata {
+        position: absolute; top: 10mm; right: 10mm; background: var(--ciano); color: #fff;
+        font-weight: 700; padding: 2mm 5mm; border-radius: 99px; font-size: 11pt; text-transform: uppercase;
+    }
+    .hero .credito { position: absolute; bottom: 3mm; left: 10mm; color: rgba(255,255,255,.85); font-size: 6.5pt; }
+
+    .contenuto { flex: 1; padding: 12mm 14mm; display: flex; flex-direction: column; gap: 6mm; }
+    h1 { color: var(--navy); font-size: {{ carta == 'A3' ? '44pt' : '30pt' }}; font-weight: 900; text-transform: uppercase; line-height: 1.05; }
+    .claim { color: var(--ambra); font-style: italic; font-weight: 600; font-size: {{ carta == 'A3' ? '20pt' : '14pt' }}; }
+    .descrizione { color: #333; font-size: {{ carta == 'A3' ? '13pt' : '10pt' }}; line-height: 1.5; white-space: pre-line; }
+
+    .righe { display: grid; gap: 2.6mm; }
+    .riga { display: flex; gap: 3mm; align-items: baseline; font-size: {{ carta == 'A3' ? '14pt' : '10.5pt' }}; }
+    .riga .argomento { font-weight: 800; color: var(--navy); text-transform: uppercase; }
+    .riga.evidenza { background: var(--ambra); border-radius: 2mm; padding: 1.6mm 3mm; }
+    .riga.evidenza .argomento { color: #fff; }
+
+    .fondo { margin-top: auto; display: flex; align-items: flex-end; justify-content: space-between; gap: 8mm; }
+    .prezzo { background: var(--arancio); color: #fff; border-radius: 3mm; padding: 4mm 8mm; text-align: center; }
+    .prezzo .da { font-size: {{ carta == 'A3' ? '13pt' : '9pt' }}; opacity: .85; }
+    .prezzo .valore { font-size: {{ carta == 'A3' ? '48pt' : '32pt' }}; font-weight: 900; line-height: 1; }
+    .validita { color: #666; font-size: {{ carta == 'A3' ? '11pt' : '8pt' }}; }
+
+    .toolbar { text-align: center; padding: 8px; }
+    .toolbar button { font-size: 14px; padding: 8px 18px; border-radius: 8px; border: 0; background: var(--arancio); color: #fff; cursor: pointer; }
+</style>
+</head>
+<body>
+<div class="toolbar"><button onclick="window.print()">🖨 Stampa / salva PDF ({{ carta }} {{ orientamento == 'portrait' ? 'verticale' : 'orizzontale' }})</button></div>
+
+<div class="pagina">
+    <div class="hero">
+        {% if offerta.immagineFile %}<img class="foto" src="{{ asset('uploads/destinazioni/' ~ offerta.immagineFile) }}" alt="">{% endif %}
+        <img class="logo" src="{{ asset('images/passpartour-white.png') }}" alt="Passpartour">
+        {% if offerta.durata %}<div class="durata">{{ offerta.durata }}</div>{% endif %}
+        {% if offerta.fotografoEffettivo %}<div class="credito">Foto: {{ offerta.fotografoEffettivo }} / Unsplash</div>{% endif %}
+    </div>
+    <div class="contenuto">
+        <div>
+            <h1>{{ offerta.titolo }}</h1>
+            {% if offerta.claim %}<div class="claim">{{ offerta.claim }}</div>
+            {% elseif offerta.sottotitolo %}<div class="claim">{{ offerta.sottotitolo }}</div>{% endif %}
+        </div>
+
+        {% set righe = [] %}
+        {% if offerta.impaginato and offerta.impaginato.slides is defined %}
+            {% for s in offerta.impaginato.slides %}
+                {% for r in s.righe|default([]) %}
+                    {% if (r.argomento is defined and r.argomento) or (r.testo is defined and r.testo) %}
+                        {% set righe = righe|merge([r]) %}
+                    {% endif %}
+                {% endfor %}
+            {% endfor %}
+        {% endif %}
+        {% if righe|length %}
+            <div class="righe">
+                {% for r in righe %}
+                    <div class="riga{{ r.evidenza|default(false) ? ' evidenza' }}">
+                        <span>{{ r.icona|default('▪️') }}</span>
+                        {% if r.argomento|default('') %}<span class="argomento">{{ r.argomento }}</span>{% endif %}
+                        <span>{{ r.testo|default('') }}</span>
+                    </div>
+                {% endfor %}
+            </div>
+        {% elseif offerta.descrizione %}
+            <div class="descrizione">{{ offerta.descrizione }}</div>
+        {% endif %}
+
+        <div class="fondo">
+            <div class="validita">
+                {% if offerta.validoAl %}Offerta valida fino al {{ offerta.validoAl|date('d/m/Y') }}.<br>{% endif %}
+                Quota per persona, soggetta a disponibilità.
+            </div>
+            {% if offerta.prezzoDa %}
+                <div class="prezzo">
+                    <div class="da">a partire da</div>
+                    <div class="valore">€ {{ offerta.prezzoDa|number_format(0, ',', '.') }}</div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+</body>
+</html>

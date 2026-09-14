@@ -23,6 +23,7 @@ class OffertaType extends AbstractType
         $builder
             ->add('titolo', TextType::class, ['label' => 'Titolo', 'attr' => ['placeholder' => 'Es. Maldive da sogno']])
             ->add('sottotitolo', TextType::class, ['label' => 'Sottotitolo', 'required' => false, 'attr' => ['placeholder' => 'Es. 7 notti in overwater']])
+            ->add('claim', TextType::class, ['label' => 'Claim (per social e stampa)', 'required' => false, 'attr' => ['placeholder' => 'Es. Il paradiso esiste, prenotalo']])
             ->add('immagineFile', FileType::class, [
                 'label' => 'Immagine',
                 'mapped' => false,
