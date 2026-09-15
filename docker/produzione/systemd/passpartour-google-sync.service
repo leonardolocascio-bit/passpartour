@@ -1,0 +1,12 @@
+[Unit]
+Description=Sincronizzazione Google Calendar del gestionale Passpartour (produzione)
+Documentation=file:///opt/passpartour/DEPLOY.md
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/passpartour/docker/produzione
+ExecStart=/usr/bin/docker compose -p passpartour-prod --env-file prod.env exec -T app php bin/console app:google:sincronizza
+StandardOutput=journal
+StandardError=journal

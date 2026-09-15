@@ -1,0 +1,94 @@
+# Smistamento dei domini di Passpartour verso i rispettivi ambienti.
+#
+# Aggiungere un ambiente = aggiungere un blocco qui e una riga di DNS. Il
+# certificato arriva da solo al primo accesso.
+#
+# I due valori che cambiano da server a server — l'email dei certificati e la
+# password del collaudo — arrivano dall'ambiente (proxy.env, che resta sul
+# server e non è versionato). Così questo file non va mai modificato in loco e
+# gli aggiornamenti non finiscono in conflitto.
+
+{
+	# Indirizzo a cui Let's Encrypt scrive se un rinnovo va storto:
+	# deve essere una casella LETTA davvero.
+	email {$ACME_EMAIL}
+}
+
+# --- Gestionale, produzione: dati reali di lead e clienti -------------------
+gestionale.passpartour.com {
+	encode zstd gzip
+
+	# Il gestionale è uno strumento interno: fuori dall'indice dei motori di
+	# ricerca, sempre. La risposta sta nel proxy così vale qualunque cosa
+	# faccia l'applicazione dietro.
+	respond /robots.txt "User-agent: *\nDisallow: /" 200
+
+	# L'applicazione dietro non sa di stare dietro a un proxy: senza questi
+	# valori genererebbe link in http e vedrebbe tutti gli accessi provenire
+	# dall'IP del proxy invece che da quello reale.
+	reverse_proxy prod-app:80 {
+		header_up X-Forwarded-Proto https
+	}
+
+	# Il log di accesso contiene gli INDIRIZZI IP dei visitatori, che sono dati
+	# personali: si tiene per trenta giorni e non "finché non riempie il
+	# disco".
+	log {
+		output file /data/log/gestionale.passpartour.com.log {
+			roll_size 20MiB
+			roll_keep 10
+			roll_keep_for 720h
+		}
+	}
+}
+
+# --- Collaudo del gestionale: qui arrivano prima gli aggiornamenti ----------
+# Dati finti o copia della produzione. Fuori dall'indice dei motori e protetto
+# da password.
+stagingest.passpartour.com {
+	encode zstd gzip
+
+	respond /robots.txt "User-agent: *\nDisallow: /" 200
+
+	# Nessuno deve arrivarci per caso: si entra solo conoscendo la parola.
+	# ECCEZIONE: il webhook di ingestione lead resta raggiungibile senza
+	# password (le piattaforme di lead gen non sanno fare basic auth; il
+	# webhook ha già il suo token nel percorso).
+	@protetto not path /webhook/*
+	basic_auth @protetto {
+		collaudo {$STAGING_PASSWORD_HASH}
+	}
+
+	reverse_proxy staging-app:80 {
+		header_up X-Forwarded-Proto https
+	}
+}
+
+# --- Sito web pubblico (futuro) ---------------------------------------------
+# Da attivare quando il sito esiste: blocco già pronto, servirà solo il DNS e
+# lo stack "web-app" (repo del sito, quando ci sarà).
+# passpartour.com, www.passpartour.com {
+# 	encode zstd gzip
+# 	reverse_proxy web-app:80 {
+# 		header_up X-Forwarded-Proto https
+# 	}
+# 	log {
+# 		output file /data/log/passpartour.com.log {
+# 			roll_size 20MiB
+# 			roll_keep 10
+# 			roll_keep_for 720h
+# 		}
+# 	}
+# }
+
+# --- Collaudo del sito web (futuro, ove occorra) ----------------------------
+# stagingweb.passpartour.com {
+# 	encode zstd gzip
+# 	respond /robots.txt "User-agent: *\nDisallow: /" 200
+# 	basic_auth {
+# 		collaudo {$STAGING_PASSWORD_HASH}
+# 	}
+# 	reverse_proxy stagingweb-app:80 {
+# 		header_up X-Forwarded-Proto https
+# 	}
+# }

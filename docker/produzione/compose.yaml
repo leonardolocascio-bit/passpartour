@@ -1,0 +1,133 @@
+# Passpartour sul server Hetzner — uno stack applicativo (app + worker + database).
+#
+# Lo STESSO file serve tutti gli ambienti: cambia il file di variabili che gli
+# si passa e il nome del progetto, così container, volumi e database restano
+# separati e non si toccano fra loro.
+#
+#   produzione:  docker compose -p passpartour-prod    --env-file prod.env    up -d --build
+#   collaudo:    docker compose -p passpartour-staging --env-file staging.env up -d --build
+#
+# Qui NON si espongono porte: davanti c'è il proxy (proxy/compose.yaml), che è
+# l'unico ad affacciarsi su Internet, termina l'HTTPS per tutti i domini e
+# smista in base al nome richiesto. Senza di lui due ambienti si contenderebbero
+# la porta 443 dello stesso server.
+
+# I log non crescono all'infinito. Non è solo disco: una traccia di errore
+# contiene i valori inviati in un form, cioè i dati di un lead, e un dato
+# personale tenuto "per sempre" senza motivo è già una violazione. Un mese
+# abbondante di storia basta per capire che cosa è successo.
+x-log: &log
+  driver: json-file
+  options:
+    max-size: "20m"
+    max-file: "5"
+
+# Variabili condivise fra app e worker: il worker spedisce le email (e in
+# futuro SMS/WhatsApp), quindi gli servono le stesse chiavi dell'app.
+x-app-env: &app-env
+  APP_ENV: prod
+  APP_SECRET: ${APP_SECRET}
+  DATABASE_URL: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}?serverVersion=16&charset=utf8"
+  # URL con cui i comandi CLI e il worker generano i link (email, notifiche):
+  # fuori da una richiesta HTTP nessuno "sa" il dominio, va detto qui.
+  DEFAULT_URI: ${DEFAULT_URI}
+  # 1 SOLO negli ambienti dimostrativi: carica i dati finti al primo avvio.
+  # In produzione non va impostata.
+  DEMO_SEED: ${DEMO_SEED:-0}
+  PASSPARTOUR_WEBHOOK_TOKEN: ${PASSPARTOUR_WEBHOOK_TOKEN}
+  GOOGLE_OAUTH_CLIENT_ID: ${GOOGLE_OAUTH_CLIENT_ID:-}
+  GOOGLE_OAUTH_CLIENT_SECRET: ${GOOGLE_OAUTH_CLIENT_SECRET:-}
+  UNSPLASH_ACCESS_KEY: ${UNSPLASH_ACCESS_KEY:-}
+  ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+  TWILIO_ACCOUNT_SID: ${TWILIO_ACCOUNT_SID:-}
+  TWILIO_AUTH_TOKEN: ${TWILIO_AUTH_TOKEN:-}
+  TWILIO_FROM_SMS: ${TWILIO_FROM_SMS:-}
+  TWILIO_FROM_WHATSAPP: ${TWILIO_FROM_WHATSAPP:-}
+  MAILER_DSN: ${MAILER_DSN:-null://null}
+  MAILER_FROM: ${MAILER_FROM:-Passpartour <noreply@passpartour.com>}
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    logging: *log
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      # Le date e gli ordinamenti devono comportarsi come in sviluppo.
+      LANG: it_IT.utf8
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    # NESSUNA porta pubblicata: il database vive sulla rete interna di questo
+    # stack e non è raggiungibile né da Internet né dagli altri ambienti. Per
+    # entrarci da fuori si passa da ssh.
+    networks:
+      - interna
+
+  app:
+    build:
+      context: ../..
+      dockerfile: docker/Dockerfile
+    restart: unless-stopped
+    logging: *log
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      <<: *app-env
+      # In chiaro sulla rete interna: l'HTTPS lo termina il proxy.
+      SERVER_NAME: ":80"
+    volumes:
+      # Le immagini della libreria (destinazioni, offerte) le caricano gli
+      # operatori: senza questo volume ogni aggiornamento dell'immagine se le
+      # porterebbe via. Al primo avvio il volume eredita le immagini demo
+      # committate in public/uploads/destinazioni.
+      - uploads:/app/public/uploads
+    networks:
+      interna:
+      web:
+        aliases:
+          # Il nome con cui il proxy raggiunge QUESTO ambiente ("prod-app",
+          # "staging-app", …): sta nel file di variabili dello stack, ed è
+          # l'unico punto in cui i due mondi si conoscono.
+          - ${ALIAS_WEB}
+
+  # Le email (preventivi, offerte) e le notifiche SMS/WhatsApp sono in coda
+  # Messenger (transport doctrine): senza questo worker restano in tabella e
+  # non partono MAI. Stessa immagine dell'app, comando diverso.
+  worker:
+    build:
+      context: ../..
+      dockerfile: docker/Dockerfile
+    restart: unless-stopped
+    logging: *log
+    depends_on:
+      db:
+        condition: service_healthy
+      # L'app all'avvio applica le migrazioni: il worker parte dopo, così non
+      # trova mai uno schema a metà.
+      app:
+        condition: service_started
+    entrypoint:
+      ["php", "bin/console", "messenger:consume", "async", "--time-limit=3600", "--memory-limit=256M"]
+    environment: *app-env
+    volumes:
+      - uploads:/app/public/uploads
+    networks:
+      - interna
+
+networks:
+  interna:
+  web:
+    external: true
+    name: passpartour-web
+
+volumes:
+  db_data:
+  uploads:

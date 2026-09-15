@@ -1,0 +1,11 @@
+[Unit]
+Description=Sincronizzazione periodica Google Calendar (Passpartour)
+
+[Timer]
+# Ogni 10 minuti: l'agenda deve restare vicina al calendario vero.
+# Da attivare SOLO quando le credenziali Google sono configurate in prod.env.
+OnCalendar=*:0/10
+Persistent=false
+
+[Install]
+WantedBy=timers.target

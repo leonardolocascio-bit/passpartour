@@ -1,0 +1,15 @@
+[Unit]
+Description=Backup notturno del database Passpartour
+
+[Timer]
+# Ogni notte alle 3:45 (ora del server; sfasato rispetto ad altri backup
+# eventualmente presenti sulla stessa macchina).
+OnCalendar=*-*-* 03:45:00
+# Se il server era spento all'orario previsto, il backup parte appena riacceso:
+# una macchina riavviata non deve saltare una notte in silenzio.
+Persistent=true
+# Sfasamento casuale, per non far coincidere backup e altre attività notturne.
+RandomizedDelaySec=10m
+
+[Install]
+WantedBy=timers.target

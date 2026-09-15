@@ -2,6 +2,15 @@
 framework:
     secret: '%env(APP_SECRET)%'
 
+    # Dietro il reverse proxy (il container Caddy sul server Hetzner) la
+    # richiesta arriva in HTTP con gli header X-Forwarded-*. Senza questo
+    # Symfony crede di essere in HTTP e dopo il login redirige a http://,
+    # facendo rimbalzare il browser al login.
+    # REMOTE_ADDR = si fida del proxy che si connette: regge perché il
+    # container non pubblica porte e SOLO il proxy può raggiungerlo.
+    trusted_proxies: '127.0.0.1,REMOTE_ADDR'
+    trusted_headers: ['x-forwarded-for', 'x-forwarded-host', 'x-forwarded-proto', 'x-forwarded-port']
+
     # Note that the session will be started ONLY if you read or write from it.
     # Nome cookie univoco: evita collisioni con le altre app Symfony su 127.0.0.1
     # (i cookie ignorano la porta e condividerebbero la stessa sessione/CSRF).

@@ -1,0 +1,16 @@
+[Unit]
+Description=Backup dei database Passpartour (produzione e collaudo)
+Documentation=file:///opt/passpartour/DEPLOY.md
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/passpartour/docker/produzione
+ExecStart=/opt/passpartour/docker/produzione/backup-db.sh passpartour-prod
+# Anche il collaudo: ci si lavora dentro davvero, e senza dump un errore lì
+# costa il lavoro di qualcuno esattamente come in produzione.
+ExecStart=/opt/passpartour/docker/produzione/backup-db.sh passpartour-staging
+# L'esito finisce nel giornale di sistema: journalctl -u passpartour-backup
+StandardOutput=journal
+StandardError=journal

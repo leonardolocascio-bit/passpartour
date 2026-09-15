@@ -1,0 +1,44 @@
+# L'unico container affacciato su Internet.
+#
+# Termina l'HTTPS per tutti i domini di Passpartour e smista la richiesta
+# all'ambiente giusto in base al nome richiesto. Gli stack applicativi restano
+# dietro, in chiaro, sulla rete "passpartour-web".
+#
+# Avvio (una volta sola):
+#   docker network create passpartour-web
+#   cp proxy.env.example proxy.env   ← e compilalo
+#   docker compose -p passpartour-proxy up -d
+#
+# I certificati li chiede da sé a Let's Encrypt: nessuna configurazione, basta
+# che il DNS dei domini punti già a questo server e che le porte 80 e 443 siano
+# aperte sul firewall.
+
+services:
+  proxy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    # Email dei certificati e password del collaudo: stanno qui e non nel
+    # Caddyfile, così il file versionato non va mai toccato sul server.
+    env_file:
+      - proxy.env
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"   # HTTP/3
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      # I certificati vanno conservati fra un riavvio e l'altro, altrimenti si
+      # finisce contro i limiti di emissione di Let's Encrypt.
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - web
+
+networks:
+  web:
+    external: true
+    name: passpartour-web
+
+volumes:
+  caddy_data:
+  caddy_config:
