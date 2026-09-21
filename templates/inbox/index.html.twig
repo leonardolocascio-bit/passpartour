@@ -47,4 +47,22 @@
     </table>
     {% endif %}
 </div>
+
+<script>
+(function () {
+    // ricarica la lista quando arriva (o parte) un messaggio nuovo
+    let ultimo = {{ conversazioni|length ? (conversazioni|first).ultimoMessaggioAt.timestamp : 0 }};
+    async function controlla() {
+        if (document.hidden) return;
+        try {
+            const r = await fetch('{{ path('app_inbox_stato') }}', {headers: {'Accept': 'application/json'}});
+            if (!r.ok) return;
+            const dati = await r.json();
+            if (dati.ultimo > ultimo) window.location.reload();
+        } catch (e) { /* rete assente: si riprova al giro dopo */ }
+    }
+    setInterval(controlla, 10000);
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) controlla(); });
+})();
+</script>
 {% endblock %}

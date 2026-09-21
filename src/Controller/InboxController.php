@@ -15,6 +15,7 @@ use App\Service\Meta\MetaClient;
 use App\Enum\FonteLead;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -33,6 +34,51 @@ class InboxController extends AbstractController
             'conversazioni' => $conversazioni->elenco($canale),
             'canaleAttivo' => $canale,
             'canali' => CanaleMessaggio::cases(),
+        ]);
+    }
+
+    /** Stato complessivo dell'inbox, per il refresh automatico della lista. */
+    #[Route('/inbox/stato', name: 'app_inbox_stato')]
+    public function stato(ConversazioneRepository $conversazioni): JsonResponse
+    {
+        return new JsonResponse([
+            'ultimo' => $conversazioni->ultimoAggiornamento(),
+            'nonLetti' => $conversazioni->totaleNonLetti(),
+        ]);
+    }
+
+    /** Nuovi messaggi di una conversazione (id > dopo), per l'aggiornamento live della chat. */
+    #[Route('/inbox/{id}/messaggi', name: 'app_inbox_messaggi', requirements: ['id' => '\d+'])]
+    public function messaggiNuovi(
+        Conversazione $conversazione,
+        Request $request,
+        EntityManagerInterface $em,
+    ): JsonResponse {
+        $dopo = (int) $request->query->get('dopo', 0);
+        $nuovi = $em->getRepository(Messaggio::class)->createQueryBuilder('m')
+            ->where('m.conversazione = :conv')
+            ->andWhere('m.id > :dopo')
+            ->setParameter('conv', $conversazione)
+            ->setParameter('dopo', $dopo)
+            ->orderBy('m.createdAt', 'ASC')
+            ->addOrderBy('m.id', 'ASC')
+            ->getQuery()
+            ->getResult();
+
+        // la conversazione è a schermo: i nuovi arrivi risultano letti
+        if ($conversazione->getNonLetti() > 0) {
+            $conversazione->setNonLetti(0);
+            $em->flush();
+        }
+
+        $ultimoId = $dopo;
+        foreach ($nuovi as $m) {
+            $ultimoId = max($ultimoId, $m->getId());
+        }
+
+        return new JsonResponse([
+            'ultimoId' => $ultimoId,
+            'html' => $nuovi === [] ? '' : $this->renderView('inbox/_messaggi.html.twig', ['messaggi' => $nuovi]),
         ]);
     }
 

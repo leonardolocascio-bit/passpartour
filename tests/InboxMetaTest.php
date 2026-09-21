@@ -185,6 +185,39 @@ class InboxMetaTest extends WebTestCase
         self::assertSame('letto', $ricaricato->getStato());
     }
 
+    public function testEndpointAggiornamentoLive(): void
+    {
+        $master = static::getContainer()->get('doctrine')
+            ->getRepository(Utente::class)->findOneBy(['email' => 'master@passpartour.local']);
+        $this->client->loginUser($master);
+
+        // stato complessivo dell'inbox
+        $this->client->request('GET', '/inbox/stato');
+        self::assertResponseIsSuccessful();
+        $stato = json_decode($this->client->getResponse()->getContent(), true);
+        self::assertArrayHasKey('ultimo', $stato);
+        self::assertArrayHasKey('nonLetti', $stato);
+
+        // nuovi messaggi di una conversazione appena creata dal webhook
+        $this->postMeta($this->payloadWhatsapp('393330000009', 'wamid.T9', 'Messaggio live'));
+        $conv = $this->em->getRepository(Conversazione::class)
+            ->findOneBy(['canale' => CanaleMessaggio::WHATSAPP, 'idEsterno' => '393330000009']);
+
+        $this->client->request('GET', '/inbox/' . $conv->getId() . '/messaggi?dopo=0');
+        self::assertResponseIsSuccessful();
+        $dati = json_decode($this->client->getResponse()->getContent(), true);
+        self::assertGreaterThan(0, $dati['ultimoId']);
+        self::assertStringContainsString('Messaggio live', $dati['html']);
+        $this->em->clear();
+        $conv = $this->em->getRepository(Conversazione::class)->find($conv->getId());
+        self::assertSame(0, $conv->getNonLetti());
+
+        // nessun messaggio nuovo dopo l'ultimo id
+        $this->client->request('GET', '/inbox/' . $conv->getId() . '/messaggi?dopo=' . $dati['ultimoId']);
+        $vuoto = json_decode($this->client->getResponse()->getContent(), true);
+        self::assertSame('', $vuoto['html']);
+    }
+
     public function testInboxPagineRichiedonoLoginEFunzionano(): void
     {
         $this->client->request('GET', '/inbox');

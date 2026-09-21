@@ -33,6 +33,17 @@ class ConversazioneRepository extends ServiceEntityRepository
         return $qb->getQuery()->getResult();
     }
 
+    /** Timestamp dell'ultimo messaggio ricevuto/inviato su qualunque conversazione. */
+    public function ultimoAggiornamento(): int
+    {
+        $max = $this->createQueryBuilder('c')
+            ->select('MAX(c.ultimoMessaggioAt)')
+            ->getQuery()
+            ->getSingleScalarResult();
+
+        return $max !== null ? (new \DateTimeImmutable($max))->getTimestamp() : 0;
+    }
+
     /** Totale messaggi non letti su tutti i canali (badge in sidebar). */
     public function totaleNonLetti(): int
     {

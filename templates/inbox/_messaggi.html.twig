@@ -1,0 +1,11 @@
+{# Bolle dei messaggi di una conversazione (usato dalla pagina e dal refresh live) #}
+{% for m in messaggi %}
+    <div class="msg msg--{{ m.direzione.value == 'uscita' ? 'out' : 'in' }}" data-msg-id="{{ m.id }}">
+        <div class="msg-bubble">{{ m.testo|nl2br }}</div>
+        <div class="msg-meta">
+            {{ m.createdAt|date('d/m H:i') }}
+            {% if m.autore %} · {{ m.autore.nome }}{% endif %}
+            {% if m.direzione.value == 'uscita' and m.stato %} · {{ m.stato }}{% endif %}
+        </div>
+    </div>
+{% endfor %}
