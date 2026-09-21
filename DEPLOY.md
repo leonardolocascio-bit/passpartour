@@ -41,9 +41,10 @@ e in giù, con un riavvio.
 
 ### 0. Prima ancora del server
 
-- **Repository remoto.** `aggiorna.sh` fa `git pull`: serve un repository
-  remoto (es. GitHub privato, come per Billicon) e questo progetto ancora non
-  ce l'ha. Crearlo e fare il primo push prima di installare.
+- **Repository remoto.** `aggiorna.sh` fa `git pull`: il repository è
+  `https://github.com/leonardolocascio-bit/passpartour.git` (privato). Il
+  server deve poterlo leggere: al `git clone` si passa un token di sola
+  lettura (fine-grained PAT limitato a questo repo).
 - **Intestazione.** Server nel progetto Hetzner intestato a **Passpartour srl**
   (i dati di lead e clienti sono suoi: titolare del trattamento e intestatario
   del contratto devono coincidere).
