@@ -1,21 +1,21 @@
 # Deploy — gli ambienti del gestionale Passpartour
 
-Due ambienti sul dominio `passpartour.com`, **una sola immagine**. Quello che li
+Due ambienti sul dominio `passpartourviaggi.com`, **una sola immagine**. Quello che li
 distingue non è il codice ma poche variabili: chi ha i dati veri e chi si
 popola da sé con dati finti.
 
 | | Produzione | Collaudo |
 |---|---|---|
-| Dominio | `gestionale.passpartour.com` | `stagingest.passpartour.com` |
+| Dominio | `gestionale.passpartourviaggi.com` | `stagingest.passpartourviaggi.com` |
 | Dati | reali (lead, clienti, offerte) | finti, rigenerabili dalle fixtures |
 | `DEMO_SEED` | assente | `1` |
 | Indicizzazione | no (è uno strumento interno: il proxy risponde `Disallow` a `/robots.txt`) | no |
 | Accesso | login del gestionale | login + password nel proxy (utente `collaudo`) |
 | Backup | notturno, 30 giorni | notturno, 30 giorni |
 
-Il dominio nudo `passpartour.com` (e `www`) è riservato al **sito web
+Il dominio nudo `passpartourviaggi.com` (e `www`) è riservato al **sito web
 pubblico**, che è un progetto a parte: nel `Caddyfile` il suo blocco è già
-predisposto e commentato, insieme a `stagingweb.passpartour.com`. Quando il
+predisposto e commentato, insieme a `stagingweb.passpartourviaggi.com`. Quando il
 sito esisterà basterà attivare quei blocchi e aggiungere due righe di DNS —
 stesso server, stesso proxy.
 
@@ -55,7 +55,7 @@ I certificati HTTPS si ottengono solo se i nomi puntano già al server, quindi
 il DNS va messo per primo: la propagazione richiede da pochi minuti a qualche
 ora.
 
-Dal pannello del registrar di `passpartour.com`, con `IP_DEL_SERVER` preso
+Dal pannello del registrar di `passpartourviaggi.com`, con `IP_DEL_SERVER` preso
 dalla console Hetzner:
 
 | Tipo | Nome | Valore | Quando |
@@ -68,7 +68,7 @@ dalla console Hetzner:
 Verifica prima di proseguire:
 
 ```bash
-dig +short gestionale.passpartour.com stagingest.passpartour.com
+dig +short gestionale.passpartourviaggi.com stagingest.passpartourviaggi.com
 ```
 
 ### 2. Il server
@@ -226,7 +226,7 @@ Prima il collaudo, poi la produzione.
 cd /opt/passpartour/docker/produzione && ./aggiorna.sh passpartour-staging staging.env
 ```
 
-Provato su `stagingest.passpartour.com` che tutto regga:
+Provato su `stagingest.passpartourviaggi.com` che tutto regga:
 
 ```bash
 cd /opt/passpartour/docker/produzione && ./aggiorna.sh passpartour-prod prod.env
@@ -254,8 +254,8 @@ ripristinato non è un backup, è un file.
 
 | Servizio | Cosa impostare |
 |---|---|
-| Piattaforme di lead gen | Webhook `POST https://gestionale.passpartour.com/webhook/lead/{token}` con il token di `prod.env`. Per le prove: stesso percorso su `stagingest.passpartour.com` (il proxy lascia passare `/webhook/*` senza password) con il token di `staging.env`. |
-| Google Cloud (Calendar) | Redirect OAuth autorizzati: `https://gestionale.passpartour.com/impostazioni/google/callback` e `https://stagingest.passpartour.com/impostazioni/google/callback`. |
+| Piattaforme di lead gen | Webhook `POST https://gestionale.passpartourviaggi.com/webhook/lead/{token}` con il token di `prod.env`. Per le prove: stesso percorso su `stagingest.passpartourviaggi.com` (il proxy lascia passare `/webhook/*` senza password) con il token di `staging.env`. |
+| Google Cloud (Calendar) | Redirect OAuth autorizzati: `https://gestionale.passpartourviaggi.com/impostazioni/google/callback` e `https://stagingest.passpartourviaggi.com/impostazioni/google/callback`. |
 | SMTP | `MAILER_DSN` in `prod.env` + SPF/DKIM del dominio mittente, altrimenti le email dei preventivi finiscono in spam. |
 | Twilio | Numeri/WhatsApp di produzione solo in `prod.env`; sul collaudo la sandbox. |
 | Unsplash / Anthropic | Chiavi in `prod.env` (facoltative: senza, ricerca immagini e caption AI restano spente ma tutto il resto funziona). |
@@ -277,5 +277,5 @@ ripristinato non è un backup, è un file.
 1. **Backup fuori dal server.** I dump stanno sullo stesso disco dei dati: una
    Storage Box Hetzner costa pochi euro e `backup-db.sh` è pronto a spedirceli.
 2. **Un controllo esterno che avvisi** se il gestionale cade.
-3. **SMTP vero e dominio mittente allineato** (`noreply@passpartour.com` con
+3. **SMTP vero e dominio mittente allineato** (`noreply@passpartourviaggi.com` con
    SPF/DKIM) prima di inviare il primo preventivo a un cliente reale.

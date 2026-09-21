@@ -44,7 +44,7 @@ x-app-env: &app-env
   TWILIO_FROM_SMS: ${TWILIO_FROM_SMS:-}
   TWILIO_FROM_WHATSAPP: ${TWILIO_FROM_WHATSAPP:-}
   MAILER_DSN: ${MAILER_DSN:-null://null}
-  MAILER_FROM: ${MAILER_FROM:-Passpartour <noreply@passpartour.com>}
+  MAILER_FROM: ${MAILER_FROM:-Passpartour <noreply@passpartourviaggi.com>}
 
 services:
   db:

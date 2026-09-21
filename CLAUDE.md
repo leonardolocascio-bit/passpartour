@@ -18,7 +18,7 @@ php bin/phpunit                   # test
 DB: ruolo/db `passpartour` + `passpartour_test` (password `passpartour`). Connessione in `.env.local` (dev) e `.env.test` (test, DB base `passpartour` + suffisso `_test` aggiunto da Symfony).
 
 ## Deploy
-Vedi **`DEPLOY.md`**. Server Hetzner unico (stile BILLICON): immagine FrankenPHP (`docker/Dockerfile`), stack prod+collaudo in `docker/produzione/` con proxy Caddy multi-dominio, **worker Messenger** (senza di lui le email non partono) e backup systemd. Domini: `gestionale.passpartour.com` (produzione, a fine sviluppo), `stagingest.passpartour.com` (collaudo, basic auth tranne `/webhook/*`); `passpartour.com`/`www` riservati al futuro sito web e `stagingweb` al suo collaudo (blocchi già predisposti e commentati nel Caddyfile).
+Vedi **`DEPLOY.md`**. Server Hetzner unico (stile BILLICON): immagine FrankenPHP (`docker/Dockerfile`), stack prod+collaudo in `docker/produzione/` con proxy Caddy multi-dominio, **worker Messenger** (senza di lui le email non partono) e backup systemd. Domini: `gestionale.passpartourviaggi.com` (produzione, a fine sviluppo), `stagingest.passpartourviaggi.com` (collaudo, basic auth tranne `/webhook/*`); `passpartourviaggi.com`/`www` riservati al futuro sito web e `stagingweb` al suo collaudo (blocchi già predisposti e commentati nel Caddyfile).
 
 ## Account demo (password: `passpartour`)
 - `master@passpartour.local` — ROLE_ADMIN

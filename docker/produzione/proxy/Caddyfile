@@ -15,7 +15,7 @@
 }
 
 # --- Gestionale, produzione: dati reali di lead e clienti -------------------
-gestionale.passpartour.com {
+gestionale.passpartourviaggi.com {
 	encode zstd gzip
 
 	# Il gestionale è uno strumento interno: fuori dall'indice dei motori di
@@ -34,7 +34,7 @@ gestionale.passpartour.com {
 	# personali: si tiene per trenta giorni e non "finché non riempie il
 	# disco".
 	log {
-		output file /data/log/gestionale.passpartour.com.log {
+		output file /data/log/gestionale.passpartourviaggi.com.log {
 			roll_size 20MiB
 			roll_keep 10
 			roll_keep_for 720h
@@ -45,7 +45,7 @@ gestionale.passpartour.com {
 # --- Collaudo del gestionale: qui arrivano prima gli aggiornamenti ----------
 # Dati finti o copia della produzione. Fuori dall'indice dei motori e protetto
 # da password.
-stagingest.passpartour.com {
+stagingest.passpartourviaggi.com {
 	encode zstd gzip
 
 	respond /robots.txt "User-agent: *\nDisallow: /" 200
@@ -67,13 +67,13 @@ stagingest.passpartour.com {
 # --- Sito web pubblico (futuro) ---------------------------------------------
 # Da attivare quando il sito esiste: blocco già pronto, servirà solo il DNS e
 # lo stack "web-app" (repo del sito, quando ci sarà).
-# passpartour.com, www.passpartour.com {
+# passpartourviaggi.com, www.passpartourviaggi.com {
 # 	encode zstd gzip
 # 	reverse_proxy web-app:80 {
 # 		header_up X-Forwarded-Proto https
 # 	}
 # 	log {
-# 		output file /data/log/passpartour.com.log {
+# 		output file /data/log/passpartourviaggi.com.log {
 # 			roll_size 20MiB
 # 			roll_keep 10
 # 			roll_keep_for 720h
@@ -82,7 +82,7 @@ stagingest.passpartour.com {
 # }
 
 # --- Collaudo del sito web (futuro, ove occorra) ----------------------------
-# stagingweb.passpartour.com {
+# stagingweb.passpartourviaggi.com {
 # 	encode zstd gzip
 # 	respond /robots.txt "User-agent: *\nDisallow: /" 200
 # 	basic_auth {

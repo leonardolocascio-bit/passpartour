@@ -2,8 +2,8 @@
 # Avvio dell'immagine di produzione: attende/riprova il DB, applica le
 # migrazioni, fa il seed dei dati demo se richiesto, poi avvia FrankenPHP.
 #
-# La stessa immagine serve produzione (gestionale.passpartour.com, dati reali)
-# e collaudo (stagingest.passpartour.com, dati finti): la differenza è tutta
+# La stessa immagine serve produzione (gestionale.passpartourviaggi.com, dati reali)
+# e collaudo (stagingest.passpartourviaggi.com, dati finti): la differenza è tutta
 # nelle variabili d'ambiente, non qui.
 set -e
 cd /app
