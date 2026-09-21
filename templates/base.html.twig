@@ -221,6 +221,30 @@
             .seg-del { position: absolute; top: 8px; right: 8px; border: none; background: none; color: var(--danger); cursor: pointer; font-size: 14px; font-weight: 800; line-height: 1; }
             .seg-del:hover { color: #b3313e; }
 
+            /* Inbox Meta (WhatsApp / Messenger / Instagram) */
+            .badge-whatsapp { background: #e6f6ec; color: #1f9d54; }
+            .badge-messenger { background: #e9eff9; color: #1c5099; }
+            .badge-instagram { background: #fdece1; color: #d2551b; }
+            .unread-pill {
+                display: inline-grid; place-items: center; min-width: 22px; height: 22px;
+                padding: 0 6px; border-radius: 11px; background: var(--brand); color: #fff;
+                font-size: 12px; font-weight: 800;
+            }
+            .chat { display: flex; flex-direction: column; gap: 10px; max-height: 60vh; overflow-y: auto; }
+            .msg { display: flex; flex-direction: column; max-width: 72%; }
+            .msg--in { align-self: flex-start; align-items: flex-start; }
+            .msg--out { align-self: flex-end; align-items: flex-end; }
+            .msg-bubble {
+                padding: 9px 13px; border-radius: 14px; font-size: 14px; line-height: 1.45;
+                background: #eef2f7; color: var(--ink); border-bottom-left-radius: 4px;
+                word-break: break-word;
+            }
+            .msg--out .msg-bubble {
+                background: var(--navy-600); color: #fff;
+                border-bottom-left-radius: 14px; border-bottom-right-radius: 4px;
+            }
+            .msg-meta { font-size: 11px; color: var(--muted); margin-top: 3px; padding: 0 4px; }
+
             /* Chip picker (multi-selezione con voci custom) */
             .chip-picker__label { display: block; font-weight: 600; font-size: 13px; margin-bottom: 8px; }
             .chip-picker__chips { display: flex; flex-wrap: wrap; gap: 8px; }

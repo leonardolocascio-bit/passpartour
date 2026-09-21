@@ -5,6 +5,8 @@ namespace App\DataFixtures;
 use App\Entity\Attivita;
 use App\Entity\Campagna;
 use App\Entity\Cliente;
+use App\Entity\Conversazione;
+use App\Entity\Messaggio;
 use App\Entity\Destinazione;
 use App\Entity\Lead;
 use App\Entity\Offerta;
@@ -16,7 +18,9 @@ use App\Entity\Tema;
 use App\Entity\Tipologia;
 use App\Entity\Utente;
 use App\Entity\VoceCosto;
+use App\Enum\CanaleMessaggio;
 use App\Enum\CategoriaVoce;
+use App\Enum\DirezioneMessaggio;
 use App\Enum\FonteLead;
 use App\Enum\StatoLead;
 use App\Enum\StatoPreventivo;
@@ -209,6 +213,31 @@ class AppFixtures extends Fixture
             $manager->persist($tappa);
         }
 
+        // ---- Inbox Meta: conversazioni demo (WhatsApp / Messenger / Instagram) ----
+        $convWa = (new Conversazione())
+            ->setCanale(CanaleMessaggio::WHATSAPP)
+            ->setIdEsterno('393391112233')
+            ->setNome('Luca Ferrari')->setTelefono('+393391112233')
+            ->setLead($leadByNome['Luca']);
+        $manager->persist($convWa);
+        $this->messaggio($convWa, DirezioneMessaggio::ENTRATA, 'Ciao! Ho visto la vostra offerta per le Maldive, è ancora valida per febbraio?', '-2 hours');
+        $this->messaggio($convWa, DirezioneMessaggio::USCITA, 'Ciao Luca! Certo, per febbraio abbiamo ancora disponibilità sul resort overwater. Ti preparo un preventivo?', '-100 minutes', $giulia);
+        $this->messaggio($convWa, DirezioneMessaggio::ENTRATA, 'Sì volentieri! Siamo in 2, partenza da Milano.', '-20 minutes');
+
+        $convMsn = (new Conversazione())
+            ->setCanale(CanaleMessaggio::MESSENGER)
+            ->setIdEsterno('24081234567890123')
+            ->setNome('Francesca P.');
+        $manager->persist($convMsn);
+        $this->messaggio($convMsn, DirezioneMessaggio::ENTRATA, 'Buongiorno, organizzate anche viaggi di nozze in Polinesia?', '-1 day');
+
+        $convIg = (new Conversazione())
+            ->setCanale(CanaleMessaggio::INSTAGRAM)
+            ->setIdEsterno('17845123456789012')
+            ->setNome('viaggi.con.sofia');
+        $manager->persist($convIg);
+        $this->messaggio($convIg, DirezioneMessaggio::ENTRATA, 'Ho visto il vostro reel su Santorini 😍 quanto costa il pacchetto?', '-3 hours');
+
         $manager->flush();
 
         // genera le attività di nurturing per i lead demo in base al loro stato attuale
@@ -228,6 +257,20 @@ class AppFixtures extends Fixture
     private function campagna(string $nome, FonteLead $fonte, ?string $budget): Campagna
     {
         return (new Campagna())->setNome($nome)->setFonte($fonte)->setBudget($budget)->setAttiva(true);
+    }
+
+    private function messaggio(Conversazione $conv, DirezioneMessaggio $dir, string $testo, string $quando, ?Utente $autore = null): void
+    {
+        $m = (new Messaggio())
+            ->setDirezione($dir)->setTesto($testo)
+            ->setStato($dir === DirezioneMessaggio::ENTRATA ? 'ricevuto' : 'letto')
+            ->setAutore($autore)
+            ->setCreatedAt(new \DateTimeImmutable($quando));
+        $conv->addMessaggio($m);
+        $conv->setAnteprima($testo)->setUltimoMessaggioAt($m->getCreatedAt());
+        if ($dir === DirezioneMessaggio::ENTRATA && $conv->getLead() === null) {
+            $conv->incrementaNonLetti();
+        }
     }
 
     private function attivita(Lead $lead, TipoAttivita $tipo, string $titolo, Utente $ass, bool $done): Attivita

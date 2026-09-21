@@ -15,6 +15,9 @@
             <a href="{{ path('app_lead_index') }}" class="{{ _route starts with 'app_lead' ? 'active' }}">
                 <span class="ic">◎</span> Lead
             </a>
+            <a href="{{ path('app_inbox') }}" class="{{ _route starts with 'app_inbox' ? 'active' }}">
+                <span class="ic">✉</span> Inbox
+            </a>
             <a href="{{ path('app_agenda') }}" class="{{ _route starts with 'app_agenda' or _route == 'app_automazioni' or _route == 'app_impostazioni' ? 'active' }}">
                 <span class="ic">◔</span> Agenda
             </a>

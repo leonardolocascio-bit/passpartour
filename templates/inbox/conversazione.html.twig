@@ -1,0 +1,90 @@
+{% extends 'app.html.twig' %}
+
+{% block title %}{{ conv.nomeVisuale }} · Inbox · Passpartour{% endblock %}
+{% block page_title %}
+    <a href="{{ path('app_inbox') }}" class="muted" style="font-weight:500">Inbox</a> › {{ conv.nomeVisuale }}
+{% endblock %}
+
+{% block main %}
+<div class="grid" style="grid-template-columns:minmax(0,1fr) 300px;align-items:start">
+
+    <div style="display:grid;gap:16px">
+        {# ---- Thread ---- #}
+        <div class="card">
+            <div class="card-pad" style="border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+                <h3 style="margin-right:4px">{{ conv.nomeVisuale }}</h3>
+                <span class="badge badge-{{ conv.canale.value }}">{{ conv.canale.label }}</span>
+                {% if conv.telefono %}<span class="muted">{{ conv.telefono }}</span>{% endif %}
+            </div>
+            <div class="chat card-pad">
+                {% for m in conv.messaggi %}
+                    <div class="msg msg--{{ m.direzione.value == 'uscita' ? 'out' : 'in' }}">
+                        <div class="msg-bubble">{{ m.testo|nl2br }}</div>
+                        <div class="msg-meta">
+                            {{ m.createdAt|date('d/m H:i') }}
+                            {% if m.autore %} · {{ m.autore.nome }}{% endif %}
+                            {% if m.direzione.value == 'uscita' and m.stato %} · {{ m.stato }}{% endif %}
+                        </div>
+                    </div>
+                {% else %}
+                    <div class="muted" style="text-align:center;padding:20px">Nessun messaggio.</div>
+                {% endfor %}
+            </div>
+        </div>
+
+        {# ---- Risposta ---- #}
+        <div class="card card-pad">
+            {% if puoInviare %}
+                <form method="post" action="{{ path('app_inbox_rispondi', {id: conv.id}) }}" style="display:flex;gap:10px;align-items:flex-end">
+                    <input type="hidden" name="_token" value="{{ csrf_token('inbox_rispondi_' ~ conv.id) }}">
+                    <div style="flex:1">
+                        <textarea name="testo" rows="2" placeholder="Scrivi una risposta su {{ conv.canale.label }}…" required></textarea>
+                    </div>
+                    <button class="btn btn-primary" type="submit">Invia</button>
+                </form>
+                {% if conv.canale.value == 'whatsapp' %}
+                    <small class="muted">Nota: WhatsApp accetta risposte libere solo entro 24 ore dall'ultimo messaggio del cliente; oltre, serve un template approvato.</small>
+                {% endif %}
+            {% else %}
+                <div class="section-hint">
+                    Credenziali {{ conv.canale.label }} non configurate: aggiungi i token Meta in <code>.env.local</code> per rispondere da qui.
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    {# ---- Colonna lead ---- #}
+    <div class="card card-pad" style="display:grid;gap:12px">
+        <h3 style="font-size:14px">Lead collegato</h3>
+        {% if conv.lead %}
+            <div>
+                <a href="{{ path('app_lead_scheda', {id: conv.lead.id}) }}" style="font-weight:700;color:var(--cyan)">{{ conv.lead.nomeCompleto }}</a>
+                <div style="margin-top:6px"><span class="badge badge-{{ conv.lead.stato.value }} dot">{{ conv.lead.stato.label }}</span></div>
+                {% if conv.lead.destinazione %}<div class="muted" style="margin-top:6px">{{ conv.lead.destinazione }}{% if conv.lead.periodo %} · {{ conv.lead.periodo }}{% endif %}</div>{% endif %}
+            </div>
+            <form method="post" action="{{ path('app_inbox_collega_lead', {id: conv.id}) }}">
+                <input type="hidden" name="_token" value="{{ csrf_token('inbox_lead_' ~ conv.id) }}">
+                <input type="hidden" name="lead_id" value="">
+                <button class="btn" type="submit">Scollega</button>
+            </form>
+        {% else %}
+            <form method="post" action="{{ path('app_inbox_collega_lead', {id: conv.id}) }}" style="display:grid;gap:8px">
+                <input type="hidden" name="_token" value="{{ csrf_token('inbox_lead_' ~ conv.id) }}">
+                <label for="lead_id">Collega a un lead esistente</label>
+                <select name="lead_id" id="lead_id">
+                    <option value="">— scegli —</option>
+                    {% for l in leadRecenti %}
+                        <option value="{{ l.id }}">{{ l.nomeCompleto }}{% if l.destinazione %} ({{ l.destinazione }}){% endif %}</option>
+                    {% endfor %}
+                </select>
+                <button class="btn" type="submit">Collega</button>
+            </form>
+            <div class="muted" style="text-align:center;font-size:12px">oppure</div>
+            <form method="post" action="{{ path('app_inbox_crea_lead', {id: conv.id}) }}">
+                <input type="hidden" name="_token" value="{{ csrf_token('inbox_lead_' ~ conv.id) }}">
+                <button class="btn btn-primary" type="submit" style="width:100%;justify-content:center">Crea lead da questa chat</button>
+            </form>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

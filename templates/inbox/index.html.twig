@@ -1,0 +1,50 @@
+{% extends 'app.html.twig' %}
+
+{% block title %}Inbox · Passpartour{% endblock %}
+{% block page_title %}Inbox Meta{% endblock %}
+
+{% block main %}
+<div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
+    <a class="chip {{ canaleAttivo is null ? 'chip--on' }}" href="{{ path('app_inbox') }}">Tutti</a>
+    {% for c in canali %}
+        <a class="chip {{ canaleAttivo == c ? 'chip--on' }}" href="{{ path('app_inbox', {canale: c.value}) }}">{{ c.label }}</a>
+    {% endfor %}
+</div>
+
+<div class="card">
+    <div class="card-pad" style="border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between">
+        <h3>Conversazioni <span class="muted" style="font-weight:500">({{ conversazioni|length }})</span></h3>
+        <span class="muted" style="font-size:12px">WhatsApp · Messenger · Instagram Direct della pagina Passpartour</span>
+    </div>
+    {% if conversazioni is empty %}
+        <div class="card-pad muted" style="text-align:center;padding:36px">
+            Nessuna conversazione.<br>
+            <small>Collega l'app Meta al webhook <code>/webhook/meta/&lt;token&gt;</code> per ricevere qui i messaggi di WhatsApp, Messenger e Instagram.</small>
+        </div>
+    {% else %}
+    <table class="grid-table">
+        <thead><tr><th>Contatto</th><th>Canale</th><th>Ultimo messaggio</th><th>Lead</th><th>Quando</th><th></th></tr></thead>
+        <tbody>
+        {% for conv in conversazioni %}
+            <tr onclick="window.location='{{ path('app_inbox_conversazione', {id: conv.id}) }}'" style="cursor:pointer">
+                <td style="font-weight:{{ conv.nonLetti > 0 ? '800' : '600' }}">{{ conv.nomeVisuale }}</td>
+                <td><span class="badge badge-{{ conv.canale.value }}">{{ conv.canale.label }}</span></td>
+                <td class="muted" style="max-width:340px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ conv.anteprima ?: '—' }}</td>
+                <td>
+                    {% if conv.lead %}
+                        <span class="badge badge-{{ conv.lead.stato.value }}">{{ conv.lead.nomeCompleto }}</span>
+                    {% else %}
+                        <span class="muted">—</span>
+                    {% endif %}
+                </td>
+                <td class="muted" style="white-space:nowrap">{{ conv.ultimoMessaggioAt|date('d/m/Y H:i') }}</td>
+                <td style="text-align:right">
+                    {% if conv.nonLetti > 0 %}<span class="unread-pill">{{ conv.nonLetti }}</span>{% endif %}
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
+</div>
+{% endblock %}
