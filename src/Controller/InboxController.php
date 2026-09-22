@@ -11,6 +11,7 @@ use App\Enum\DirezioneMessaggio;
 use App\Repository\ConversazioneRepository;
 use App\Service\LeadIntake\LeadData;
 use App\Service\LeadIntake\LeadIntakeService;
+use App\Service\Meta\InboxRealtime;
 use App\Service\Meta\MetaClient;
 use App\Enum\FonteLead;
 use Doctrine\ORM\EntityManagerInterface;
@@ -109,6 +110,7 @@ class InboxController extends AbstractController
         Request $request,
         MetaClient $meta,
         EntityManagerInterface $em,
+        InboxRealtime $realtime,
     ): Response {
         if (!$this->isCsrfTokenValid('inbox_rispondi_' . $conversazione->getId(), (string) $request->request->get('_token'))) {
             $this->addFlash('error', 'Sessione scaduta, riprova.');
@@ -138,6 +140,7 @@ class InboxController extends AbstractController
         $conversazione->addMessaggio($messaggio);
         $conversazione->setAnteprima($testo)->setUltimoMessaggioAt(new \DateTimeImmutable());
         $em->flush();
+        $realtime->segnala($conversazione);
 
         return $this->redirectToRoute('app_inbox_conversazione', ['id' => $conversazione->getId()]);
     }

@@ -43,6 +43,12 @@ x-app-env: &app-env
   TWILIO_AUTH_TOKEN: ${TWILIO_AUTH_TOKEN:-}
   TWILIO_FROM_SMS: ${TWILIO_FROM_SMS:-}
   TWILIO_FROM_WHATSAPP: ${TWILIO_FROM_WHATSAPP:-}
+  # Inbox in tempo reale: hub Mercure integrato in FrankenPHP. Con MERCURE_URL
+  # vuoto il hub resta spento e l'inbox usa il polling. Il segreto ha un
+  # segnaposto perché il servizio Symfony esige una chiave anche da spento.
+  MERCURE_URL: ${MERCURE_URL:-}
+  MERCURE_PUBLIC_URL: ${MERCURE_PUBLIC_URL:-}
+  MERCURE_JWT_SECRET: ${MERCURE_JWT_SECRET:-mercure-non-configurato-segnaposto-jwt!}
   META_VERIFY_TOKEN: ${META_VERIFY_TOKEN:-}
   META_APP_SECRET: ${META_APP_SECRET:-}
   META_PAGE_ACCESS_TOKEN: ${META_PAGE_ACCESS_TOKEN:-}

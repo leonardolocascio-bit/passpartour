@@ -15,8 +15,10 @@
             <a href="{{ path('app_lead_index') }}" class="{{ _route starts with 'app_lead' ? 'active' }}">
                 <span class="ic">◎</span> Lead
             </a>
-            <a href="{{ path('app_inbox') }}" class="{{ _route starts with 'app_inbox' ? 'active' }}">
+            <a href="{{ path('app_inbox') }}" class="{{ _route starts with 'app_inbox' ? 'active' }}" style="justify-content:flex-start">
                 <span class="ic">✉</span> Inbox
+                {% set nonLetti = inbox_non_letti() %}
+                <span class="unread-pill" id="inbox-badge" style="margin-left:auto;{{ nonLetti == 0 ? 'display:none' }}">{{ nonLetti }}</span>
             </a>
             <a href="{{ path('app_agenda') }}" class="{{ _route starts with 'app_agenda' or _route == 'app_automazioni' or _route == 'app_impostazioni' ? 'active' }}">
                 <span class="ic">◔</span> Agenda
@@ -70,4 +72,50 @@
         </div>
     </div>
 </div>
+
+{# ---- Inbox in tempo reale: Mercure (se configurato) + polling di riserva ---- #}
+<script>
+window.InboxLive = (function () {
+    const badge = document.getElementById('inbox-badge');
+    const titoloBase = document.title.replace(/^\(\d+\)\s*/, '');
+    let ultimoNoto = 0;
+
+    function applica(dati) {
+        if (typeof dati.nonLetti === 'number' && badge) {
+            badge.textContent = dati.nonLetti;
+            badge.style.display = dati.nonLetti > 0 ? '' : 'none';
+            document.title = (dati.nonLetti > 0 ? '(' + dati.nonLetti + ') ' : '') + titoloBase;
+        }
+        if (dati.ultimo && dati.ultimo > ultimoNoto) {
+            ultimoNoto = dati.ultimo;
+            document.dispatchEvent(new CustomEvent('inbox:segnale', {detail: dati}));
+        }
+    }
+
+    // Tempo reale: hub Mercure (vuoto in locale → si usa solo il polling)
+    const hub = '{{ inbox_mercure_url()|e('js') }}';
+    if (hub && window.EventSource) {
+        try {
+            const es = new EventSource(hub + '?topic=' + encodeURIComponent('passpartour/inbox'));
+            es.onmessage = (e) => { try { applica(JSON.parse(e.data)); } catch (err) {} };
+            // in caso di errore EventSource si riconnette da solo; il polling copre i buchi
+        } catch (e) {}
+    }
+
+    // Polling di riserva: 5s nelle pagine inbox, 30s altrove (solo per il badge)
+    const inInbox = window.location.pathname.startsWith('/inbox');
+    async function poll() {
+        if (document.hidden) return;
+        try {
+            const r = await fetch('{{ path('app_inbox_stato') }}', {headers: {'Accept': 'application/json'}});
+            if (r.ok) applica(await r.json());
+        } catch (e) { /* rete assente: si riprova al giro dopo */ }
+    }
+    setInterval(poll, inInbox ? 5000 : 30000);
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) poll(); });
+    poll();
+
+    return {applica};
+})();
+</script>
 {% endblock %}

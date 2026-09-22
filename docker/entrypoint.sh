@@ -38,5 +38,18 @@ fi
 # Dietro il proxy si ascolta in HTTP semplice: l'HTTPS lo termina Caddy nel
 # container proxy (docker/produzione/proxy/).
 export SERVER_NAME="${SERVER_NAME:-:80}"
+
+# Hub Mercure integrato (inbox in tempo reale): si accende SOLO se l'ambiente
+# fornisce il segreto JWT — senza, Caddy parte come sempre e l'inbox usa il
+# polling. Aggiornamenti pubblicati dall'app su MERCURE_URL, sottoscritti dal
+# browser su /.well-known/mercure (topic di soli segnali, mai contenuti).
+if [ -n "${MERCURE_URL:-}" ] && [ -n "${MERCURE_JWT_SECRET:-}" ]; then
+    export CADDY_SERVER_EXTRA_DIRECTIVES="mercure {
+	publisher_jwt ${MERCURE_JWT_SECRET}
+	subscriber_jwt ${MERCURE_JWT_SECRET}
+	anonymous
+}"
+    echo "→ Hub Mercure attivo su /.well-known/mercure"
+fi
 echo "→ Avvio FrankenPHP su ${SERVER_NAME}"
 exec frankenphp run --config /etc/caddy/Caddyfile

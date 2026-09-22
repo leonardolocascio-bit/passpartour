@@ -115,6 +115,8 @@
 
     setInterval(aggiorna, 5000);
     document.addEventListener('visibilitychange', () => { if (!document.hidden) aggiorna(); });
+    // segnale in tempo reale (Mercure o polling globale): aggiorna subito
+    document.addEventListener('inbox:segnale', () => aggiorna());
 })();
 </script>
 {% endblock %}

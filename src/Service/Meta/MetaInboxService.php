@@ -24,6 +24,7 @@ class MetaInboxService
         private readonly EntityManagerInterface $em,
         private readonly ConversazioneRepository $conversazioni,
         private readonly LeadRepository $leadRepository,
+        private readonly InboxRealtime $realtime,
     ) {
     }
 
@@ -47,6 +48,10 @@ class MetaInboxService
 
         if ($nuovi > 0) {
             $this->em->flush();
+            // segnala al browser le conversazioni toccate (dopo il flush: id e contatori definitivi)
+            foreach ($this->bufferConversazioni as $conv) {
+                $this->realtime->segnala($conv);
+            }
         }
 
         return $nuovi;

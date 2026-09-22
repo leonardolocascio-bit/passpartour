@@ -1,0 +1,11 @@
+# Hub Mercure per l'inbox in tempo reale (vedi App\Service\Meta\InboxRealtime).
+# Con MERCURE_URL vuoto il servizio Hub esiste ma non viene mai usato: il
+# publisher controlla la variabile e l'inbox ripiega sul polling.
+mercure:
+    hubs:
+        default:
+            url: '%env(MERCURE_URL)%'
+            public_url: '%env(MERCURE_PUBLIC_URL)%'
+            jwt:
+                secret: '%env(MERCURE_JWT_SECRET)%'
+                publish: '*'
