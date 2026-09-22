@@ -127,6 +127,11 @@ services:
         condition: service_started
     entrypoint:
       ["php", "bin/console", "messenger:consume", "async", "--time-limit=3600", "--memory-limit=256M"]
+    # L'immagine FrankenPHP porta con sé un healthcheck HTTP che qui non ha
+    # senso: questo container è un processo console, non serve richieste.
+    # Senza questo risulterebbe per sempre "unhealthy" pur lavorando bene.
+    healthcheck:
+      disable: true
     environment: *app-env
     volumes:
       - uploads:/app/public/uploads

@@ -61,6 +61,11 @@ stagingest.passpartourviaggi.com {
 
 	reverse_proxy staging-app:80 {
 		header_up X-Forwarded-Proto https
+		# La password del cancello non deve proseguire verso l'app: il hub
+		# Mercure integrato scambierebbe il Basic per un JWT e risponderebbe
+		# 401 — e per il browser un 401 con credenziali allegate significa
+		# "password sbagliata": popup di login a ogni riconnessione dell'inbox.
+		header_up -Authorization
 	}
 }
 
