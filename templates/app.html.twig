@@ -78,7 +78,10 @@
 window.InboxLive = (function () {
     const badge = document.getElementById('inbox-badge');
     const titoloBase = document.title.replace(/^\(\d+\)\s*/, '');
-    let ultimoNoto = 0;
+    // Baseline al momento del render: il primo poll non deve rilanciare come
+    // "novità" ciò che la pagina mostra già (partendo da 0 ogni caricamento
+    // emetteva un segnale, e la lista filtrata per canale ricaricava in loop).
+    let ultimoNoto = {{ inbox_ultimo() }};
 
     function applica(dati) {
         if (typeof dati.nonLetti === 'number' && badge) {

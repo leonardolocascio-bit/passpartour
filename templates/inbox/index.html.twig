@@ -50,12 +50,11 @@
 
 <script>
 (function () {
-    // ricarica la lista quando arriva (o parte) un messaggio nuovo
-    // (il segnale viene da Mercure o dal polling globale di app.html.twig)
-    const ultimo = {{ conversazioni|length ? (conversazioni|first).ultimoMessaggioAt.timestamp : 0 }};
-    document.addEventListener('inbox:segnale', (e) => {
-        if (e.detail.ultimo > ultimo) window.location.reload();
-    });
+    // ricarica la lista quando arriva (o parte) un messaggio nuovo: il segnale
+    // globale di app.html.twig scatta solo per attività successiva al render,
+    // quindi niente confronto locale (col filtro canale attivo il confronto
+    // col massimo globale era sempre vero → reload in loop).
+    document.addEventListener('inbox:segnale', () => window.location.reload());
 })();
 </script>
 {% endblock %}

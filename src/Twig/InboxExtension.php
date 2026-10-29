@@ -23,6 +23,7 @@ class InboxExtension extends AbstractExtension
     {
         return [
             new TwigFunction('inbox_non_letti', $this->conversazioni->totaleNonLetti(...)),
+            new TwigFunction('inbox_ultimo', $this->conversazioni->ultimoAggiornamento(...)),
             new TwigFunction('inbox_mercure_url', fn (): string => $this->mercurePublicUrl ?? ''),
         ];
     }

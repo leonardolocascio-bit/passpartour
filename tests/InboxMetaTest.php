@@ -218,6 +218,29 @@ class InboxMetaTest extends WebTestCase
         self::assertSame('', $vuoto['html']);
     }
 
+    public function testBaselineInboxNelLayoutEvitaIlLoopDiReload(): void
+    {
+        // Un messaggio appena arrivato fissa il massimo globale dell'inbox.
+        $this->postMeta($this->payloadWhatsapp('393330000010', 'wamid.BL1', 'Baseline'));
+        $atteso = static::getContainer()->get(\App\Repository\ConversazioneRepository::class)
+            ->ultimoAggiornamento();
+        self::assertGreaterThan(0, $atteso);
+
+        $master = static::getContainer()->get('doctrine')
+            ->getRepository(Utente::class)->findOneBy(['email' => 'master@passpartour.local']);
+        $this->client->loginUser($master);
+
+        // Il layout deve partire da quel valore, non da 0: altrimenti il primo
+        // poll emette un segnale per attività già mostrata e la lista inbox
+        // (soprattutto filtrata per canale) ricarica in loop.
+        $this->client->request('GET', '/inbox?canale=messenger');
+        self::assertResponseIsSuccessful();
+        self::assertStringContainsString(
+            'let ultimoNoto = ' . $atteso,
+            $this->client->getResponse()->getContent(),
+        );
+    }
+
     public function testInboxPagineRichiedonoLoginEFunzionano(): void
     {
         $this->client->request('GET', '/inbox');
