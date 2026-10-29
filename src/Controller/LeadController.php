@@ -246,6 +246,12 @@ class LeadController extends AbstractController
             $em->flush();
         }
 
+        // ritorno opzionale alla pagina chiamante (solo path interni)
+        $ritorno = (string) $request->request->get('ritorno');
+        if ($ritorno !== '' && str_starts_with($ritorno, '/') && !str_starts_with($ritorno, '//')) {
+            return $this->redirect($ritorno);
+        }
+
         return $this->redirectToRoute('app_lead_scheda', ['id' => $attivita->getLead()->getId()]);
     }
 }

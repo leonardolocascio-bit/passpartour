@@ -1,0 +1,40 @@
+{% extends 'app.html.twig' %}
+
+{% block title %}Vendite · Passpartour{% endblock %}
+{% block page_title %}Vendite{% endblock %}
+
+{% block main %}
+<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px">
+    {% for s in stati %}
+        <div class="card card-pad" style="padding:10px 16px;display:flex;gap:10px;align-items:center">
+            <span class="{{ s.badgeClass }}">{{ s.label }}</span>
+            <strong>{{ perStato[s.value] }}</strong>
+        </div>
+    {% endfor %}
+</div>
+
+<div class="card">
+    <div class="card-pad" style="border-bottom:1px solid var(--line)">
+        <h3>Pratiche <span class="muted" style="font-weight:500">({{ vendite|length }})</span></h3>
+        <div class="muted" style="font-size:13px;margin-top:4px">Una vendita nasce accettando un preventivo (bottone «Trasforma in vendita» nella scheda preventivo).</div>
+    </div>
+    <table class="grid-table">
+        <thead><tr><th>Pratica</th><th>Cliente</th><th>Preventivo</th><th>Importo</th><th>Incassato</th><th>Stato</th><th>Creata il</th></tr></thead>
+        <tbody>
+        {% for v in vendite %}
+            <tr>
+                <td style="font-weight:600"><a href="{{ path('app_vendita_scheda', {id: v.id}) }}">{{ v.titolo }}</a></td>
+                <td class="muted">{{ v.cliente ? v.cliente.nomeCompleto : (v.lead ? v.lead.nomeCompleto : '—') }}</td>
+                <td class="muted">{{ v.preventivo ? v.preventivo.numero : '—' }}</td>
+                <td>{{ v.importoTotale ? '€ ' ~ v.importoTotale|number_format(2, ',', '.') : '—' }}</td>
+                <td>{{ v.totaleIncassato > 0 ? '€ ' ~ v.totaleIncassato|number_format(2, ',', '.') : '—' }}</td>
+                <td><span class="{{ v.stato.badgeClass }}">{{ v.stato.label }}</span></td>
+                <td class="muted">{{ v.createdAt|date('d/m/Y') }}</td>
+            </tr>
+        {% else %}
+            <tr><td colspan="7" class="muted" style="text-align:center;padding:28px">Nessuna pratica: accetta un preventivo per crearne una.</td></tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

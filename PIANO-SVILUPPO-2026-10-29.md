@@ -124,7 +124,7 @@ vendite, fatturato.
 | 3 ✓ | Creator Studio: struttura, Archivio (Digital+Print) e Media Kit | 1 |
 | 4 ✓ | Editor Content (JPG RGB) e Print (PDF, RGB con nota CMYK in prestampa) generalizzati — Editor Video rinviato (valutare Canva) | 3 |
 | 5 ✓ | Campagne: generatore landing da offerte + lead gen (l'URL landing si usa nelle sponsorizzate Meta) | 3 |
-| 6 | Vendite: pipeline pratica, piano pagamenti, attività operative, promemoria fattura, contratti | 2 |
-| 7 | Agenda hub: promemoria da vendite e da pubblicazioni | 4, 6 |
+| 6 ✓ | Vendite: pipeline pratica, piano pagamenti, attività operative, promemoria fattura, lead→cliente automatico (contratti: in attesa del template Giramondo) | 2 |
+| 7 | Agenda hub: promemoria da vendite ✓ (già attivo col blocco 6); resta scadenze pubblicazione contenuti → Agenda | 4, 6 |
 | 8 | Dashboard nuova | tutto |
 | — | Fix connettore immagini in collaudo | subito |

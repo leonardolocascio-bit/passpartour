@@ -1,0 +1,179 @@
+{% extends 'app.html.twig' %}
+
+{% block title %}{{ vendita.titolo }} · Vendite · Passpartour{% endblock %}
+{% block page_title %}Pratica · {{ vendita.titolo }}{% endblock %}
+
+{% block main %}
+<div style="display:flex;gap:10px;align-items:center;margin-bottom:16px;flex-wrap:wrap">
+    <a class="btn" href="{{ path('app_vendita_index') }}">← Vendite</a>
+    <span class="{{ vendita.stato.badgeClass }}">{{ vendita.stato.label }}</span>
+    {% if vendita.preventivo %}<a class="btn" href="{{ path('app_preventivo_scheda', {id: vendita.preventivo.id}) }}">Preventivo {{ vendita.preventivo.numero }}</a>{% endif %}
+    {% if vendita.lead %}<a class="btn" href="{{ path('app_lead_scheda', {id: vendita.lead.id}) }}">Scheda lead</a>{% endif %}
+</div>
+
+<div style="display:grid;grid-template-columns:minmax(0,3fr) minmax(280px,2fr);gap:18px;align-items:start">
+    <div style="display:grid;gap:18px">
+        {# ---- Dati pratica + piano pagamenti (salvataggio unico) ---- #}
+        <form method="post" action="{{ path('app_vendita_salva', {id: vendita.id}) }}" id="form-vendita">
+            <input type="hidden" name="_token" value="{{ csrf_token('vendita_salva_' ~ vendita.id) }}">
+            <input type="hidden" name="pagamenti_json" id="pagamenti-json">
+            <div class="card"><div class="card-pad">
+                <h3 style="margin-bottom:12px">Pratica</h3>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+                    <div>
+                        <label>Stato</label>
+                        <select name="stato">
+                            {% for s in stati %}<option value="{{ s.value }}" {{ vendita.stato == s ? 'selected' }}>{{ s.label }}</option>{% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label>Importo totale (€)</label>
+                        <input type="text" name="importo_totale" value="{{ vendita.importoTotale }}" placeholder="es. 3200.00">
+                    </div>
+                </div>
+                <div style="margin-top:12px">
+                    <label>Note interne</label>
+                    <textarea name="note" placeholder="Annotazioni sulla pratica (solo lato agenzia)…">{{ vendita.note }}</textarea>
+                </div>
+            </div></div>
+
+            <div class="card" style="margin-top:18px"><div class="card-pad">
+                <h3 style="margin-bottom:4px">Piano pagamenti</h3>
+                <p class="muted" style="font-size:13px;margin:0 0 12px">
+                    Ogni scadenza diventa un promemoria in Agenda; «incassato» lo spunta.
+                </p>
+                <table class="grid-table" id="tab-pagamenti">
+                    <thead><tr><th>Descrizione</th><th style="width:110px">Importo €</th><th style="width:150px">Scadenza</th><th style="width:90px">Incassato</th><th style="width:40px"></th></tr></thead>
+                    <tbody></tbody>
+                </table>
+                <button type="button" class="btn" id="btn-aggiungi-pagamento" style="margin-top:10px">+ Aggiungi rata</button>
+                <div style="margin-top:12px;display:flex;gap:18px" class="muted">
+                    <span>Totale piano: <strong id="tot-piano"></strong></span>
+                    <span>Incassato: <strong id="tot-incassato"></strong></span>
+                </div>
+            </div></div>
+
+            <div style="margin-top:14px">
+                <button class="btn btn-primary">💾 Salva pratica</button>
+            </div>
+        </form>
+    </div>
+
+    {# ---- Colonna destra: cliente + attività operative ---- #}
+    <div style="display:grid;gap:18px">
+        <div class="card card-pad">
+            <h3 style="margin-bottom:10px">Cliente</h3>
+            {% if vendita.cliente %}
+                <div style="font-weight:600">{{ vendita.cliente.nomeCompleto }}</div>
+                <div class="muted" style="font-size:13px;margin-top:4px">
+                    {{ vendita.cliente.email ?: '—' }}<br>{{ vendita.cliente.telefono ?: '—' }}
+                </div>
+            {% else %}
+                <div class="muted">Nessun cliente collegato.</div>
+            {% endif %}
+            {% if vendita.conclusaIl %}
+                <div class="muted" style="font-size:12px;margin-top:10px">Pratica conclusa il {{ vendita.conclusaIl|date('d/m/Y') }}</div>
+            {% endif %}
+        </div>
+
+        <div class="card">
+            <div class="card-pad" style="border-bottom:1px solid var(--line)">
+                <h3>Attività della pratica</h3>
+                <div class="muted" style="font-size:12px;margin-top:4px">Solo lato agenzia, mai visibili al cliente. Compaiono in Agenda.</div>
+            </div>
+            <div class="card-pad" style="display:grid;gap:10px">
+                {% for a in attivita %}
+                    <div style="display:flex;gap:10px;align-items:flex-start">
+                        <form method="post" action="{{ path('app_attivita_toggle', {id: a.id}) }}">
+                            <input type="hidden" name="_token" value="{{ csrf_token('attivita_toggle_' ~ a.id) }}">
+                            <input type="hidden" name="ritorno" value="{{ path('app_vendita_scheda', {id: vendita.id}) }}">
+                            <button class="btn" style="padding:2px 8px;font-size:13px" title="Segna {{ a.completata ? 'da fare' : 'fatta' }}">{{ a.completata ? '✓' : '○' }}</button>
+                        </form>
+                        <div style="{{ a.completata ? 'opacity:.55;text-decoration:line-through' }}">
+                            <div style="font-weight:600;font-size:14px">{{ a.titolo }}</div>
+                            <div class="muted" style="font-size:12px">
+                                <span class="badge" style="font-size:10px">{{ a.tipo.label }}</span>
+                                {{ a.dataScadenza ? a.dataScadenza|date('d/m/Y') : 'senza data' }}
+                                {{ a.assegnatario ? '· ' ~ a.assegnatario.nomeCompleto }}
+                            </div>
+                        </div>
+                    </div>
+                {% else %}
+                    <div class="muted" style="font-size:13px">Nessuna attività: le scadenze del piano pagamenti e le attività operative compariranno qui.</div>
+                {% endfor %}
+
+                <form method="post" action="{{ path('app_vendita_attivita', {id: vendita.id}) }}" style="border-top:1px solid var(--line);padding-top:12px;display:grid;gap:10px">
+                    <input type="hidden" name="_token" value="{{ csrf_token('vendita_attivita_' ~ vendita.id) }}">
+                    <div>
+                        <label>Nuova attività operativa</label>
+                        <input type="text" name="titolo" placeholder="es. Bloccare il treno per il cliente" required>
+                    </div>
+                    <div style="display:flex;gap:10px;align-items:end">
+                        <div style="flex:1">
+                            <label>Scadenza</label>
+                            <input type="datetime-local" name="scadenza">
+                        </div>
+                        <button class="btn btn-primary">Aggiungi</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    const righe = {{ vendita.pagamenti|json_encode|raw }};
+    const tbody = document.querySelector('#tab-pagamenti tbody');
+    const fmt = (n) => '€ ' + n.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+    function aggiornaTotali() {
+        let tot = 0, inc = 0;
+        leggi().forEach(r => {
+            const i = parseFloat(String(r.importo || '').replace(',', '.')) || 0;
+            tot += i; if (r.incassato) inc += i;
+        });
+        document.getElementById('tot-piano').textContent = fmt(tot);
+        document.getElementById('tot-incassato').textContent = fmt(inc);
+    }
+
+    function aggiungiRiga(r) {
+        r = r || {};
+        const tr = document.createElement('tr');
+        tr.dataset.id = r.id || '';
+        tr.dataset.attivitaId = r.attivitaId || '';
+        tr.innerHTML = `
+            <td><input type="text" class="p-desc" value="" placeholder="es. Acconto 30%"></td>
+            <td><input type="text" class="p-importo" value="" placeholder="0,00"></td>
+            <td><input type="date" class="p-scadenza" value=""></td>
+            <td style="text-align:center"><input type="checkbox" class="p-incassato" style="width:auto"></td>
+            <td><button type="button" class="btn p-rimuovi" style="padding:2px 8px;color:var(--danger)">✕</button></td>`;
+        tr.querySelector('.p-desc').value = r.descrizione || '';
+        tr.querySelector('.p-importo').value = r.importo || '';
+        tr.querySelector('.p-scadenza').value = r.scadenza || '';
+        tr.querySelector('.p-incassato').checked = !!r.incassato;
+        tr.querySelector('.p-rimuovi').addEventListener('click', () => { tr.remove(); aggiornaTotali(); });
+        tr.addEventListener('input', aggiornaTotali);
+        tbody.appendChild(tr);
+    }
+
+    function leggi() {
+        return Array.from(tbody.querySelectorAll('tr')).map(tr => ({
+            id: tr.dataset.id || null,
+            attivitaId: tr.dataset.attivitaId ? parseInt(tr.dataset.attivitaId, 10) : null,
+            descrizione: tr.querySelector('.p-desc').value,
+            importo: tr.querySelector('.p-importo').value,
+            scadenza: tr.querySelector('.p-scadenza').value,
+            incassato: tr.querySelector('.p-incassato').checked,
+        }));
+    }
+
+    righe.forEach(aggiungiRiga);
+    aggiornaTotali();
+    document.getElementById('btn-aggiungi-pagamento').addEventListener('click', () => aggiungiRiga());
+    document.getElementById('form-vendita').addEventListener('submit', () => {
+        document.getElementById('pagamenti-json').value = JSON.stringify(leggi());
+    });
+})();
+</script>
+{% endblock %}

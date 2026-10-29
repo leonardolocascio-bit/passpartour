@@ -10,6 +10,9 @@ enum TipoAttivita: string
     case WHATSAPP = 'whatsapp';
     case APPUNTAMENTO = 'appuntamento';
     case NOTA = 'nota';
+    case PAGAMENTO = 'pagamento';
+    case OPERATIVA = 'operativa';
+    case FATTURA = 'fattura';
 
     public function label(): string
     {
@@ -20,6 +23,9 @@ enum TipoAttivita: string
             self::WHATSAPP => 'WhatsApp',
             self::APPUNTAMENTO => 'Appuntamento',
             self::NOTA => 'Nota',
+            self::PAGAMENTO => 'Scadenza pagamento',
+            self::OPERATIVA => 'Attività operativa',
+            self::FATTURA => 'Fattura',
         };
     }
 }

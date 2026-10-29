@@ -116,6 +116,24 @@ class AppFixtures extends Fixture
         $manager->persist($cliente);
         $leadByNome['Simone']->setCliente($cliente);
 
+        // ---- Vendita demo (pratica in lavorazione per il cliente convertito) ----
+        $vendita = (new \App\Entity\Vendita())
+            ->setTitolo('Crociera Mediterraneo · Agosto 2026')
+            ->setLead($leadByNome['Simone'])
+            ->setCliente($cliente)
+            ->setStato(\App\Enum\StatoVendita::IN_LAVORAZIONE)
+            ->setImportoTotale('3200.00')
+            ->setPagamenti([
+                ['id' => 'p1', 'descrizione' => 'Acconto 25%', 'importo' => '800.00', 'scadenza' => (new \DateTimeImmutable('-10 days'))->format('Y-m-d'), 'incassato' => true, 'attivitaId' => null],
+                ['id' => 'p2', 'descrizione' => 'Saldo', 'importo' => '2400.00', 'scadenza' => (new \DateTimeImmutable('+30 days'))->format('Y-m-d'), 'incassato' => false, 'attivitaId' => null],
+            ])
+            ->setNote('Cabina con balcone confermata; documenti ok.');
+        $manager->persist($vendita);
+        $manager->persist((new Attivita())
+            ->setLead($leadByNome['Simone'])->setTipo(TipoAttivita::OPERATIVA)
+            ->setTitolo('Bloccare escursioni a Santorini e Mykonos')
+            ->setDataScadenza(new \DateTimeImmutable('+7 days'))->setAssegnatario($giulia));
+
         // ---- Rubrica fornitori ----
         foreach ([
             ['Giramondo Tour Operator', 'Tour operator', 'Paolo Neri', 'booking@giramondo.example', '0805551234'],

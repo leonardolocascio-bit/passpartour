@@ -26,6 +26,12 @@
         <a class="btn" href="{{ path('app_preventivo_pdf', {id: preventivo.id}) }}">↓ PDF</a>
         <a class="btn" href="{{ path('app_preventivo_modifica', {id: preventivo.id}) }}">Modifica</a>
         <a class="btn btn-primary" href="{{ path('app_preventivo_email', {id: preventivo.id}) }}">✉ Invia</a>
+        {% if preventivo.stato.value != 'accettato' %}
+            <form method="post" action="{{ path('app_preventivo_vendita', {id: preventivo.id}) }}" style="display:inline" onsubmit="return confirm('Trasformare il preventivo in vendita? Il lead diventerà cliente.')">
+                <input type="hidden" name="_token" value="{{ csrf_token('preventivo_vendita_' ~ preventivo.id) }}">
+                <button class="btn" style="background:var(--navy);color:#fff;border-color:var(--navy)">✓ Trasforma in vendita</button>
+            </form>
+        {% endif %}
     </div>
 </div>
 
