@@ -19,7 +19,9 @@ class CruscottoTest extends KernelTestCase
         $m = $cruscotto->calcola();
 
         // chiavi principali presenti
-        foreach (['tot_lead', 'tasso_conversione', 'valore_pipeline', 'per_fonte', 'agenti', 'campagne', 'prev_per_stato'] as $k) {
+        foreach (['tot_lead', 'tasso_conversione', 'valore_pipeline', 'per_fonte', 'agenti', 'campagne', 'prev_per_stato',
+            'opportunita_n', 'opportunita_valore', 'pratiche', 'pratiche_aperte', 'fatturato', 'incassato', 'da_incassare',
+            'vendite_per_stato', 'vendite_recenti'] as $k) {
             self::assertArrayHasKey($k, $m);
         }
 
@@ -36,5 +38,15 @@ class CruscottoTest extends KernelTestCase
 
         // il valore pipeline non è negativo
         self::assertGreaterThanOrEqual(0, $m['valore_pipeline']);
+
+        // opportunità = preventivi in attesa di esito (inviati)
+        self::assertSame($m['prev_per_stato']['inviato']['n'], $m['opportunita_n']);
+
+        // vendite: fixtures con una pratica in lavorazione (800 incassati su 3200)
+        self::assertSame($m['pratiche'], \count($m['vendite_recenti']) > 0 ? $m['pratiche'] : 0);
+        self::assertGreaterThanOrEqual(1, $m['pratiche']);
+        self::assertGreaterThanOrEqual($m['incassato'], $m['fatturato']);
+        self::assertEqualsWithDelta($m['fatturato'] - $m['incassato'], $m['da_incassare'], 0.001);
+        self::assertSame(array_sum(array_map(static fn ($x) => $x['n'], $m['vendite_per_stato'])), $m['pratiche'] + ($m['vendite_per_stato']['annullata']['n'] ?? 0));
     }
 }

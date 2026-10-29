@@ -126,5 +126,8 @@ vendite, fatturato.
 | 5 ✓ | Campagne: generatore landing da offerte + lead gen (l'URL landing si usa nelle sponsorizzate Meta) | 3 |
 | 6 ✓ | Vendite: pipeline pratica, piano pagamenti, attività operative, promemoria fattura, lead→cliente automatico (contratti: in attesa del template Giramondo) | 2 |
 | 7 ✓ | Agenda hub: promemoria da vendite (blocco 6) + scadenze pubblicazione contenuti nelle viste calendario e nella lista agenda | 4, 6 |
-| 8 | Dashboard nuova | tutto |
-| — | Fix connettore immagini in collaudo | subito |
+| 8 ✓ | Dashboard nuova: lead, opportunità (preventivi in attesa + potenziale), vendite, fatturato/incassato, ultime pratiche | tutto |
+| — | Fix connettore immagini in collaudo (chiave `UNSPLASH_ACCESS_KEY` nello staging) | al prossimo deploy |
+
+> **Piano completato il 29/10/2026.** Restano fuori, in attesa di input: Editor Video (valutare Canva),
+> contratto Giramondo (serve il template di Maria), pubblicazione diretta sui social e valutazione ManyChat.

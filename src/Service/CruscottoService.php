@@ -6,9 +6,11 @@ use App\Entity\Campagna;
 use App\Entity\Lead;
 use App\Entity\Preventivo;
 use App\Entity\Utente;
+use App\Entity\Vendita;
 use App\Enum\FonteLead;
 use App\Enum\StatoLead;
 use App\Enum\StatoPreventivo;
+use App\Enum\StatoVendita;
 use Doctrine\ORM\EntityManagerInterface;
 
 /**
@@ -33,6 +35,8 @@ class CruscottoService
         $utenti = $this->em->getRepository(Utente::class)->findAll();
         /** @var Campagna[] $campagne */
         $campagne = $this->em->getRepository(Campagna::class)->findAll();
+        /** @var Vendita[] $vendite */
+        $vendite = $this->em->getRepository(Vendita::class)->findBy([], ['createdAt' => 'DESC']);
 
         // --- Lead per stato / fonte + statistiche per agente ---
         $perStato = [];
@@ -130,6 +134,28 @@ class CruscottoService
         }
         usort($agentiRows, static fn ($a, $b) => $b['valore'] <=> $a['valore']);
 
+        // --- Vendite: pratiche, fatturato, incassato ---
+        $venditePerStato = [];
+        foreach (StatoVendita::cases() as $s) {
+            $venditePerStato[$s->value] = ['label' => $s->label(), 'badge' => $s->badgeClass(), 'n' => 0];
+        }
+        $fatturato = 0.0;
+        $incassato = 0.0;
+        $pratiche = 0;
+        $praticheAperte = 0;
+        foreach ($vendite as $v) {
+            $venditePerStato[$v->getStato()->value]['n']++;
+            if ($v->getStato() === StatoVendita::ANNULLATA) {
+                continue;
+            }
+            ++$pratiche;
+            if ($v->getStato() !== StatoVendita::CONCLUSA) {
+                ++$praticheAperte;
+            }
+            $fatturato += (float) ($v->getImportoTotale() ?? 0);
+            $incassato += $v->totaleIncassato();
+        }
+
         return [
             'tot_lead' => $totLead,
             'aperti' => $totLead - $chiusi,
@@ -142,6 +168,16 @@ class CruscottoService
             'prev_per_stato' => $prevPerStato,
             'campagne' => $campagneRows,
             'agenti' => $agentiRows,
+            // opportunità = preventivi in attesa di esito (il potenziale da chiudere)
+            'opportunita_n' => $prevPerStato[StatoPreventivo::INVIATO->value]['n'],
+            'opportunita_valore' => $prevPerStato[StatoPreventivo::INVIATO->value]['valore'],
+            'pratiche' => $pratiche,
+            'pratiche_aperte' => $praticheAperte,
+            'fatturato' => $fatturato,
+            'incassato' => $incassato,
+            'da_incassare' => max(0.0, $fatturato - $incassato),
+            'vendite_per_stato' => $venditePerStato,
+            'vendite_recenti' => array_slice($vendite, 0, 6),
         ];
     }
 }
