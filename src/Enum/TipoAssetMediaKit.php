@@ -29,7 +29,7 @@ enum TipoAssetMediaKit: string
             self::FORMAT_CAROSELLO_PRIMA => 'Carosello — prima immagine',
             self::FORMAT_CAROSELLO_INTERNA => 'Carosello — immagine interna',
             self::FORMAT_CAROSELLO_ULTIMA => 'Carosello — ultima immagine',
-            self::FONT => 'Font (zip delle suite)',
+            self::FONT => 'Font (per nome)',
         };
     }
 
@@ -44,7 +44,7 @@ enum TipoAssetMediaKit: string
             self::FORMAT_CAROSELLO_PRIMA => 'Layout della slide di apertura.',
             self::FORMAT_CAROSELLO_INTERNA => 'Layout delle slide centrali.',
             self::FORMAT_CAROSELLO_ULTIMA => 'Layout della slide di chiusura.',
-            self::FONT => 'Archivio zip con tutte le suite dei font da utilizzare.',
+            self::FONT => 'Indica i nomi dei font (Google Fonts): li applicano gli editor.',
         };
     }
 
@@ -57,8 +57,8 @@ enum TipoAssetMediaKit: string
         };
     }
 
-    /** true se lo slot accetta un archivio zip invece di un'immagine. */
-    public function isArchivio(): bool
+    /** true se lo slot è testuale (nomi di font) e non un file da caricare. */
+    public function isTesto(): bool
     {
         return $this === self::FONT;
     }

@@ -27,9 +27,13 @@ class MediaKitAsset
     #[ORM\Column(options: ['default' => 1])]
     private int $gruppo = 1;
 
-    /** Nome file in public/uploads/creator/mediakit */
+    /** Nome file in public/uploads/creator/mediakit (vuoto per gli slot testuali). */
     #[ORM\Column(length: 255)]
     private string $file = '';
+
+    /** Valori per gli slot non-file (es. FONT: {titoli, testo} = nomi Google Fonts). */
+    #[ORM\Column(type: 'json', nullable: true)]
+    private ?array $valore = null;
 
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $nomeOriginale = null;
@@ -67,6 +71,21 @@ class MediaKitAsset
     public function setFile(string $file): static
     {
         $this->file = $file;
+        $this->updatedAt = new \DateTimeImmutable();
+
+        return $this;
+    }
+
+    /** @return array<string, mixed> */
+    public function getValore(): array
+    {
+        return $this->valore ?? [];
+    }
+
+    /** @param array<string, mixed>|null $valore */
+    public function setValore(?array $valore): static
+    {
+        $this->valore = $valore ?: null;
         $this->updatedAt = new \DateTimeImmutable();
 
         return $this;

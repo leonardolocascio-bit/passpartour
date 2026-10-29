@@ -40,10 +40,23 @@ class ImpaginatoreController extends AbstractController
     {
         $this->migraRigheLegacy($offerta, $em);
 
-        // loghi dal Media Kit (set 1, il predefinito), se caricati
+        // Media Kit (set 1, il predefinito): loghi, font indicati e icone
         $kit = [];
+        $kitFont = [];
         foreach ($em->getRepository(MediaKitAsset::class)->findBy(['gruppo' => 1]) as $asset) {
+            if ($asset->getTipo() === TipoAssetMediaKit::FONT) {
+                $kitFont = $asset->getValore();
+                continue;
+            }
             $kit[$asset->getTipo()->value] = 'uploads/creator/mediakit/' . $asset->getFile();
+        }
+        $kitIcone = [];
+        foreach ($em->getRepository(\App\Entity\MediaKitIcona::class)->findBy(['gruppo' => 1], ['nome' => 'ASC']) as $icona) {
+            $kitIcone[] = [
+                'id' => $icona->getId(),
+                'nome' => $icona->getNome(),
+                'url' => 'uploads/creator/mediakit/' . $icona->getFile(),
+            ];
         }
 
         return $this->render('offerta/impaginatore.html.twig', [
@@ -54,6 +67,8 @@ class ImpaginatoreController extends AbstractController
             'embed' => $request->query->getBoolean('embed'),
             'logo_scuro' => $kit[TipoAssetMediaKit::LOGO_LIGHT->value] ?? 'images/passpartour-white.png',
             'logo_chiaro' => $kit[TipoAssetMediaKit::LOGO_QUADRICROMIA->value] ?? 'images/passpartour-color.png',
+            'kit_font' => $kitFont,
+            'kit_icone' => $kitIcone,
         ]);
     }
 

@@ -134,10 +134,17 @@ class OffertaController extends AbstractController
             $em->getRepository(\App\Entity\Destinazione::class)->findBy([], ['nome' => 'ASC']),
         );
 
+        // icone del Media Kit (set 1) per il picker delle righe
+        $iconeKit = array_map(
+            static fn (\App\Entity\MediaKitIcona $i) => ['id' => $i->getId(), 'nome' => $i->getNome(), 'url' => 'uploads/creator/mediakit/' . $i->getFile()],
+            $em->getRepository(\App\Entity\MediaKitIcona::class)->findBy(['gruppo' => 1], ['nome' => 'ASC']),
+        );
+
         return $this->render('offerta/form.html.twig', [
             'form' => $form,
             'offerta' => $offerta,
             'destinazioni_nomi' => $destinazioniNomi,
+            'icone_kit' => $iconeKit,
             'unsplash_configurato' => $unsplash->isConfigured(),
             'margine' => $this->margine->calcola($offerta),
             'tipologie_scelte' => TipologiaViaggio::scelte(),

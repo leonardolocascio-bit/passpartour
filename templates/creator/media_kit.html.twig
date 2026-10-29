@@ -4,46 +4,112 @@
 {% block page_title %}Creator Studio · Media Kit{% endblock %}
 
 {% macro slot(tipo, asset_mk, gruppoSet) %}
-    <div style="border:1px solid var(--line);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:10px">
+    <div style="border:1px solid var(--line);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:10px;min-width:0">
         <div>
             <strong>{{ tipo.label }}</strong>
             <div class="muted" style="font-size:12px">{{ tipo.descrizione }}</div>
         </div>
 
-        {% if asset_mk %}
-            {% if tipo.isArchivio %}
-                <a class="btn" href="{{ asset('uploads/creator/mediakit/' ~ asset_mk.file) }}">⬇ {{ asset_mk.nomeOriginale ?: asset_mk.file }}</a>
-            {% else %}
+        {% if tipo.isTesto %}
+            {# FONT: si indicano i nomi, li applicano gli editor (Google Fonts) #}
+            {% set f = asset_mk ? asset_mk.valore : {} %}
+            <form method="post" action="{{ path('app_creator_mediakit_font', {gruppo: gruppoSet}) }}" style="display:grid;gap:8px">
+                <input type="hidden" name="_token" value="{{ csrf_token('mediakit_font_' ~ gruppoSet) }}">
+                <div>
+                    <label style="font-size:12px">Font titoli</label>
+                    <input type="text" name="font_titoli" value="{{ f.titoli|default('') }}" placeholder="es. Montserrat" style="width:100%">
+                </div>
+                <div>
+                    <label style="font-size:12px">Font testo</label>
+                    <input type="text" name="font_testo" value="{{ f.testo|default('') }}" placeholder="es. Lato" style="width:100%">
+                </div>
+                <button class="btn btn-primary">Applica font</button>
+                {% if asset_mk and asset_mk.valore %}
+                    <div class="muted" style="font-size:11px">Aggiornato il {{ asset_mk.updatedAt|date('d/m/Y H:i') }} · vuoto = font di sistema</div>
+                {% else %}
+                    <div class="muted" style="font-size:11px">Nome esatto della famiglia su fonts.google.com</div>
+                {% endif %}
+            </form>
+        {% else %}
+            {% if asset_mk %}
                 {# scacchiera per vedere anche i loghi bianchi/trasparenti #}
                 <div style="background:conic-gradient(#e8e8e8 90deg,#fff 90deg 180deg,#e8e8e8 180deg 270deg,#fff 270deg) 0 0/16px 16px;border-radius:8px;padding:10px;text-align:center">
                     <img src="{{ asset('uploads/creator/mediakit/' ~ asset_mk.file) }}" alt="{{ tipo.label }}" style="max-width:100%;max-height:90px">
                 </div>
+                <div class="muted" style="font-size:11px">Aggiornato il {{ asset_mk.updatedAt|date('d/m/Y H:i') }}</div>
+            {% else %}
+                <div class="muted" style="font-size:13px;border:1px dashed var(--line);border-radius:8px;padding:16px;text-align:center">Slot vuoto</div>
             {% endif %}
-            <div class="muted" style="font-size:11px">Aggiornato il {{ asset_mk.updatedAt|date('d/m/Y H:i') }}</div>
-        {% else %}
-            <div class="muted" style="font-size:13px;border:1px dashed var(--line);border-radius:8px;padding:16px;text-align:center">Slot vuoto</div>
-        {% endif %}
 
-        <form method="post" action="{{ path('app_creator_mediakit_carica', {gruppo: gruppoSet, tipo: tipo.value}) }}" enctype="multipart/form-data" style="display:flex;gap:8px;align-items:center">
-            <input type="hidden" name="_token" value="{{ csrf_token('mediakit_carica_' ~ gruppoSet ~ '_' ~ tipo.value) }}">
-            <input type="file" name="file" accept="{{ tipo.isArchivio ? '.zip' : '.jpg,.jpeg,.png,.webp,.svg' }}" required style="font-size:12px">
-            <button class="btn btn-primary">{{ asset_mk ? 'Sostituisci' : 'Carica' }}</button>
-        </form>
-        {% if asset_mk %}
-            <form method="post" action="{{ path('app_creator_mediakit_rimuovi', {gruppo: gruppoSet, tipo: tipo.value}) }}" onsubmit="return confirm('Rimuovere questo asset?')">
-                <input type="hidden" name="_token" value="{{ csrf_token('mediakit_rimuovi_' ~ gruppoSet ~ '_' ~ tipo.value) }}">
-                <button class="btn" style="color:var(--danger);font-size:12px">Rimuovi</button>
+            {# layout in colonna: niente campi che si accavallano #}
+            <form method="post" action="{{ path('app_creator_mediakit_carica', {gruppo: gruppoSet, tipo: tipo.value}) }}" enctype="multipart/form-data" style="display:grid;gap:8px;margin-top:auto">
+                <input type="hidden" name="_token" value="{{ csrf_token('mediakit_carica_' ~ gruppoSet ~ '_' ~ tipo.value) }}">
+                <input type="file" name="file" accept=".jpg,.jpeg,.png,.webp,.svg" required style="font-size:12px;width:100%;min-width:0">
+                <div style="display:flex;gap:8px">
+                    <button class="btn btn-primary" style="flex:1">{{ asset_mk ? 'Sostituisci' : 'Carica' }}</button>
+                    {% if asset_mk %}
+                        <button class="btn" style="color:var(--danger)" form="rimuovi-{{ gruppoSet }}-{{ tipo.value }}">Rimuovi</button>
+                    {% endif %}
+                </div>
             </form>
+            {% if asset_mk %}
+                <form id="rimuovi-{{ gruppoSet }}-{{ tipo.value }}" method="post" action="{{ path('app_creator_mediakit_rimuovi', {gruppo: gruppoSet, tipo: tipo.value}) }}" onsubmit="return confirm('Rimuovere questo asset?')">
+                    <input type="hidden" name="_token" value="{{ csrf_token('mediakit_rimuovi_' ~ gruppoSet ~ '_' ~ tipo.value) }}">
+                </form>
+            {% endif %}
         {% endif %}
+    </div>
+{% endmacro %}
+
+{% macro sezioneIcone(iconeSet, gruppoSet) %}
+    <div class="card" style="margin-bottom:18px">
+        <div class="card-pad" style="border-bottom:1px solid var(--line)">
+            <h3>Icone</h3>
+            <div class="muted" style="font-size:12px;margin-top:4px">Un'icona per ogni dettaglio del viaggio: compaiono nel picker delle righe e vengono tinte nel colore del tema (meglio PNG/SVG con trasparenza).</div>
+        </div>
+        <div class="card-pad">
+            {% if iconeSet|length %}
+                <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:12px;margin-bottom:14px">
+                    {% for ic in iconeSet %}
+                        <div style="border:1px solid var(--line);border-radius:10px;padding:10px;text-align:center;min-width:0">
+                            <div style="background:conic-gradient(#e8e8e8 90deg,#fff 90deg 180deg,#e8e8e8 180deg 270deg,#fff 270deg) 0 0/12px 12px;border-radius:8px;padding:8px">
+                                <img src="{{ asset('uploads/creator/mediakit/' ~ ic.file) }}" alt="{{ ic.nome }}" style="height:40px;max-width:100%">
+                            </div>
+                            <div style="font-size:12px;font-weight:600;margin-top:6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="{{ ic.nome }}">{{ ic.nome }}</div>
+                            <form method="post" action="{{ path('app_creator_mediakit_icona_elimina', {id: ic.id}) }}" onsubmit="return confirm('Eliminare l\'icona «{{ ic.nome }}»?')" style="margin-top:4px">
+                                <input type="hidden" name="_token" value="{{ csrf_token('mediakit_icona_elimina_' ~ ic.id) }}">
+                                <button class="btn" style="color:var(--danger);font-size:11px;padding:2px 8px">Elimina</button>
+                            </form>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="muted" style="font-size:13px;border:1px dashed var(--line);border-radius:8px;padding:16px;text-align:center;margin-bottom:14px">Nessuna icona in questo set.</div>
+            {% endif %}
+
+            <form method="post" action="{{ path('app_creator_mediakit_icona_carica', {gruppo: gruppoSet}) }}" enctype="multipart/form-data" style="display:grid;grid-template-columns:1fr 1fr auto;gap:10px;align-items:end">
+                <input type="hidden" name="_token" value="{{ csrf_token('mediakit_icona_' ~ gruppoSet) }}">
+                <div style="min-width:0">
+                    <label style="font-size:12px">Nome</label>
+                    <input type="text" name="nome" placeholder="es. Aereo, Hotel, Escursioni…" style="width:100%">
+                </div>
+                <div style="min-width:0">
+                    <label style="font-size:12px">File</label>
+                    <input type="file" name="file" accept=".png,.svg,.webp,.jpg,.jpeg" required style="font-size:12px;width:100%;min-width:0">
+                </div>
+                <button class="btn btn-primary">+ Aggiungi icona</button>
+            </form>
+        </div>
     </div>
 {% endmacro %}
 {% import _self as ui %}
 
 {% block main %}
 <p class="muted" style="margin:0 0 16px;max-width:760px">
-    Qui il grafico carica loghi, format e font, organizzati in <strong>set</strong>: il set 1 è quello
-    predefinito che gli editor usano (la scelta del set negli editor arriverà in seguito).
-    Per un rebranding basta sostituire i file, o preparare un nuovo set.
+    Qui il grafico prepara l'identità per gli editor, organizzata in <strong>set</strong> (il set 1 è
+    quello predefinito che gli editor usano): loghi e format come file, i <strong>font indicati per
+    nome</strong> (li applicano gli editor via Google Fonts) e le <strong>icone</strong> dei dettagli
+    del viaggio. Per un rebranding basta sostituire i file, o preparare un nuovo set.
 </p>
 
 {% for gruppoSet in set_esistenti %}
@@ -51,13 +117,14 @@
     {% for gruppo, tipi in gruppi_tipi %}
         <div class="card" style="margin-bottom:18px">
             <div class="card-pad" style="border-bottom:1px solid var(--line)"><h3>{{ gruppo }}</h3></div>
-            <div class="card-pad" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px">
+            <div class="card-pad" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px">
                 {% for tipo in tipi %}
                     {{ ui.slot(tipo, assets[gruppoSet][tipo.value] ?? null, gruppoSet) }}
                 {% endfor %}
             </div>
         </div>
     {% endfor %}
+    {{ ui.sezioneIcone(icone[gruppoSet] ?? [], gruppoSet) }}
 {% endfor %}
 
 {# nuovo set: slot vuoti pronti per il primo caricamento #}
@@ -67,13 +134,14 @@
         {% for gruppo, tipi in gruppi_tipi %}
             <div class="card" style="margin-bottom:18px">
                 <div class="card-pad" style="border-bottom:1px solid var(--line)"><h3>{{ gruppo }} · set {{ prossimo_set }}</h3></div>
-                <div class="card-pad" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px">
+                <div class="card-pad" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px">
                     {% for tipo in tipi %}
                         {{ ui.slot(tipo, null, prossimo_set) }}
                     {% endfor %}
                 </div>
             </div>
         {% endfor %}
+        {{ ui.sezioneIcone([], prossimo_set) }}
     </div>
 </details>
 {% endblock %}

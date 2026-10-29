@@ -52,6 +52,19 @@
         'Info e varie': ['📅','⏰','📍','💶','💰','⭐','✨','➕','✅','❗','🔥','🎁','☀️','🌙','🌊','🏔️','❄️','📞','💬','✉️','👉','❤️','😍','🎉'],
     };
 
+    // icone caricate nel Media Kit (set 1): nel picker, valore `mk:<id>`
+    const ICONE_KIT = ({{ icone_kit|default([])|json_encode|raw }} || []).map(function (ic) {
+        return { id: ic.id, nome: ic.nome, url: {{ asset('')|json_encode|raw }} + ic.url };
+    });
+    function iconaHtml(valore) {
+        if (valore && valore.indexOf('mk:') === 0) {
+            const ic = ICONE_KIT.find(i => String(i.id) === valore.slice(3));
+            if (ic) return '<img src="' + ic.url + '" alt="' + ic.nome + '" style="height:17px;vertical-align:-3px">';
+            return '▪️';
+        }
+        return valore || '▪️';
+    }
+
     const righe = {{ offerta.righe|json_encode|raw }} || [];
     const varianti = {{ offerta.varianti|json_encode|raw }} || [];
     const nuovoId = () => 'r' + Math.random().toString(36).slice(2, 10);
@@ -77,7 +90,7 @@
 
             const bIcona = document.createElement('button');
             bIcona.type = 'button'; bIcona.className = 'btn'; bIcona.style.fontSize = '18px'; bIcona.style.padding = '4px 8px';
-            bIcona.textContent = r.icona || '▪️'; bIcona.title = 'Scegli icona';
+            bIcona.innerHTML = iconaHtml(r.icona); bIcona.title = 'Scegli icona';
             bIcona.addEventListener('click', e => apriPalette(e.currentTarget, ic => { r.icona = ic; render(); }));
 
             const iArg = document.createElement('input');
@@ -119,7 +132,7 @@
         ];
         const daRighe = righe.map(r => ({
             valore: r.id,
-            etichetta: 'Riga: ' + (r.icona ? r.icona + ' ' : '') + (r.argomento || r.testo || 'senza nome'),
+            etichetta: 'Riga: ' + (r.icona && r.icona.indexOf('mk:') !== 0 ? r.icona + ' ' : '') + (r.argomento || r.testo || 'senza nome'),
         }));
         return fisse.concat(daRighe);
     }
@@ -193,6 +206,27 @@
 
     function apriPalette(ancora, onScelta) {
         popover.innerHTML = '';
+
+        // prima le icone del Media Kit, se caricate
+        if (ICONE_KIT.length) {
+            const h = document.createElement('div');
+            h.className = 'muted'; h.style.cssText = 'font-size:10px;text-transform:uppercase;letter-spacing:.5px;margin:6px 0 4px';
+            h.textContent = 'Media Kit'; popover.appendChild(h);
+            const griglia = document.createElement('div');
+            griglia.style.cssText = 'display:grid;grid-template-columns:repeat(8,1fr);gap:2px';
+            ICONE_KIT.forEach(ic => {
+                const b = document.createElement('button');
+                b.type = 'button'; b.title = ic.nome;
+                b.innerHTML = '<img src="' + ic.url + '" alt="' + ic.nome + '" style="height:20px;max-width:24px">';
+                b.style.cssText = 'border:0;background:none;cursor:pointer;padding:4px;border-radius:6px';
+                b.addEventListener('mouseenter', () => b.style.background = '#eef1f6');
+                b.addEventListener('mouseleave', () => b.style.background = 'none');
+                b.addEventListener('click', () => { popover.style.display = 'none'; onScelta('mk:' + ic.id); });
+                griglia.appendChild(b);
+            });
+            popover.appendChild(griglia);
+        }
+
         Object.entries(ICONE).forEach(([gruppo, icone]) => {
             const h = document.createElement('div');
             h.className = 'muted'; h.style.cssText = 'font-size:10px;text-transform:uppercase;letter-spacing:.5px;margin:6px 0 4px';
@@ -216,7 +250,7 @@
         popover.style.display = 'block';
     }
     document.addEventListener('click', e => {
-        if (popover.style.display === 'block' && !popover.contains(e.target) && e.target.title !== 'Scegli icona') popover.style.display = 'none';
+        if (popover.style.display === 'block' && !popover.contains(e.target) && !(e.target.closest && e.target.closest('button[title="Scegli icona"]'))) popover.style.display = 'none';
     });
 
     // serializza al submit del form offerta

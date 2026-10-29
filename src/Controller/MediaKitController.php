@@ -3,6 +3,7 @@
 namespace App\Controller;
 
 use App\Entity\MediaKitAsset;
+use App\Entity\MediaKitIcona;
 use App\Enum\TipoAssetMediaKit;
 use App\Service\UploaderCreator;
 use Doctrine\ORM\EntityManagerInterface;
@@ -11,12 +12,13 @@ use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\String\Slugger\SluggerInterface;
 
 /**
  * Media Kit del Creator Studio, organizzato in SET: ogni set ha i suoi
- * slot (loghi quadricromia/light/dark, format, font). Il set 1 è quello
- * predefinito che gli editor usano; la scelta del set negli editor
- * arriverà in seguito. Carica il grafico; gli editor pescano da qui.
+ * slot (loghi, format), i FONT indicati per nome (li applicano gli editor)
+ * e la libreria di ICONE per i dettagli del viaggio (usate nelle righe).
+ * Il set 1 è il predefinito; la scelta del set negli editor arriverà poi.
  */
 class MediaKitController extends AbstractController
 {
@@ -30,8 +32,13 @@ class MediaKitController extends AbstractController
         foreach ($em->getRepository(MediaKitAsset::class)->findAll() as $asset) {
             $assets[$asset->getGruppo()][$asset->getTipo()->value] = $asset;
         }
-        ksort($assets);
-        $setEsistenti = array_keys($assets) ?: [1];
+        // icone[gruppo] = [icona, …]
+        $icone = [];
+        foreach ($em->getRepository(MediaKitIcona::class)->findBy([], ['nome' => 'ASC']) as $icona) {
+            $icone[$icona->getGruppo()][] = $icona;
+        }
+        $setEsistenti = array_unique(array_merge(array_keys($assets), array_keys($icone))) ?: [1];
+        sort($setEsistenti);
         $prossimoSet = max($setEsistenti) + 1;
 
         $gruppiTipi = [];
@@ -41,6 +48,7 @@ class MediaKitController extends AbstractController
 
         return $this->render('creator/media_kit.html.twig', [
             'assets' => $assets,
+            'icone' => $icone,
             'set_esistenti' => $setEsistenti,
             'prossimo_set' => $prossimoSet,
             'gruppi_tipi' => $gruppiTipi,
@@ -51,7 +59,7 @@ class MediaKitController extends AbstractController
     public function carica(int $gruppo, string $tipo, Request $request, EntityManagerInterface $em, UploaderCreator $uploader): Response
     {
         $tipoAsset = TipoAssetMediaKit::tryFrom($tipo) ?? throw $this->createNotFoundException();
-        if ($gruppo < 1 || $gruppo > 50) {
+        if ($gruppo < 1 || $gruppo > 50 || $tipoAsset->isTesto()) {
             throw $this->createNotFoundException();
         }
         if (!$this->isCsrfTokenValid('mediakit_carica_' . $gruppo . '_' . $tipoAsset->value, (string) $request->request->get('_token'))) {
@@ -61,11 +69,8 @@ class MediaKitController extends AbstractController
         /** @var UploadedFile|null $file */
         $file = $request->files->get('file');
         $ext = $file ? strtolower($file->getClientOriginalExtension() ?: (string) $file->guessExtension()) : '';
-        $estensioniValide = $tipoAsset->isArchivio() ? ['zip'] : self::EXT_IMMAGINE;
-        if ($file === null || !in_array($ext, $estensioniValide, true)) {
-            $this->addFlash('error', $tipoAsset->isArchivio()
-                ? 'Per i font carica un archivio ZIP.'
-                : 'Carica un\'immagine (JPG/PNG/WebP/SVG).');
+        if ($file === null || !in_array($ext, self::EXT_IMMAGINE, true)) {
+            $this->addFlash('error', 'Carica un\'immagine (JPG/PNG/WebP/SVG).');
 
             return $this->redirectToRoute('app_creator_mediakit');
         }
@@ -93,6 +98,40 @@ class MediaKitController extends AbstractController
         return $this->redirectToRoute('app_creator_mediakit');
     }
 
+    /** Font indicati per nome (Google Fonts): titoli + testo, per set. */
+    #[Route('/creator-studio/media-kit/{gruppo}/font', name: 'app_creator_mediakit_font', requirements: ['gruppo' => '\d+'], methods: ['POST'])]
+    public function salvaFont(int $gruppo, Request $request, EntityManagerInterface $em): Response
+    {
+        if ($gruppo < 1 || $gruppo > 50
+            || !$this->isCsrfTokenValid('mediakit_font_' . $gruppo, (string) $request->request->get('_token'))) {
+            return $this->redirectToRoute('app_creator_mediakit');
+        }
+
+        // solo il nome della famiglia: niente apici o caratteri da URL/CSS
+        $pulisci = static fn (string $v): string => mb_substr(trim(preg_replace('/[^\p{L}\p{N} \-]/u', '', $v) ?? ''), 0, 60);
+        $titoli = $pulisci((string) $request->request->get('font_titoli'));
+        $testo = $pulisci((string) $request->request->get('font_testo'));
+
+        $asset = $em->getRepository(MediaKitAsset::class)->findOneBy(['tipo' => TipoAssetMediaKit::FONT, 'gruppo' => $gruppo]);
+        if ($titoli === '' && $testo === '') {
+            if ($asset !== null) {
+                $em->remove($asset);
+                $em->flush();
+            }
+            $this->addFlash('success', 'Font rimossi (set ' . $gruppo . '): gli editor tornano al font di sistema.');
+
+            return $this->redirectToRoute('app_creator_mediakit');
+        }
+
+        $asset ??= new MediaKitAsset(TipoAssetMediaKit::FONT, $gruppo);
+        $asset->setValore(array_filter(['titoli' => $titoli, 'testo' => $testo]));
+        $em->persist($asset);
+        $em->flush();
+        $this->addFlash('success', 'Font salvati (set ' . $gruppo . '): gli editor li applicano da Google Fonts.');
+
+        return $this->redirectToRoute('app_creator_mediakit');
+    }
+
     #[Route('/creator-studio/media-kit/{gruppo}/{tipo}/rimuovi', name: 'app_creator_mediakit_rimuovi', requirements: ['gruppo' => '\d+'], methods: ['POST'])]
     public function rimuovi(int $gruppo, string $tipo, Request $request, EntityManagerInterface $em, UploaderCreator $uploader): Response
     {
@@ -100,11 +139,62 @@ class MediaKitController extends AbstractController
         if ($this->isCsrfTokenValid('mediakit_rimuovi_' . $gruppo . '_' . $tipoAsset->value, (string) $request->request->get('_token'))) {
             $asset = $em->getRepository(MediaKitAsset::class)->findOneBy(['tipo' => $tipoAsset, 'gruppo' => $gruppo]);
             if ($asset !== null) {
-                $uploader->elimina('mediakit', $asset->getFile());
+                if ($asset->getFile() !== '') {
+                    $uploader->elimina('mediakit', $asset->getFile());
+                }
                 $em->remove($asset);
                 $em->flush();
                 $this->addFlash('success', $tipoAsset->label() . ' rimosso (set ' . $gruppo . ').');
             }
+        }
+
+        return $this->redirectToRoute('app_creator_mediakit');
+    }
+
+    // ---- Icone (libreria per i dettagli del viaggio) ----
+
+    #[Route('/creator-studio/media-kit/icone/{gruppo}/carica', name: 'app_creator_mediakit_icona_carica', requirements: ['gruppo' => '\d+'], methods: ['POST'])]
+    public function caricaIcona(int $gruppo, Request $request, EntityManagerInterface $em, UploaderCreator $uploader, SluggerInterface $slugger): Response
+    {
+        if ($gruppo < 1 || $gruppo > 50
+            || !$this->isCsrfTokenValid('mediakit_icona_' . $gruppo, (string) $request->request->get('_token'))) {
+            return $this->redirectToRoute('app_creator_mediakit');
+        }
+
+        /** @var UploadedFile|null $file */
+        $file = $request->files->get('file');
+        $ext = $file ? strtolower($file->getClientOriginalExtension() ?: (string) $file->guessExtension()) : '';
+        if ($file === null || !in_array($ext, self::EXT_IMMAGINE, true)) {
+            $this->addFlash('error', 'Carica un\'icona come immagine (meglio PNG/SVG con trasparenza).');
+
+            return $this->redirectToRoute('app_creator_mediakit');
+        }
+
+        $nome = mb_substr(trim((string) $request->request->get('nome')), 0, 100)
+            ?: pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
+
+        $nomeFile = $uploader->salva($file, 'mediakit', $nome, 'icona-set' . $gruppo . '-' . $slugger->slug($nome)->lower() . '-' . bin2hex(random_bytes(3)) . '.' . $ext);
+        if ($nomeFile === null) {
+            $this->addFlash('error', 'Salvataggio dell\'icona non riuscito.');
+
+            return $this->redirectToRoute('app_creator_mediakit');
+        }
+
+        $em->persist((new MediaKitIcona($gruppo))->setNome($nome)->setFile($nomeFile));
+        $em->flush();
+        $this->addFlash('success', 'Icona «' . $nome . '» aggiunta (set ' . $gruppo . '): la trovi nel picker delle righe.');
+
+        return $this->redirectToRoute('app_creator_mediakit');
+    }
+
+    #[Route('/creator-studio/media-kit/icone/{id}/elimina', name: 'app_creator_mediakit_icona_elimina', requirements: ['id' => '\d+'], methods: ['POST'])]
+    public function eliminaIcona(MediaKitIcona $icona, Request $request, EntityManagerInterface $em, UploaderCreator $uploader): Response
+    {
+        if ($this->isCsrfTokenValid('mediakit_icona_elimina_' . $icona->getId(), (string) $request->request->get('_token'))) {
+            $uploader->elimina('mediakit', $icona->getFile());
+            $em->remove($icona);
+            $em->flush();
+            $this->addFlash('success', 'Icona eliminata (le righe che la usavano tornano al segnaposto).');
         }
 
         return $this->redirectToRoute('app_creator_mediakit');

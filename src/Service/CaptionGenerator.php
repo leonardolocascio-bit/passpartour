@@ -177,6 +177,9 @@ class CaptionGenerator
                 continue;
             }
             $icona = trim((string) ($r['icona'] ?? '')) ?: '▪️';
+            if (str_starts_with($icona, 'mk:')) {
+                $icona = '▪️'; // icona immagine del Media Kit: in caption si usa il segnaposto
+            }
             $dettagli[] = $icona . ' ' . trim(($arg !== '' ? ucfirst(mb_strtolower($arg)) . ': ' : '') . $txt);
         }
         $iconaCampo = ['Durata' => '🗓️', 'Validità' => '📅', 'Partenza da' => '🛫'];

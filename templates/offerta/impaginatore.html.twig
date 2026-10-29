@@ -181,6 +181,25 @@
     };
     const CSRF = {{ csrf_token('impaginatore_' ~ offerta.id)|json_encode|raw }};
 
+    /* ---------- Media Kit: font indicati e icone (set 1) ---------- */
+    const KIT_FONT = {{ kit_font|json_encode|raw }} || {};
+    const ICONE_KIT = ({{ kit_icone|json_encode|raw }} || []).map(function (ic) {
+        return { id: ic.id, nome: ic.nome, url: {{ asset('')|json_encode|raw }} + ic.url };
+    });
+    // icona di una riga nelle liste HTML: emoji, o <img> se dal Media Kit (mk:<id>)
+    function iconaHtml(valore) {
+        if (valore && valore.indexOf('mk:') === 0) {
+            const ic = ICONE_KIT.find(i => String(i.id) === valore.slice(3));
+            if (ic) return '<img src="' + ic.url + '" alt="' + ic.nome + '" style="height:16px;vertical-align:-3px">';
+            return '▪️';
+        }
+        return valore || '▪️';
+    }
+
+    const FONT_BASE = "-apple-system,'Segoe UI',Roboto,'Helvetica Neue',sans-serif";
+    const FONT = (KIT_FONT.testo ? "'" + KIT_FONT.testo + "'," : '') + FONT_BASE;
+    const FONT_TITOLI = (KIT_FONT.titoli ? "'" + KIT_FONT.titoli + "'," : '') + FONT_BASE;
+
     /* ---------- Stato ---------- */
     const tuttiGliId = () => OFFERTA.righe.map(r => r.id);
     const tuttiGliIdVar = () => OFFERTA.varianti.map(v => v.id);
@@ -315,8 +334,6 @@
             c.fillStyle = g; c.fillRect(0, H * .32, W, H * .68);
         }
 
-        const FONT = "-apple-system,'Segoe UI',Roboto,'Helvetica Neue',sans-serif";
-
         // Emoji tinta nel colore del tema (canvas offscreen + source-atop)
         function iconaTinta(emoji, size, color) {
             const off = document.createElement('canvas'); off.width = size; off.height = size;
@@ -327,6 +344,31 @@
             oc.globalCompositeOperation = 'source-atop';
             oc.fillStyle = color; oc.fillRect(0, 0, size, size);
             return off;
+        }
+
+        // Icona immagine del Media Kit, tinta come le emoji (contain nel quadrato)
+        function iconaTintaImg(img, size, color) {
+            const off = document.createElement('canvas'); off.width = size; off.height = size;
+            const oc = off.getContext('2d');
+            const r = Math.min(size / img.width, size / img.height);
+            const w = img.width * r, h = img.height * r;
+            oc.drawImage(img, (size - w) / 2, (size - h) / 2, w, h);
+            oc.globalCompositeOperation = 'source-atop';
+            oc.fillStyle = color; oc.fillRect(0, 0, size, size);
+            return off;
+        }
+
+        // risolve il valore icona di una riga: emoji, oppure `mk:<id>` dal Media Kit
+        async function iconaRiga(valore, size, color) {
+            if (valore && valore.indexOf('mk:') === 0) {
+                const trovata = ICONE_KIT.find(ic => String(ic.id) === valore.slice(3));
+                if (trovata) {
+                    const img = await caricaImg(trovata.url);
+                    if (img) return iconaTintaImg(img, size, color);
+                }
+                return iconaTinta('▪️', size, color);
+            }
+            return iconaTinta(valore || '▪️', size, color);
         }
 
         // ===== Cover in stile brand: logo centrato → tipologia (corsivo) → destinazione → prezzo → righe =====
@@ -357,8 +399,8 @@
         if (heroTxt) {
             const t = heroTxt.toUpperCase();
             let size = 200;
-            c.font = '900 ' + size + 'px ' + FONT;
-            while (c.measureText(t).width > W - 2 * PAD && size > 80) { size -= 6; c.font = '900 ' + size + 'px ' + FONT; }
+            c.font = '900 ' + size + 'px ' + FONT_TITOLI;
+            while (c.measureText(t).width > W - 2 * PAD && size > 80) { size -= 6; c.font = '900 ' + size + 'px ' + FONT_TITOLI; }
             c.fillStyle = ink;
             c.shadowColor = halo; c.shadowBlur = 22; c.shadowOffsetY = 5;
             c.fillText(t, W / 2, yTop + size);
@@ -380,13 +422,13 @@
         // Prezzo: badge ambra a sinistra "da €X"
         if (s.mostra.prezzo && (OFFERTA.prezzoDa || vDurata.length)) {
             const pTxt = OFFERTA.prezzoDa ? ('€' + OFFERTA.prezzoDa) : prezzoLabel(vDurata[0].prezzo).replace('€ ', '€');
-            c.font = '900 84px ' + FONT; const pw = c.measureText(pTxt).width;
+            c.font = '900 84px ' + FONT_TITOLI; const pw = c.measureText(pTxt).width;
             c.font = '700 42px ' + FONT; const daw = c.measureText('da ').width;
             const bh = 112, bx = PAD, by = yTop + 34, bw = 44 + daw + pw + 44;
             c.fillStyle = badgeBg; c.beginPath(); c.roundRect(bx, by, bw, bh, 10); c.fill();
             c.textBaseline = 'middle';
             c.fillStyle = 'rgba(255,255,255,.92)'; c.font = '700 42px ' + FONT; c.fillText('da ', bx + 44, by + bh / 2 + 2);
-            c.fillStyle = '#fff'; c.font = '900 84px ' + FONT; c.fillText(pTxt, bx + 44 + daw, by + bh / 2 + 4);
+            c.fillStyle = '#fff'; c.font = '900 84px ' + FONT_TITOLI; c.fillText(pTxt, bx + 44 + daw, by + bh / 2 + 4);
             c.textBaseline = 'alphabetic';
             yTop = by + bh;
         }
@@ -418,7 +460,7 @@
                 }
                 if (cur.length) linee.push(cur);
 
-                c.drawImage(iconaTinta(r.icona || '▪️', 56, ink), iconX, y + 8);
+                c.drawImage(await iconaRiga(r.icona, 56, ink), iconX, y + 8);
                 let ly = y + 38;
                 for (const linea of linee) {
                     let x = textX;
@@ -529,7 +571,7 @@
 
             const etichetta = document.createElement('div');
             etichetta.style.cssText = 'display:flex;gap:6px;align-items:baseline;min-width:0';
-            etichetta.innerHTML = '<span>' + (r.icona || '▪️') + '</span>'
+            etichetta.innerHTML = '<span>' + iconaHtml(r.icona) + '</span>'
                 + (r.argomento ? '<strong style="color:var(--brand);font-size:12px">' + r.argomento.toUpperCase() + '</strong>' : '')
                 + '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + (r.testo || '') + '</span>'
                 + (r.evidenza ? '<span title="In evidenza" style="color:#f6a41f">★</span>' : '');
@@ -794,6 +836,27 @@
     }
     aggiornaContatore();
     renderTutto();
+
+    // i font del Media Kit vanno caricati esplicitamente prima di disegnare sul canvas
+    if (KIT_FONT.titoli || KIT_FONT.testo) {
+        Promise.all([
+            KIT_FONT.titoli ? document.fonts.load("900 60px '" + KIT_FONT.titoli + "'") : Promise.resolve(),
+            KIT_FONT.testo ? document.fonts.load("600 40px '" + KIT_FONT.testo + "'") : Promise.resolve(),
+        ]).then(() => ridisegna()).catch(() => {});
+    }
 })();
 </script>
+{% endblock %}
+
+{% block javascripts %}
+    {{ parent() }}
+    {% set famiglie = [] %}
+    {% if kit_font.titoli|default('') %}{% set famiglie = famiglie|merge(['family=' ~ kit_font.titoli|replace({' ': '+'}) ~ ':wght@400;600;700;900']) %}{% endif %}
+    {% if kit_font.testo|default('') and kit_font.testo|default('') != kit_font.titoli|default('') %}{% set famiglie = famiglie|merge(['family=' ~ kit_font.testo|replace({' ': '+'}) ~ ':wght@400;600;700;900']) %}{% endif %}
+    {% if famiglie|length %}
+        {# font del Media Kit, applicati via Google Fonts #}
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?{{ famiglie|join('&') }}&display=swap">
+    {% endif %}
 {% endblock %}

@@ -107,14 +107,37 @@ class CreatorStudioTest extends WebTestCase
         $asset = $this->em->getRepository(MediaKitAsset::class)->findOneBy(['tipo' => TipoAssetMediaKit::LOGO_LIGHT]);
         self::assertNotSame($primoFile, $asset->getFile());
 
-        // il font accetta solo zip
+        // i font si indicano per nome (li applicano gli editor): niente upload
         $crawler = $this->client->request('GET', '/creator-studio/media-kit');
-        $this->client->request('POST', '/creator-studio/media-kit/1/font/carica', [
-            '_token' => $this->csrf($crawler, '/media-kit/1/font/carica'),
-        ], ['file' => $this->fileFinto('font.png')]);
+        $this->client->request('POST', '/creator-studio/media-kit/1/font', [
+            '_token' => $this->csrf($crawler, '/media-kit/1/font'),
+            'font_titoli' => 'Montserrat',
+            'font_testo' => "Lato'; drop--",
+        ]);
         self::assertResponseRedirects('/creator-studio/media-kit');
         $this->em->clear();
-        self::assertNull($this->em->getRepository(MediaKitAsset::class)->findOneBy(['tipo' => TipoAssetMediaKit::FONT]));
+        $font = $this->em->getRepository(MediaKitAsset::class)->findOneBy(['tipo' => TipoAssetMediaKit::FONT, 'gruppo' => 1]);
+        self::assertNotNull($font);
+        self::assertSame('Montserrat', $font->getValore()['titoli']);
+        self::assertSame('Lato drop--', $font->getValore()['testo'], 'I caratteri non ammessi vengono rimossi');
+
+        // l'impaginatore applica i font indicati (link Google Fonts + famiglie nel JS)
+        $offerta = $this->em->getRepository(\App\Entity\Offerta::class)->findOneBy([]);
+        $this->client->request('GET', '/offerte/' . $offerta->getId() . '/impaginatore');
+        self::assertResponseIsSuccessful();
+        $html = (string) $this->client->getResponse()->getContent();
+        self::assertStringContainsString('fonts.googleapis.com/css2?family=Montserrat', $html);
+        self::assertStringContainsString('"titoli":"Montserrat"', $html);
+
+        // vuoto = si torna al font di sistema
+        $crawler = $this->client->request('GET', '/creator-studio/media-kit');
+        $this->client->request('POST', '/creator-studio/media-kit/1/font', [
+            '_token' => $this->csrf($crawler, '/media-kit/1/font'),
+            'font_titoli' => '',
+            'font_testo' => '',
+        ]);
+        $this->em->clear();
+        self::assertNull($this->em->getRepository(MediaKitAsset::class)->findOneBy(['tipo' => TipoAssetMediaKit::FONT, 'gruppo' => 1]));
 
         // multi-set: lo stesso slot può esistere in un secondo set
         $crawler = $this->client->request('GET', '/creator-studio/media-kit');
@@ -214,6 +237,40 @@ class CreatorStudioTest extends WebTestCase
         $crawler = $this->client->request('GET', '/creator-studio/archivio/print');
         $this->client->submit($crawler->selectButton('Elimina')->form());
         self::assertFileDoesNotExist($percorso);
+    }
+
+    public function testIconeMediaKit(): void
+    {
+        // upload icona con nome
+        $crawler = $this->client->request('GET', '/creator-studio/media-kit');
+        $this->client->request('POST', '/creator-studio/media-kit/icone/1/carica', [
+            '_token' => $this->csrf($crawler, '/media-kit/icone/1/carica'),
+            'nome' => 'Aereo',
+        ], ['file' => $this->fileFinto('aereo.png')]);
+        self::assertResponseRedirects('/creator-studio/media-kit');
+        $this->em->clear();
+        $icona = $this->em->getRepository(\App\Entity\MediaKitIcona::class)->findOneBy(['nome' => 'Aereo']);
+        self::assertNotNull($icona);
+        self::assertSame(1, $icona->getGruppo());
+        $percorso = self::getContainer()->getParameter('kernel.project_dir') . '/public/uploads/creator/mediakit/' . $icona->getFile();
+        self::assertFileExists($percorso);
+
+        // il configuratore righe e l'impaginatore la offrono nel picker (mk:<id>)
+        $offerta = $this->em->getRepository(\App\Entity\Offerta::class)->findOneBy([]);
+        $this->client->request('GET', '/offerte/' . $offerta->getId() . '/modifica');
+        self::assertStringContainsString('"nome":"Aereo"', (string) $this->client->getResponse()->getContent());
+        $this->client->request('GET', '/offerte/' . $offerta->getId() . '/impaginatore');
+        self::assertStringContainsString('"nome":"Aereo"', (string) $this->client->getResponse()->getContent());
+
+        // elimina: via record e file
+        $crawler = $this->client->request('GET', '/creator-studio/media-kit');
+        $this->client->request('POST', '/creator-studio/media-kit/icone/' . $icona->getId() . '/elimina', [
+            '_token' => $this->csrf($crawler, '/media-kit/icone/' . $icona->getId() . '/elimina'),
+        ]);
+        self::assertResponseRedirects('/creator-studio/media-kit');
+        self::assertFileDoesNotExist($percorso);
+        $this->em->clear();
+        self::assertNull($this->em->getRepository(\App\Entity\MediaKitIcona::class)->find($icona->getId()));
     }
 
     /** Estrae il token CSRF dal form della pagina la cui action termina così (CSRF di sessione). */

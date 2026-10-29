@@ -146,6 +146,7 @@ vendite, fatturato.
 - **Creator Studio**: l'impaginatore si apre sotto `/creator-studio/editor/content/{id}` (sidebar CS attiva); archivi Digital e Print senza upload manuale (i contenuti li generano gli editor); bottone «Anteprima landing» nella scheda campagna.
 - **Alloggi multipli** nella scheda offerta: editor ripetibile (nome, città, indirizzo, tipologia, stelle, trattamento), scheda web ed email mostrano tutte le strutture; il formato storico a struttura singola resta leggibile.
 - **Media Kit multi-set**: slot organizzati in set (Set 1 = predefinito usato dagli editor; «Aggiungi set N» per i successivi); la scelta del set negli editor resta rimandata («lo vedremo con calma»).
+- **Media Kit rifinito** (richieste del 29/10 sera): layout degli slot corretto (niente campi accavallati); **font indicati per nome** (Google Fonts, titoli+testo) e applicati automaticamente dall'impaginatore (titolo/prezzi col font titoli); **sezione Icone** con upload per ogni dettaglio del viaggio — compaiono nel picker delle righe (configuratore offerta e impaginatore) come `mk:<id>` e vengono tinte nel colore del tema come le emoji.
 
 ## Rimandato (in attesa / da specificare)
 
