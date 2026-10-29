@@ -44,9 +44,13 @@ export SERVER_NAME="${SERVER_NAME:-:80}"
 # polling. Aggiornamenti pubblicati dall'app su MERCURE_URL, sottoscritti dal
 # browser su /.well-known/mercure (topic di soli segnali, mai contenuti).
 if [ -n "${MERCURE_URL:-}" ] && [ -n "${MERCURE_JWT_SECRET:-}" ]; then
+    # protocol_version_compatibility 8: il modulo Mercure recente esige
+    # l'opt-in esplicito per i JWT a segreto condiviso fuori dal blocco
+    # "issuer" (senza, FrankenPHP non parte proprio).
     export CADDY_SERVER_EXTRA_DIRECTIVES="mercure {
 	publisher_jwt ${MERCURE_JWT_SECRET}
 	subscriber_jwt ${MERCURE_JWT_SECRET}
+	protocol_version_compatibility 8
 	anonymous
 }"
     echo "→ Hub Mercure attivo su /.well-known/mercure"
