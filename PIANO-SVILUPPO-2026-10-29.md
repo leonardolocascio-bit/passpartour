@@ -123,7 +123,7 @@ vendite, fatturato.
 | 2 ✓ | Rubrica: Fornitori (nuova anagrafica) + spostamento Clienti (lead→cliente automatico arriverà con le Vendite, blocco 6) | 1 |
 | 3 ✓ | Creator Studio: struttura, Archivio (Digital+Print) e Media Kit | 1 |
 | 4 ✓ | Editor Content (JPG RGB) e Print (PDF, RGB con nota CMYK in prestampa) generalizzati — Editor Video rinviato (valutare Canva) | 3 |
-| 5 | Campagne: generatore landing da offerte + aggancio Meta lead gen | 3 |
+| 5 ✓ | Campagne: generatore landing da offerte + lead gen (l'URL landing si usa nelle sponsorizzate Meta) | 3 |
 | 6 | Vendite: pipeline pratica, piano pagamenti, attività operative, promemoria fattura, contratti | 2 |
 | 7 | Agenda hub: promemoria da vendite e da pubblicazioni | 4, 6 |
 | 8 | Dashboard nuova | tutto |

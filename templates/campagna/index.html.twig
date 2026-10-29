@@ -1,20 +1,35 @@
 {% extends 'app.html.twig' %}
 
 {% block title %}Campagne · Passpartour{% endblock %}
-{% block page_title %}Campagne lead gen{% endblock %}
+{% block page_title %}Creator Studio · Campagne{% endblock %}
 
 {% block main %}
+<p class="muted" style="margin:0 0 16px;max-width:760px">
+    Ogni campagna promuove un'offerta con una landing pubblica: è l'URL a cui far puntare le
+    sponsorizzate (Meta, Google…). Le richieste dal form della landing diventano lead,
+    già taggati con fonte e campagna.
+</p>
+
 <div class="card">
-    <div class="card-pad" style="border-bottom:1px solid var(--line)">
+    <div class="card-pad" style="border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between">
         <h3>Campagne <span class="muted" style="font-weight:500">({{ campagne|length }})</span></h3>
+        <a class="btn btn-primary" href="{{ path('app_campagna_nuova') }}">+ Nuova campagna</a>
     </div>
     <table class="grid-table">
-        <thead><tr><th>Nome</th><th>Fonte</th><th>Budget</th><th>Lead</th><th>Stato</th></tr></thead>
+        <thead><tr><th>Nome</th><th>Offerta</th><th>Fonte</th><th>Landing</th><th>Budget</th><th>Lead</th><th>Stato</th></tr></thead>
         <tbody>
         {% for c in campagne %}
             <tr>
-                <td style="font-weight:600">{{ c.nome }}</td>
+                <td style="font-weight:600"><a href="{{ path('app_campagna_modifica', {id: c.id}) }}">{{ c.nome }}</a></td>
+                <td class="muted">{{ c.offerta ? c.offerta.titolo : '—' }}</td>
                 <td class="muted">{{ c.fonte.label }}</td>
+                <td>
+                    {% if c.slug %}
+                        <a class="tab-link" href="{{ path('app_landing', {slug: c.slug}) }}" target="_blank">/c/{{ c.slug }}</a>
+                    {% else %}
+                        <span class="muted">—</span>
+                    {% endif %}
+                </td>
                 <td>{{ c.budget ? '€ ' ~ c.budget|number_format(0, ',', '.') : '—' }}</td>
                 <td>{{ c.lead|length }}</td>
                 <td>
@@ -23,7 +38,7 @@
                 </td>
             </tr>
         {% else %}
-            <tr><td colspan="5" class="muted" style="text-align:center;padding:28px">Nessuna campagna.</td></tr>
+            <tr><td colspan="7" class="muted" style="text-align:center;padding:28px">Nessuna campagna.</td></tr>
         {% endfor %}
         </tbody>
     </table>

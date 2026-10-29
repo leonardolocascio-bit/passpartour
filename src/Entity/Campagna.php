@@ -31,6 +31,19 @@ class Campagna
     #[ORM\Column(type: 'text', nullable: true)]
     private ?string $note = null;
 
+    /** Offerta promossa: la landing pesca testi, immagine e scheda da qui. */
+    #[ORM\ManyToOne(targetEntity: Offerta::class)]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    private ?Offerta $offerta = null;
+
+    /** Slug della landing pubblica /c/{slug}; null = campagna senza landing. */
+    #[ORM\Column(length: 80, unique: true, nullable: true)]
+    private ?string $slug = null;
+
+    /** Testi della landing (titolo, sottotitolo, cta…), personalizzabili. */
+    #[ORM\Column(type: 'json', nullable: true)]
+    private ?array $landing = null;
+
     #[ORM\Column]
     private \DateTimeImmutable $createdAt;
 
@@ -107,6 +120,51 @@ class Campagna
         $this->note = $note;
 
         return $this;
+    }
+
+    public function getOfferta(): ?Offerta
+    {
+        return $this->offerta;
+    }
+
+    public function setOfferta(?Offerta $offerta): static
+    {
+        $this->offerta = $offerta;
+
+        return $this;
+    }
+
+    public function getSlug(): ?string
+    {
+        return $this->slug;
+    }
+
+    public function setSlug(?string $slug): static
+    {
+        $this->slug = $slug;
+
+        return $this;
+    }
+
+    public function getLanding(): array
+    {
+        return $this->landing ?? [];
+    }
+
+    /** @param array<string, mixed>|null $landing */
+    public function setLanding(?array $landing): static
+    {
+        $this->landing = $landing ?: null;
+
+        return $this;
+    }
+
+    /** Testo della landing con fallback (es. titolo → titolo offerta). */
+    public function landingTesto(string $chiave, string $default = ''): string
+    {
+        $valore = trim((string) ($this->getLanding()[$chiave] ?? ''));
+
+        return $valore !== '' ? $valore : $default;
     }
 
     public function getCreatedAt(): \DateTimeImmutable

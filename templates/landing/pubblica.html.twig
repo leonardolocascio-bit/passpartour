@@ -1,0 +1,88 @@
+{% extends 'base.html.twig' %}
+
+{% set titoloLanding = campagna.landingTesto('titolo', offerta ? offerta.titolo : campagna.nome) %}
+{% set sottotitoloLanding = campagna.landingTesto('sottotitolo', offerta ? (offerta.sottotitolo ?: offerta.claim ?: '') : '') %}
+{% set cta = campagna.landingTesto('cta', 'Richiedi informazioni senza impegno') %}
+
+{% block title %}{{ titoloLanding }} · Passpartour Viaggi{% endblock %}
+
+{% block body %}
+<div style="max-width:920px;margin:0 auto;padding:0 16px 60px">
+
+    {# Hero #}
+    <div style="position:relative;border-radius:0 0 16px 16px;overflow:hidden;height:380px;background:linear-gradient(135deg,var(--navy),var(--cyan))">
+        {% if offerta and offerta.immagineFile %}
+            <img src="{{ asset('uploads/destinazioni/' ~ offerta.immagineFile) }}" alt="{{ titoloLanding }}" style="width:100%;height:100%;object-fit:cover;display:block">
+        {% endif %}
+        <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(10,22,44,.15),rgba(10,22,44,.75))"></div>
+        <img src="{{ asset('images/passpartour-white.png') }}" alt="Passpartour" style="position:absolute;top:22px;left:28px;height:34px">
+        <div style="position:absolute;left:0;right:0;bottom:0;padding:28px 32px;color:#fff">
+            {% if offerta and (offerta.destinazioneMacro or offerta.destinazioneMicro) %}
+                <div style="font-size:13px;letter-spacing:.08em;text-transform:uppercase;opacity:.9;margin-bottom:6px">
+                    {{ offerta.destinazioneMacro }}{% if offerta.destinazioneMacro and offerta.destinazioneMicro %} · {% endif %}{{ offerta.destinazioneMicro }}
+                </div>
+            {% endif %}
+            <h1 style="margin:0;font-size:38px;font-weight:900;line-height:1.05;text-shadow:0 2px 12px rgba(0,0,0,.4)">{{ titoloLanding }}</h1>
+            {% if sottotitoloLanding %}<div style="font-size:17px;margin-top:6px;opacity:.95">{{ sottotitoloLanding }}</div>{% endif %}
+            <a href="#richiedi" class="btn btn-primary" style="display:inline-block;margin-top:14px;font-size:16px;padding:10px 22px">{{ cta }} →</a>
+        </div>
+        {% if offerta and offerta.fotografoEffettivo %}
+            <div style="position:absolute;bottom:6px;right:12px;color:rgba(255,255,255,.8);font-size:11px">📷 {{ offerta.fotografoEffettivo }} · Unsplash</div>
+        {% endif %}
+    </div>
+
+    {% if not campagna.attiva %}
+        <div class="card card-pad" style="margin-top:20px;border-left:3px solid var(--amber)">
+            Questa promozione si è conclusa: contattaci per scoprire le offerte attive.
+        </div>
+    {% endif %}
+
+    {# Scheda offerta (mai costi/MOL) #}
+    {% if offerta %}
+        <div style="margin-top:8px">
+            {{ include('_partials/_scheda_offerta.html.twig', {offerta: offerta}) }}
+        </div>
+    {% endif %}
+
+    {# Form richiesta #}
+    <div class="card" id="richiedi" style="margin-top:24px;scroll-margin-top:20px">
+        <div class="card-pad" style="border-bottom:1px solid var(--line)">
+            <h2 style="font-size:20px">{{ cta }}</h2>
+            <div class="muted" style="font-size:13px;margin-top:4px">Ti ricontattiamo noi: nessun obbligo, nessuna coda.</div>
+        </div>
+        <div class="card-pad">
+            {% if grazie %}
+                <div style="border:1px solid #1f9d54;background:#e6f6ec;color:#1f9d54;border-radius:10px;padding:16px;font-weight:600">
+                    ✓ Richiesta ricevuta! Ti ricontatteremo al più presto.
+                </div>
+            {% else %}
+                {% for msg in app.flashes('landing_errore') %}
+                    <div style="border:1px solid var(--danger);border-radius:10px;padding:12px;color:var(--danger);margin-bottom:14px">{{ msg }}</div>
+                {% endfor %}
+                <form method="post" action="{{ path('app_landing_richiesta', {slug: campagna.slug}) }}">
+                    <input type="hidden" name="_token" value="{{ csrf_token('landing_' ~ campagna.slug) }}">
+                    {# honeypot anti-bot: resta vuoto per gli umani #}
+                    <input type="text" name="sito_web" value="" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px" aria-hidden="true">
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+                        <div><label>Nome e cognome</label><input type="text" name="nome" required></div>
+                        <div><label>Telefono</label><input type="tel" name="telefono" placeholder="es. 351 1234567"></div>
+                    </div>
+                    <div style="margin-top:12px"><label>Email</label><input type="email" name="email"></div>
+                    <div style="margin-top:12px"><label>Il tuo viaggio ideale <span class="muted" style="font-weight:400">(opzionale)</span></label>
+                        <textarea name="messaggio" placeholder="Periodo, numero di persone, esigenze particolari…"></textarea></div>
+                    <label style="display:flex;gap:8px;align-items:flex-start;margin-top:12px;font-weight:400;font-size:13px;color:var(--muted)">
+                        <input type="checkbox" name="consenso" value="1" style="width:auto;margin-top:2px">
+                        Acconsento a ricevere comunicazioni promozionali da Passpartour Viaggi.
+                    </label>
+                    <button class="btn btn-primary" style="margin-top:16px;font-size:16px;padding:10px 26px">{{ cta }}</button>
+                </form>
+            {% endif %}
+        </div>
+    </div>
+
+    <div style="text-align:center;margin-top:28px" class="muted">
+        <img src="{{ asset('images/passpartour-color.png') }}" alt="Passpartour" style="height:26px;display:block;margin:0 auto 8px">
+        <div style="font-size:12px">Passpartour Viaggi · passpartourviaggi.com</div>
+    </div>
+</div>
+{% endblock %}

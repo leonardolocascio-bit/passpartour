@@ -1,0 +1,57 @@
+{% extends 'app.html.twig' %}
+
+{% block title %}{{ titolo }} · Passpartour{% endblock %}
+{% block page_title %}{{ titolo }}{% endblock %}
+
+{% block main %}
+<div class="card" style="max-width:680px"><div class="card-pad">
+    {{ form_start(form, {attr: {id: 'form-campagna'}}) }}
+    <div style="display:grid;gap:14px">
+        {{ form_row(form.nome) }}
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+            {{ form_row(form.fonte) }}
+            {{ form_row(form.budget) }}
+        </div>
+        {{ form_row(form.offerta) }}
+
+        <div style="border-top:1px solid var(--line);padding-top:14px">
+            <h3 style="margin-bottom:4px">Landing page</h3>
+            <p class="muted" style="margin:0 0 12px;font-size:13px">
+                La pagina pubblica a cui far puntare le sponsorizzate (Meta, Google…).
+                I campi vuoti ereditano i testi dell'offerta.
+            </p>
+            <div style="display:grid;gap:14px">
+                {{ form_row(form.landingTitolo) }}
+                {{ form_row(form.landingSottotitolo) }}
+                {{ form_row(form.landingCta) }}
+            </div>
+        </div>
+
+        {{ form_row(form.note) }}
+        {{ form_row(form.attiva) }}
+    </div>
+    {{ form_end(form) }}
+
+    {% if campagna.slug %}
+        {% set urlLanding = url('app_landing', {slug: campagna.slug}) %}
+        <div style="margin-top:14px;padding:12px;border:1px dashed var(--line);border-radius:10px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+            <span class="muted" style="font-size:13px">Landing:</span>
+            <a class="tab-link" href="{{ urlLanding }}" target="_blank" style="font-size:13px">{{ urlLanding }}</a>
+            <button type="button" class="btn" style="font-size:12px" onclick="navigator.clipboard.writeText('{{ urlLanding|e('js') }}').then(() => this.textContent = '✓ Copiato')">📋 Copia URL</button>
+        </div>
+    {% endif %}
+
+    <div style="margin-top:18px;display:flex;gap:10px;justify-content:space-between">
+        <div style="display:flex;gap:10px">
+            <button type="submit" form="form-campagna" class="btn btn-primary">Salva</button>
+            <a class="btn" href="{{ path('app_campagna_index') }}">Annulla</a>
+        </div>
+        {% if campagna.id %}
+            <form method="post" action="{{ path('app_campagna_elimina', {id: campagna.id}) }}" onsubmit="return confirm('Eliminare questa campagna?')">
+                <input type="hidden" name="_token" value="{{ csrf_token('campagna_elimina_' ~ campagna.id) }}">
+                <button class="btn" style="color:var(--danger)">Elimina</button>
+            </form>
+        {% endif %}
+    </div>
+</div></div>
+{% endblock %}

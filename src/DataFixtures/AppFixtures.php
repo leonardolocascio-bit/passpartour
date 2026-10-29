@@ -156,6 +156,7 @@ class AppFixtures extends Fixture
             ['Capodanno a New York', '5 notti nella Grande Mela', 'New York', '1490.00', '5 notti', '+40 days', "Volo, hotel a Manhattan e tour della città. Vivi il countdown più famoso del mondo a Times Square."],
             ['Grecia: Cicladi in libertà', 'Santorini & Mykonos', 'Santorini', '990.00', '8 giorni', '+90 days', "Voli, traghetti tra le isole e hotel con colazione. Tramonti di Oia e spiagge di Mykonos."],
         ];
+        $offertaByTitolo = [];
         foreach ($offerte as $o) {
             $offerta = (new Offerta())
                 ->setTitolo($o[0])->setSottotitolo($o[1])
@@ -164,7 +165,14 @@ class AppFixtures extends Fixture
                 ->setValidoAl(new \DateTimeImmutable($o[5]))
                 ->setDescrizione($o[6]);
             $manager->persist($offerta);
+            $offertaByTitolo[$o[0]] = $offerta;
         }
+
+        // le campagne lead gen promuovono le offerte tramite landing pubblica /c/{slug}
+        $maldive->setOfferta($offertaByTitolo['Maldive da sogno'])->setSlug('maldive-inverno-2026')
+            ->setLanding(['cta' => 'Richiedi la quota per le tue date']);
+        $nyc->setOfferta($offertaByTitolo['Capodanno a New York'])->setSlug('capodanno-a-new-york');
+        $grecia->setOfferta($offertaByTitolo['Grecia: Cicladi in libertà'])->setSlug('estate-grecia-isole');
 
         // ---- Preventivo con 3 scenari (Economy / Comfort / Luxury) ----
         $prev = (new Preventivo())
