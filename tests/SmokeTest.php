@@ -20,7 +20,7 @@ class SmokeTest extends WebTestCase
         $urls = [
             '/', '/lead', '/lead/lista', '/agenda', '/automazioni', '/preventivi', '/offerte', '/destinazioni', '/campagne', '/clienti', '/impostazioni',
             '/agenda/calendario/giorno', '/agenda/calendario/settimana', '/agenda/calendario/mese', '/agenda/calendario/anno',
-            '/vendite',
+            '/vendite', '/fornitori', '/fornitori/nuovo',
             '/creator-studio/editor/video', '/creator-studio/editor/content', '/creator-studio/editor/print',
             '/creator-studio/archivio/digital', '/creator-studio/archivio/print', '/creator-studio/media-kit',
         ];

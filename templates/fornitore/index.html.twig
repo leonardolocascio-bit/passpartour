@@ -1,0 +1,31 @@
+{% extends 'app.html.twig' %}
+
+{% block title %}Fornitori · Passpartour{% endblock %}
+{% block page_title %}Rubrica{% endblock %}
+
+{% block main %}
+{{ include('_partials/_rubrica_tabs.html.twig', {attivo: 'fornitori'}) }}
+
+<div class="card">
+    <div class="card-pad" style="border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between">
+        <h3>Fornitori <span class="muted" style="font-weight:500">({{ fornitori|length }})</span></h3>
+        <a class="btn btn-primary" href="{{ path('app_fornitore_nuovo') }}">+ Nuovo fornitore</a>
+    </div>
+    <table class="grid-table">
+        <thead><tr><th>Ragione sociale</th><th>Tipo</th><th>Referente</th><th>Email</th><th>Telefono</th></tr></thead>
+        <tbody>
+        {% for f in fornitori %}
+            <tr>
+                <td style="font-weight:600"><a href="{{ path('app_fornitore_modifica', {id: f.id}) }}">{{ f.ragioneSociale }}</a></td>
+                <td>{% if f.tipo %}<span class="badge">{{ f.tipo }}</span>{% else %}—{% endif %}</td>
+                <td class="muted">{{ f.referente ?: '—' }}</td>
+                <td class="muted">{{ f.email ?: '—' }}</td>
+                <td class="muted">{{ f.telefono ?: '—' }}</td>
+            </tr>
+        {% else %}
+            <tr><td colspan="5" class="muted" style="text-align:center;padding:28px">Nessun fornitore in rubrica.</td></tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

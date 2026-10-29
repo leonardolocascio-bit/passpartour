@@ -1,0 +1,5 @@
+{# Tab di navigazione della Rubrica: attivo = 'clienti' | 'fornitori' #}
+<div class="tabs">
+    <a href="{{ path('app_cliente_index') }}" class="tab-btn {{ attivo == 'clienti' ? 'is-active' }}">Clienti</a>
+    <a href="{{ path('app_fornitore_index') }}" class="tab-btn {{ attivo == 'fornitori' ? 'is-active' }}">Fornitori</a>
+</div>

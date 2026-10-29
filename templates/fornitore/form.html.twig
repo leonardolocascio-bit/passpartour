@@ -1,0 +1,47 @@
+{% extends 'app.html.twig' %}
+
+{% block title %}{{ titolo }} · Passpartour{% endblock %}
+{% block page_title %}{{ titolo }}{% endblock %}
+
+{% block main %}
+<div class="card" style="max-width:640px"><div class="card-pad">
+    {{ form_start(form, {attr: {id: 'form-fornitore'}}) }}
+    <div style="display:grid;gap:14px">
+        {{ form_row(form.ragioneSociale) }}
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+            {{ form_row(form.tipo) }}
+            {{ form_row(form.referente) }}
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+            {{ form_row(form.email) }}
+            {{ form_row(form.telefono) }}
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+            {{ form_row(form.sitoWeb) }}
+            {{ form_row(form.partitaIva) }}
+        </div>
+        {{ form_row(form.note) }}
+    </div>
+    {{ form_end(form) }}
+
+    <datalist id="fornitore-tipi">
+        {% for t in constant('App\\Entity\\Fornitore::TIPI_PREDEFINITI') %}
+            <option value="{{ t }}">
+        {% endfor %}
+    </datalist>
+
+    {# form di eliminazione: separato (NON annidato nel form principale) #}
+    <div style="margin-top:18px;display:flex;gap:10px;justify-content:space-between">
+        <div style="display:flex;gap:10px">
+            <button type="submit" form="form-fornitore" class="btn btn-primary">Salva</button>
+            <a class="btn" href="{{ path('app_fornitore_index') }}">Annulla</a>
+        </div>
+        {% if fornitore.id %}
+            <form method="post" action="{{ path('app_fornitore_elimina', {id: fornitore.id}) }}" onsubmit="return confirm('Eliminare questo fornitore?')">
+                <input type="hidden" name="_token" value="{{ csrf_token('fornitore_elimina_' ~ fornitore.id) }}">
+                <button class="btn" style="color:var(--danger)">Elimina</button>
+            </form>
+        {% endif %}
+    </div>
+</div></div>
+{% endblock %}

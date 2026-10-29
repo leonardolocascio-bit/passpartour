@@ -23,7 +23,7 @@
                 {% set nonLetti = inbox_non_letti() %}
                 <span class="unread-pill" id="inbox-badge" style="margin-left:auto;{{ nonLetti == 0 ? 'display:none' }}">{{ nonLetti }}</span>
             </a>
-            <a href="{{ path('app_cliente_index') }}" class="{{ _route starts with 'app_cliente' ? 'active' }}">
+            <a href="{{ path('app_cliente_index') }}" class="{{ _route starts with 'app_cliente' or _route starts with 'app_fornitore' ? 'active' }}">
                 <span class="ic">☰</span> Rubrica
             </a>
 

@@ -8,6 +8,7 @@ use App\Entity\Cliente;
 use App\Entity\Conversazione;
 use App\Entity\Messaggio;
 use App\Entity\Destinazione;
+use App\Entity\Fornitore;
 use App\Entity\Lead;
 use App\Entity\Offerta;
 use App\Entity\Preventivo;
@@ -114,6 +115,18 @@ class AppFixtures extends Fixture
             ->setEmail('simone.galli@example.com')->setTelefono('3487766554');
         $manager->persist($cliente);
         $leadByNome['Simone']->setCliente($cliente);
+
+        // ---- Rubrica fornitori ----
+        foreach ([
+            ['Giramondo Tour Operator', 'Tour operator', 'Paolo Neri', 'booking@giramondo.example', '0805551234'],
+            ['Alpitour World', 'Tour operator', null, 'agenzie@alpitour.example', null],
+            ['SkyFly Airlines', 'Compagnia aerea', 'Ufficio gruppi', 'gruppi@skyfly.example', '0699887766'],
+            ['Nova Assicurazioni Viaggio', 'Assicurazioni', 'Laura Bruni', 'polizze@nova.example', '0287654321'],
+        ] as [$ragione, $tipo, $referente, $email, $telefono]) {
+            $manager->persist((new Fornitore())
+                ->setRagioneSociale($ragione)->setTipo($tipo)
+                ->setReferente($referente)->setEmail($email)->setTelefono($telefono));
+        }
 
         // ---- Libreria destinazioni (immagini demo in public/uploads/destinazioni) ----
         $dest = [];
