@@ -125,6 +125,6 @@ vendite, fatturato.
 | 4 ✓ | Editor Content (JPG RGB) e Print (PDF, RGB con nota CMYK in prestampa) generalizzati — Editor Video rinviato (valutare Canva) | 3 |
 | 5 ✓ | Campagne: generatore landing da offerte + lead gen (l'URL landing si usa nelle sponsorizzate Meta) | 3 |
 | 6 ✓ | Vendite: pipeline pratica, piano pagamenti, attività operative, promemoria fattura, lead→cliente automatico (contratti: in attesa del template Giramondo) | 2 |
-| 7 | Agenda hub: promemoria da vendite ✓ (già attivo col blocco 6); resta scadenze pubblicazione contenuti → Agenda | 4, 6 |
+| 7 ✓ | Agenda hub: promemoria da vendite (blocco 6) + scadenze pubblicazione contenuti nelle viste calendario e nella lista agenda | 4, 6 |
 | 8 | Dashboard nuova | tutto |
 | — | Fix connettore immagini in collaudo | subito |

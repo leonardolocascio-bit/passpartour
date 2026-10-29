@@ -14,6 +14,11 @@
     <span class="cal-chip google"
           title="Google Calendar · {{ e.utente ? e.utente.nomeCompleto ~ ' · ' }}{{ e.titolo }}{{ not e.tuttoIlGiorno ? ' · ' ~ e.inizio|date('H:i') }}">🗓 {{ full and not e.tuttoIlGiorno ? e.inizio|date('H:i') ~ ' ' }}{{ e.utente ? e.utente.nome ~ ': ' }}{{ e.titolo }}</span>
 {% endmacro %}
+{% macro chipPub(c, full) %}
+    <a class="cal-chip" style="background:#fff;color:#b07400;border:1px solid var(--amber){{ c.pubblicato ? ';opacity:.5;text-decoration:line-through' }}"
+       href="{{ path('app_creator_digital_anteprima', {id: c.id}) }}"
+       title="Pubblicazione {{ c.tipo.label|lower }} · {{ c.titolo }} · {{ c.stato.label }}">📣 {{ full and c.dataPubblicazione|date('H:i') != '00:00' ? c.dataPubblicazione|date('H:i') ~ ' ' }}{{ c.titolo }}</a>
+{% endmacro %}
 {% import _self as ui %}
 
 {% block main %}
@@ -47,6 +52,22 @@
         {% else %}
             <p class="muted" style="margin:0;text-align:center;padding:24px">Nessuna attività in questo giorno.</p>
         {% endif %}
+        {% if pubblicazioni|length > 0 %}
+            <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--line)">
+                <div class="muted" style="font-size:11px;text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px">📣 Pubblicazioni programmate</div>
+                <div style="display:grid;gap:8px">
+                    {% for c in pubblicazioni %}
+                        <div style="display:flex;align-items:center;gap:12px">
+                            <span style="width:8px;height:8px;border-radius:50%;background:var(--amber)"></span>
+                            <span class="muted" style="width:44px;font-size:12px">{{ c.dataPubblicazione|date('H:i') != '00:00' ? c.dataPubblicazione|date('H:i') : '—' }}</span>
+                            <span class="badge" style="font-size:11px">{{ c.tipo.label }}</span>
+                            <a href="{{ path('app_creator_digital_anteprima', {id: c.id}) }}" style="font-weight:600;{{ c.pubblicato ? 'text-decoration:line-through;color:var(--muted)' }}">{{ c.titolo }}</a>
+                            <span class="{{ c.stato.badgeClass }}" style="font-size:10px">{{ c.stato.label }}</span>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        {% endif %}
         {% if eventi|length > 0 %}
             <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--line)">
                 <div class="muted" style="font-size:11px;text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px">🗓 Google Calendar operatori</div>
@@ -73,8 +94,9 @@
         {% for g in giorni %}
             <div class="cal-week-col {{ g.oggi ? 'oggi' }}">
                 {% for a in g.attivita %}{{ ui.chip(a, tipoColore, true) }}{% endfor %}
+                {% for c in g.pubblicazioni %}{{ ui.chipPub(c, true) }}{% endfor %}
                 {% for e in g.eventi %}{{ ui.chipGoogle(e, true) }}{% endfor %}
-                {% if g.attivita|length + g.eventi|length == 0 %}<span class="cal-more">—</span>{% endif %}
+                {% if g.attivita|length + g.eventi|length + g.pubblicazioni|length == 0 %}<span class="cal-more">—</span>{% endif %}
             </div>
         {% endfor %}
     </div>
@@ -109,8 +131,9 @@
                 <div class="cal-cell {{ cella.in_mese ? '' : 'fuori' }} {{ cella.oggi ? 'oggi' }}">
                     <div class="cal-daynum">{{ cella.data|date('j') }}</div>
                     {% for a in cella.attivita|slice(0, 3) %}{{ ui.chip(a, tipoColore, false) }}{% endfor %}
+                    {% for c in cella.pubblicazioni|slice(0, 2) %}{{ ui.chipPub(c, false) }}{% endfor %}
                     {% for e in cella.eventi|slice(0, 2) %}{{ ui.chipGoogle(e, false) }}{% endfor %}
-                    {% set extra = (cella.attivita|length > 3 ? cella.attivita|length - 3 : 0) + (cella.eventi|length > 2 ? cella.eventi|length - 2 : 0) %}
+                    {% set extra = (cella.attivita|length > 3 ? cella.attivita|length - 3 : 0) + (cella.eventi|length > 2 ? cella.eventi|length - 2 : 0) + (cella.pubblicazioni|length > 2 ? cella.pubblicazioni|length - 2 : 0) %}
                     {% if extra > 0 %}<div class="cal-more">+{{ extra }} altre</div>{% endif %}
                 </div>
             {% endfor %}

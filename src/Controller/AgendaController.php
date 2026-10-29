@@ -54,11 +54,20 @@ class AgendaController extends AbstractController
             }
         }
 
+        // contenuti del Creator Studio programmati e non ancora pubblicati
+        $pubblicazioni = $em->getRepository(\App\Entity\ContenutoDigitale::class)->createQueryBuilder('c')
+            ->andWhere('c.pubblicato = false AND c.dataPubblicazione IS NOT NULL')
+            ->orderBy('c.dataPubblicazione', 'ASC')
+            ->getQuery()
+            ->getResult();
+
         return $this->render('agenda/index.html.twig', [
             'scadute' => $scadute,
             'oggi' => $diOggi,
             'prossime' => $prossime,
             'totale' => count($pendenti),
+            'pubblicazioni' => $pubblicazioni,
+            'adesso' => new \DateTimeImmutable(),
         ]);
     }
 

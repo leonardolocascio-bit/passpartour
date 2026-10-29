@@ -192,6 +192,21 @@ class AppFixtures extends Fixture
         $nyc->setOfferta($offertaByTitolo['Capodanno a New York'])->setSlug('capodanno-a-new-york');
         $grecia->setOfferta($offertaByTitolo['Grecia: Cicladi in libertà'])->setSlug('estate-grecia-isole');
 
+        // ---- Contenuto digitale programmato (Creator Studio → Agenda) ----
+        $dirDigital = __DIR__ . '/../../public/uploads/creator/digital';
+        $sorgente = __DIR__ . '/../../public/uploads/destinazioni/maldive.jpg';
+        if (is_file($sorgente)) {
+            @mkdir($dirDigital, 0775, true);
+            @copy($sorgente, $dirDigital . '/demo-maldive-post.jpg');
+        }
+        $manager->persist((new \App\Entity\ContenutoDigitale())
+            ->setTitolo('Post Maldive inverno')
+            ->setTipo(\App\Enum\TipoContenutoDigitale::POST)
+            ->setOfferta($offertaByTitolo['Maldive da sogno'])
+            ->setFile('demo-maldive-post.jpg')
+            ->setCaption('Le Maldive come le sogni: overwater, barriera corallina e tramonti infiniti. ✈️🌴')
+            ->setDataPubblicazione(new \DateTimeImmutable('+3 days 18:00')));
+
         // ---- Preventivo con 3 scenari (Economy / Comfort / Luxury) ----
         $prev = (new Preventivo())
             ->setNumero('PRV-2026-0001')

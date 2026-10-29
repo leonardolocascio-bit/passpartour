@@ -58,4 +58,30 @@
     </div>
 {% endif %}
 
+{% if pubblicazioni|length > 0 %}
+    <div class="card" style="margin-top:16px">
+        <div class="card-pad" style="border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px">
+            <span style="width:10px;height:10px;border-radius:50%;background:var(--amber)"></span>
+            <h3>📣 Pubblicazioni programmate <span class="muted" style="font-weight:500">({{ pubblicazioni|length }})</span></h3>
+        </div>
+        <table class="grid-table">
+            <tbody>
+            {% for c in pubblicazioni %}
+                <tr>
+                    <td style="width:150px"><span class="badge">{{ c.tipo.label }}</span></td>
+                    <td style="font-weight:600"><a href="{{ path('app_creator_digital_anteprima', {id: c.id}) }}">{{ c.titolo }}</a></td>
+                    <td class="muted">{{ c.offerta ? c.offerta.titolo : '—' }}</td>
+                    <td style="white-space:nowrap;{{ c.dataPubblicazione < adesso ? 'color:var(--danger);font-weight:600' }}">
+                        {{ c.dataPubblicazione|date('d/m/Y H:i') }}
+                    </td>
+                    <td style="text-align:right">
+                        <a class="btn" style="padding:5px 10px;font-size:12px" href="{{ path('app_creator_digital_anteprima', {id: c.id}) }}">Anteprima</a>
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endif %}
+
 {% endblock %}
