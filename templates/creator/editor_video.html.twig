@@ -4,323 +4,696 @@
 {% block page_title %}Creator Studio · Editor Video{% endblock %}
 
 {% block main %}
-<p class="muted" style="margin:0 0 14px;max-width:820px">
-    Montaggio semplice, tutto nel browser: carica le clip, tagliale, scegli preset colore e dissolvenze,
-    aggiungi titolo e logo (dal Media Kit). L'export salva il file e lo può archiviare in Archivio Digital.
+<style>
+    .ev-grid { display:grid; grid-template-columns: minmax(0,1fr) minmax(300px,380px); gap:16px; align-items:start; }
+    .ev-timeline { overflow-x:auto; border:1px solid var(--line); border-radius:10px; background:#f8fafc; padding:10px; }
+    .ev-ruler { position:relative; height:22px; cursor:pointer; }
+    .ev-ruler .tick { position:absolute; top:0; font-size:10px; color:var(--muted); border-left:1px solid var(--line); padding-left:3px; height:22px; }
+    .ev-track { display:flex; align-items:center; min-height:52px; position:relative; margin-top:6px; }
+    .ev-track-label { position:sticky; left:0; font-size:10px; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); width:0; white-space:nowrap; z-index:2; transform:translateY(-20px); }
+    .ev-clip { position:absolute; top:4px; height:46px; border-radius:8px; overflow:hidden; cursor:pointer; border:2px solid transparent; background:#123a72; color:#fff; font-size:11px; }
+    .ev-clip.sel { border-color:var(--brand); box-shadow:0 0 0 2px rgba(234,91,36,.25); }
+    .ev-clip .nome { padding:3px 6px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; position:relative; z-index:1; text-shadow:0 1px 3px rgba(0,0,0,.8); }
+    .ev-clip img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; opacity:.7; }
+    .ev-ov { position:absolute; top:8px; height:30px; border-radius:7px; background:var(--amber); color:#5b3b00; font-size:11px; font-weight:600; padding:6px 8px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; cursor:pointer; border:2px solid transparent; }
+    .ev-ov.sel { border-color:var(--navy); }
+    .ev-mus { position:absolute; top:8px; height:30px; border-radius:7px; background:#1f9d54; color:#fff; font-size:11px; padding:6px 8px; white-space:nowrap; overflow:hidden; cursor:pointer; }
+    .ev-playhead { position:absolute; top:0; bottom:0; width:2px; background:var(--brand); z-index:3; pointer-events:none; }
+    .ev-pan label { font-size:12px; }
+    .ev-pan input[type=range] { width:100%; }
+    .ev-row2 { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+    .ev-row3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }
+    .ev-mini { font-size:12px; padding:4px 8px; }
+</style>
+
+<p class="muted" style="margin:0 0 12px;max-width:900px">
+    Montaggio a timeline: trascina le clip per riordinarle, selezionale per tagliare (anche ✂ al cursore), scegli
+    transizioni, effetti e velocità; aggiungi testi a tempo, logo e una traccia musicale. Poi anteprima ed export.
 </p>
 
-<div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(300px,420px);gap:18px;align-items:start">
-    {# ---- colonna sinistra: clip e impostazioni ---- #}
-    <div style="display:grid;gap:16px">
-        <div class="card"><div class="card-pad">
-            <h3 style="margin-bottom:10px">Clip</h3>
-            <input type="file" id="clip-file" accept="video/*" multiple style="font-size:13px">
-            <div id="clip-lista" style="display:grid;gap:10px;margin-top:12px"></div>
+<div class="ev-grid">
+    {# ---------------- colonna sinistra: player + timeline ---------------- #}
+    <div style="display:grid;gap:12px">
+        <div class="card"><div class="card-pad" style="text-align:center">
+            <canvas id="tela" style="max-width:100%;max-height:46vh;background:#0a162c;border-radius:10px"></canvas>
+            <div style="display:flex;gap:8px;justify-content:center;align-items:center;margin-top:10px;flex-wrap:wrap">
+                <button type="button" class="btn" id="btn-play">▶ Riproduci</button>
+                <button type="button" class="btn" id="btn-stop" disabled>⏹ Stop</button>
+                <span class="muted" style="font-size:12px"><span id="t-cur">0.0</span>s / <span id="t-tot">0.0</span>s</span>
+                <button type="button" class="btn btn-primary" id="btn-esporta">⬇ Esporta</button>
+            </div>
+            <div id="stato" class="muted" style="font-size:12px;margin-top:6px">Carica le clip per iniziare.</div>
+            <div id="risultato" style="margin-top:10px;display:none">
+                <video id="video-finale" controls style="width:100%;max-height:300px;border-radius:10px"></video>
+                <div style="display:flex;gap:8px;justify-content:center;margin-top:8px;flex-wrap:wrap">
+                    <a class="btn" id="btn-scarica" download>⬇ Scarica</a>
+                    <button type="button" class="btn btn-primary" id="btn-archivia">🗂 Salva in Archivio Digital</button>
+                </div>
+            </div>
         </div></div>
 
         <div class="card"><div class="card-pad">
-            <h3 style="margin-bottom:10px">Impostazioni</h3>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-                <div>
-                    <label>Formato</label>
-                    <select id="imp-formato">
-                        <option value="9:16">Reel / Story 9:16 (1080×1920)</option>
-                        <option value="1:1">Quadrato 1:1 (1080×1080)</option>
-                        <option value="16:9">Orizzontale 16:9 (1920×1080)</option>
-                    </select>
-                </div>
-                <div>
-                    <label>Titolo video <span class="muted" style="font-weight:400">(per l'archivio)</span></label>
-                    <input type="text" id="imp-nome" placeholder="es. Reel Maldive inverno">
-                </div>
-            </div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px">
-                <div>
-                    <label>Titolo in sovrimpressione <span class="muted" style="font-weight:400">(primi 3s)</span></label>
-                    <input type="text" id="imp-titolo" placeholder="es. MALDIVE DA SOGNO">
-                </div>
-                <div>
-                    <label>Sottotitolo</label>
-                    <input type="text" id="imp-sottotitolo" placeholder="es. 7 notti in overwater · da €1.990">
-                </div>
-            </div>
-            <div style="display:flex;gap:18px;margin-top:12px;flex-wrap:wrap">
-                <label style="display:flex;gap:8px;align-items:center;font-weight:500;cursor:pointer">
-                    <input type="checkbox" id="imp-logo" checked style="width:auto"> Logo Passpartour (Media Kit)
+            <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:8px">
+                <label class="btn ev-mini" style="cursor:pointer">+ Aggiungi clip
+                    <input type="file" id="clip-file" accept="video/*" multiple style="display:none">
                 </label>
-                <label style="display:flex;gap:8px;align-items:center;font-weight:500;cursor:pointer">
-                    <input type="checkbox" id="imp-dissolvenze" checked style="width:auto"> Dissolvenze (apertura, tra le clip, chiusura)
+                <label class="btn ev-mini" style="cursor:pointer">🎵 Musica
+                    <input type="file" id="musica-file" accept="audio/*" style="display:none">
                 </label>
+                <button type="button" class="btn ev-mini" id="btn-overlay">＋ Testo</button>
+                <button type="button" class="btn ev-mini" id="btn-split">✂ Dividi al cursore</button>
+                <span style="margin-left:auto;display:flex;gap:6px;align-items:center" class="muted">
+                    <span style="font-size:11px">Zoom</span>
+                    <input type="range" id="zoom" min="6" max="80" value="26" style="width:110px">
+                </span>
+            </div>
+            <div class="ev-timeline" id="timeline">
+                <div style="position:relative" id="tl-inner">
+                    <div class="ev-ruler" id="ruler"></div>
+                    <div class="ev-track" id="track-video"></div>
+                    <div class="ev-track" id="track-overlay" style="min-height:40px"></div>
+                    <div class="ev-track" id="track-musica" style="min-height:40px"></div>
+                    <div class="ev-playhead" id="playhead" style="left:0"></div>
+                </div>
             </div>
         </div></div>
     </div>
 
-    {# ---- colonna destra: anteprima ed export ---- #}
-    <div class="card"><div class="card-pad" style="text-align:center">
-        <canvas id="tela" style="width:100%;max-height:60vh;background:#0a162c;border-radius:10px"></canvas>
-        <div style="display:flex;gap:8px;justify-content:center;margin-top:12px;flex-wrap:wrap">
-            <button type="button" class="btn" id="btn-anteprima">▶ Anteprima</button>
-            <button type="button" class="btn" id="btn-stop" disabled>⏹ Stop</button>
-            <button type="button" class="btn btn-primary" id="btn-esporta">⬇ Esporta video</button>
-        </div>
-        <div id="stato" class="muted" style="font-size:12px;margin-top:8px">Carica almeno una clip per iniziare.</div>
-        <div id="risultato" style="margin-top:10px;display:none">
-            <video id="video-finale" controls style="width:100%;border-radius:10px"></video>
-            <div style="display:flex;gap:8px;justify-content:center;margin-top:10px;flex-wrap:wrap">
-                <a class="btn" id="btn-scarica" download>⬇ Scarica</a>
-                <button type="button" class="btn btn-primary" id="btn-archivia">🗂 Salva in Archivio Digital</button>
+    {# ---------------- colonna destra: pannelli proprietà ---------------- #}
+    <div style="display:grid;gap:12px" class="ev-pan">
+        <div class="card"><div class="card-pad">
+            <h3 style="margin-bottom:8px;font-size:14px">Progetto</h3>
+            <div class="ev-row2">
+                <div>
+                    <label>Formato</label>
+                    <select id="imp-formato">
+                        <option value="9:16">Reel 9:16</option>
+                        <option value="1:1">Quadrato 1:1</option>
+                        <option value="16:9">16:9</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Titolo (per l'archivio)</label>
+                    <input type="text" id="imp-nome" placeholder="es. Reel Maldive">
+                </div>
             </div>
-        </div>
-        <p class="muted" style="font-size:11px;margin:10px 0 0">
-            L'export avviene in tempo reale (dura quanto il video). Formato mp4 se il browser lo supporta, altrimenti WebM.
-        </p>
-    </div></div>
+            <div class="ev-row2" style="margin-top:8px">
+                <div>
+                    <label>Logo (Media Kit)</label>
+                    <select id="imp-logo">
+                        <option value="">Nessuno</option>
+                        <option value="tr" selected>In alto a destra</option>
+                        <option value="tl">In alto a sinistra</option>
+                        <option value="br">In basso a destra</option>
+                        <option value="bl">In basso a sinistra</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Dimensione logo <span id="logo-size-v" class="muted">18%</span></label>
+                    <input type="range" id="imp-logo-size" min="8" max="36" value="18">
+                </div>
+            </div>
+        </div></div>
+
+        <div class="card" id="pan-clip" style="display:none"><div class="card-pad">
+            <h3 style="margin-bottom:8px;font-size:14px">Clip: <span id="pc-nome" class="muted" style="font-weight:500"></span></h3>
+            <div class="ev-row3">
+                <div><label>Da (s)</label><input type="number" id="pc-in" min="0" step="0.1"></div>
+                <div><label>A (s)</label><input type="number" id="pc-out" min="0" step="0.1"></div>
+                <div><label>Velocità</label>
+                    <select id="pc-vel"><option value="0.5">0.5×</option><option value="0.75">0.75×</option><option value="1" selected>1×</option><option value="1.5">1.5×</option><option value="2">2×</option></select>
+                </div>
+            </div>
+            <div style="display:flex;gap:6px;margin-top:6px">
+                <button type="button" class="btn ev-mini" id="pc-in-ph">[ dal cursore</button>
+                <button type="button" class="btn ev-mini" id="pc-out-ph">al cursore ]</button>
+            </div>
+            <div class="ev-row2" style="margin-top:8px">
+                <div>
+                    <label>Transizione in ingresso</label>
+                    <select id="pc-trans">
+                        <option value="taglio">Taglio</option>
+                        <option value="dissolvenza">Dissolvenza incrociata</option>
+                        <option value="nero">Dissolvenza al nero</option>
+                        <option value="scorri">Scorrimento</option>
+                        <option value="wipe">Wipe</option>
+                    </select>
+                </div>
+                <div><label>Durata trans. (s)</label><input type="number" id="pc-transdur" min="0.2" max="2" step="0.1" value="0.6"></div>
+            </div>
+            <div style="margin-top:8px">
+                <label>Preset colore</label>
+                <select id="pc-preset"></select>
+            </div>
+            <div class="ev-row3" style="margin-top:8px">
+                <div><label>Lumin. <span id="pc-lum-v" class="muted">100</span></label><input type="range" id="pc-lum" min="50" max="150" value="100"></div>
+                <div><label>Contr. <span id="pc-con-v" class="muted">100</span></label><input type="range" id="pc-con" min="50" max="150" value="100"></div>
+                <div><label>Satur. <span id="pc-sat-v" class="muted">100</span></label><input type="range" id="pc-sat" min="0" max="200" value="100"></div>
+            </div>
+            <div class="ev-row2" style="margin-top:8px;align-items:center">
+                <div><label>Volume clip <span id="pc-vol-v" class="muted">100%</span></label><input type="range" id="pc-vol" min="0" max="100" value="100"></div>
+                <label style="display:flex;gap:6px;align-items:center;font-weight:500;cursor:pointer;margin-top:14px">
+                    <input type="checkbox" id="pc-kb" style="width:auto"> Zoom lento (Ken Burns)
+                </label>
+            </div>
+            <div style="display:flex;gap:6px;margin-top:10px;justify-content:space-between">
+                <div style="display:flex;gap:6px">
+                    <button type="button" class="btn ev-mini" id="pc-prima">← Sposta</button>
+                    <button type="button" class="btn ev-mini" id="pc-dopo">Sposta →</button>
+                    <button type="button" class="btn ev-mini" id="pc-dup">⧉ Duplica</button>
+                </div>
+                <button type="button" class="btn ev-mini" id="pc-del" style="color:var(--danger)">✕ Rimuovi</button>
+            </div>
+        </div></div>
+
+        <div class="card" id="pan-ov" style="display:none"><div class="card-pad">
+            <h3 style="margin-bottom:8px;font-size:14px">Testo in sovrimpressione</h3>
+            <div><label>Testo</label><input type="text" id="po-testo"></div>
+            <div class="ev-row3" style="margin-top:8px">
+                <div><label>Da (s)</label><input type="number" id="po-da" min="0" step="0.1"></div>
+                <div><label>A (s)</label><input type="number" id="po-a" min="0" step="0.1"></div>
+                <div><label>Dimensione</label>
+                    <select id="po-size"><option value="0.045">Piccolo</option><option value="0.07" selected>Medio</option><option value="0.1">Grande</option></select>
+                </div>
+            </div>
+            <div class="ev-row3" style="margin-top:8px">
+                <div><label>Posizione</label>
+                    <select id="po-pos">
+                        <option value="c">Centro</option><option value="t">Alto</option><option value="b" selected>Basso</option>
+                    </select>
+                </div>
+                <div><label>Colore</label>
+                    <select id="po-colore"><option value="#ffffff">Bianco</option><option value="#f6a41f">Ambra</option><option value="#123a72">Navy</option></select>
+                </div>
+                <div><label>Sfondo</label>
+                    <select id="po-bg"><option value="">Nessuno</option><option value="pill">Pillola</option><option value="band">Banda</option></select>
+                </div>
+            </div>
+            <div style="display:flex;gap:6px;margin-top:10px;justify-content:space-between">
+                <button type="button" class="btn ev-mini" id="po-ph">⏱ Inizia dal cursore</button>
+                <button type="button" class="btn ev-mini" id="po-del" style="color:var(--danger)">✕ Rimuovi</button>
+            </div>
+        </div></div>
+
+        <div class="card" id="pan-mus" style="display:none"><div class="card-pad">
+            <h3 style="margin-bottom:8px;font-size:14px">Musica: <span id="pm-nome" class="muted" style="font-weight:500"></span></h3>
+            <div><label>Volume <span id="pm-vol-v" class="muted">60%</span></label><input type="range" id="pm-vol" min="0" max="100" value="60"></div>
+            <div class="ev-row2" style="margin-top:8px">
+                <div><label>Fade in (s)</label><input type="number" id="pm-fi" min="0" step="0.5" value="1"></div>
+                <div><label>Fade out (s)</label><input type="number" id="pm-fo" min="0" step="0.5" value="2"></div>
+            </div>
+            <button type="button" class="btn ev-mini" id="pm-del" style="color:var(--danger);margin-top:10px">✕ Rimuovi musica</button>
+        </div></div>
+    </div>
 </div>
 
 <script>
 (function () {
+    'use strict';
     const LOGO_URL = {{ asset(logo_url)|json_encode|raw }};
     const KIT_FONT = {{ kit_font|json_encode|raw }} || {};
     const FONT_TITOLI = (KIT_FONT.titoli ? "'" + KIT_FONT.titoli + "'," : '') + "-apple-system,'Segoe UI',Roboto,sans-serif";
-    const FONT_TESTO = (KIT_FONT.testo ? "'" + KIT_FONT.testo + "'," : '') + "-apple-system,'Segoe UI',Roboto,sans-serif";
     const URL_ARCHIVIA = {{ path('app_creator_video_archivia')|json_encode|raw }};
     const CSRF = {{ csrf_token('video_archivia')|json_encode|raw }};
     const PRESET = {
-        nessuno: 'none',
-        vivido: 'saturate(1.35) contrast(1.08)',
-        caldo: 'sepia(0.25) saturate(1.3) hue-rotate(-8deg)',
-        freddo: 'saturate(1.1) hue-rotate(12deg) brightness(1.03)',
-        cinema: 'contrast(1.18) saturate(0.9) brightness(0.96)',
-        bn: 'grayscale(1) contrast(1.1)',
-        seppia: 'sepia(0.8)',
+        nessuno: '', vivido: 'saturate(1.35) contrast(1.08)', caldo: 'sepia(0.25) saturate(1.3) hue-rotate(-8deg)',
+        freddo: 'saturate(1.1) hue-rotate(12deg) brightness(1.03)', cinema: 'contrast(1.18) saturate(0.9) brightness(0.96)',
+        bn: 'grayscale(1) contrast(1.1)', seppia: 'sepia(0.8)',
     };
     const PRESET_LABEL = { nessuno: 'Nessuno', vivido: 'Vivido', caldo: 'Caldo', freddo: 'Freddo', cinema: 'Cinema', bn: 'Bianco e nero', seppia: 'Seppia' };
-    const FADE = 0.5; // secondi
+    const OVERLAP = { dissolvenza: true, scorri: true, wipe: true, taglio: false, nero: false };
 
-    const clips = [];   // {file, url, nome, video, durata, in, out, preset}
-    const tela = document.getElementById('tela');
-    const ctx = tela.getContext('2d');
-    const stato = document.getElementById('stato');
-    let logoImg = null;
-    (function () { const i = new Image(); i.onload = () => logoImg = i; i.src = LOGO_URL; })();
-    let inRiproduzione = false;
-    let fermaRichiesto = false;
+    const $ = id => document.getElementById(id);
+    const tela = $('tela'), ctx = tela.getContext('2d');
+    const clips = [];       // {id,url,nome,video,durata,in,out,vel,vol,preset,lum,con,sat,kb,trans,transDur,thumb,srcNode,gain}
+    const overlays = [];    // {id,testo,da,a,size,pos,colore,bg}
+    let musica = null;      // {nome,url,audio,vol,fadeIn,fadeOut,srcNode,gain}
+    let sel = null;         // {tipo:'clip'|'ov'|'mus', id}
+    let scala = 26;         // px per secondo
+    let playhead = 0;       // secondi
+    let inPlay = false, fermaRichiesto = false;
+    let logoImg = null; (function(){ const i=new Image(); i.onload=()=>{logoImg=i; disegnaA(playhead);}; i.src=LOGO_URL; })();
+    let audioCtx = null, audioDest = null;
+    let ultimoBlob = null, ultimaExt = 'webm';
+    let uid = 1;
 
-    function dimensioni() {
-        const f = document.getElementById('imp-formato').value;
-        return f === '1:1' ? [1080, 1080] : f === '16:9' ? [1920, 1080] : [1080, 1920];
+    /* ================= modello timeline ================= */
+    const effDur = c => Math.max(0, (c.out - c.in) / c.vel);
+    function segmenti() {
+        // [{c, t0, t1, overlapIn}] — con transizioni overlap la clip entra prima della fine della precedente
+        const out = []; let t = 0;
+        clips.forEach((c, i) => {
+            const ov = i > 0 && OVERLAP[c.trans] ? Math.min(c.transDur, effDur(c), out[i-1] ? effDur(clips[i-1]) : 99) : 0;
+            const t0 = Math.max(0, t - ov);
+            out.push({ c, t0, t1: t0 + effDur(c), overlapIn: ov });
+            t = t0 + effDur(c);
+        });
+        return out;
     }
-    function applicaFormato() { const [w, h] = dimensioni(); tela.width = w; tela.height = h; disegnaCopertina(); }
-    document.getElementById('imp-formato').addEventListener('change', applicaFormato);
+    const durataTotale = () => { const s = segmenti(); return s.length ? s[s.length-1].t1 : 0; };
+    const tClip = (seg, t) => seg.c.in + (t - seg.t0) * seg.c.vel;
 
-    function disegnaCopertina() {
-        ctx.filter = 'none';
-        ctx.fillStyle = '#0a162c'; ctx.fillRect(0, 0, tela.width, tela.height);
-        if (clips.length) {
-            const v = clips[0].video; v.currentTime = Math.min(clips[0].in + 0.1, v.duration || 0);
-            v.addEventListener('seeked', function una() { v.removeEventListener('seeked', una); disegnaFrame(clips[0], 1, 0); }, { once: true });
-        }
-    }
-
-    /* ---------- gestione clip ---------- */
-    document.getElementById('clip-file').addEventListener('change', (e) => {
+    /* ================= caricamento ================= */
+    $('clip-file').addEventListener('change', e => {
         for (const file of e.target.files) {
             const url = URL.createObjectURL(file);
             const video = document.createElement('video');
-            video.src = url; video.preload = 'metadata'; video.muted = false; video.playsInline = true;
-            video.crossOrigin = 'anonymous';
-            const clip = { file, url, nome: file.name, video, durata: 0, in: 0, out: 0, preset: 'nessuno', srcNode: null };
+            video.src = url; video.preload = 'auto'; video.playsInline = true; video.crossOrigin = 'anonymous';
+            const c = { id: uid++, url, nome: file.name.replace(/\.[^.]+$/, ''), video, durata: 0, in: 0, out: 0,
+                vel: 1, vol: 1, preset: 'nessuno', lum: 100, con: 100, sat: 100, kb: false,
+                trans: clips.length ? 'dissolvenza' : 'taglio', transDur: 0.6, thumb: null, srcNode: null, gain: null };
             video.addEventListener('loadedmetadata', () => {
-                clip.durata = video.duration; clip.out = Math.round(video.duration * 10) / 10;
-                renderClips(); if (clips[0] === clip) disegnaCopertina();
+                c.durata = video.duration; c.out = Math.round(video.duration * 10) / 10;
+                // miniatura
+                video.currentTime = Math.min(0.15, video.duration / 2);
+                video.addEventListener('seeked', function una() {
+                    video.removeEventListener('seeked', una);
+                    try {
+                        const cv = document.createElement('canvas'); cv.width = 120; cv.height = 68;
+                        cv.getContext('2d').drawImage(video, 0, 0, 120, 68);
+                        c.thumb = cv.toDataURL('image/jpeg', 0.6);
+                    } catch (err) {}
+                    render(); disegnaA(playhead);
+                }, { once: true });
+                render();
             });
-            clips.push(clip);
+            clips.push(c);
+            seleziona('clip', c.id);
         }
-        e.target.value = '';
-        renderClips();
+        e.target.value = ''; render();
     });
 
-    function renderClips() {
-        const box = document.getElementById('clip-lista');
-        box.innerHTML = '';
-        clips.forEach((c, i) => {
-            const div = document.createElement('div');
-            div.style.cssText = 'border:1px solid var(--line);border-radius:10px;padding:10px;display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center';
-            const info = document.createElement('div');
-            info.innerHTML = '<div style="font-weight:600;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + (i + 1) + '. ' + c.nome + '</div>'
-                + '<div class="muted" style="font-size:11px">' + (c.durata ? c.durata.toFixed(1) + 's' : 'carico…') + '</div>';
-            const controlli = document.createElement('div');
-            controlli.style.cssText = 'display:flex;gap:4px;align-items:center;flex-wrap:wrap;justify-content:flex-end';
+    $('musica-file').addEventListener('change', e => {
+        const file = e.target.files[0]; if (!file) return;
+        const url = URL.createObjectURL(file);
+        const audio = new Audio(url); audio.crossOrigin = 'anonymous'; audio.loop = true;
+        musica = { nome: file.name, url, audio, vol: 0.6, fadeIn: 1, fadeOut: 2, srcNode: null, gain: null };
+        e.target.value = ''; seleziona('mus', 0); render();
+    });
 
-            const mkNum = (val, label, onInput) => {
-                const wrap = document.createElement('label');
-                wrap.style.cssText = 'font-size:11px;display:flex;gap:3px;align-items:center';
-                wrap.textContent = label;
-                const inp = document.createElement('input');
-                inp.type = 'number'; inp.min = 0; inp.step = 0.1; inp.value = val;
-                inp.style.cssText = 'width:64px;font-size:12px;padding:3px 6px';
-                inp.addEventListener('input', () => onInput(parseFloat(inp.value) || 0));
-                wrap.appendChild(inp);
-                return wrap;
-            };
-            controlli.appendChild(mkNum(c.in, 'da s', v => c.in = v));
-            controlli.appendChild(mkNum(c.out, 'a s', v => c.out = v));
+    /* ================= selezione e pannelli ================= */
+    function seleziona(tipo, id) {
+        sel = { tipo, id };
+        $('pan-clip').style.display = tipo === 'clip' ? '' : 'none';
+        $('pan-ov').style.display = tipo === 'ov' ? '' : 'none';
+        $('pan-mus').style.display = tipo === 'mus' && musica ? '' : 'none';
+        if (tipo === 'clip') { const c = clipSel(); if (c) riempiPannelloClip(c); }
+        if (tipo === 'ov') { const o = ovSel(); if (o) riempiPannelloOv(o); }
+        if (tipo === 'mus' && musica) riempiPannelloMus();
+        render();
+    }
+    const clipSel = () => clips.find(c => sel && sel.tipo === 'clip' && c.id === sel.id);
+    const ovSel = () => overlays.find(o => sel && sel.tipo === 'ov' && o.id === sel.id);
 
-            const sel = document.createElement('select');
-            sel.style.cssText = 'font-size:12px;padding:3px 6px';
-            Object.keys(PRESET).forEach(k => {
-                const o = document.createElement('option'); o.value = k; o.textContent = PRESET_LABEL[k];
-                sel.appendChild(o);
+    function riempiPannelloClip(c) {
+        $('pc-nome').textContent = c.nome;
+        $('pc-in').value = c.in; $('pc-out').value = c.out; $('pc-vel').value = String(c.vel);
+        $('pc-trans').value = c.trans; $('pc-transdur').value = c.transDur;
+        const selP = $('pc-preset'); selP.innerHTML = '';
+        Object.keys(PRESET).forEach(k => { const o = document.createElement('option'); o.value = k; o.textContent = PRESET_LABEL[k]; selP.appendChild(o); });
+        selP.value = c.preset;
+        $('pc-lum').value = c.lum; $('pc-con').value = c.con; $('pc-sat').value = c.sat;
+        $('pc-lum-v').textContent = c.lum; $('pc-con-v').textContent = c.con; $('pc-sat-v').textContent = c.sat;
+        $('pc-vol').value = Math.round(c.vol * 100); $('pc-vol-v').textContent = Math.round(c.vol * 100) + '%';
+        $('pc-kb').checked = c.kb;
+    }
+    function riempiPannelloOv(o) {
+        $('po-testo').value = o.testo; $('po-da').value = o.da; $('po-a').value = o.a;
+        $('po-size').value = String(o.size); $('po-pos').value = o.pos; $('po-colore').value = o.colore; $('po-bg').value = o.bg;
+    }
+    function riempiPannelloMus() {
+        $('pm-nome').textContent = musica.nome;
+        $('pm-vol').value = Math.round(musica.vol * 100); $('pm-vol-v').textContent = Math.round(musica.vol * 100) + '%';
+        $('pm-fi').value = musica.fadeIn; $('pm-fo').value = musica.fadeOut;
+    }
+
+    // binding pannello clip
+    const bindC = (id, fn) => $(id).addEventListener('input', () => { const c = clipSel(); if (c) { fn(c, $(id)); render(); disegnaA(playhead); } });
+    bindC('pc-in', (c, el) => c.in = Math.max(0, Math.min(parseFloat(el.value) || 0, c.out - 0.1)));
+    bindC('pc-out', (c, el) => c.out = Math.min(c.durata, Math.max(parseFloat(el.value) || 0, c.in + 0.1)));
+    bindC('pc-vel', (c, el) => c.vel = parseFloat(el.value));
+    bindC('pc-trans', (c, el) => c.trans = el.value);
+    bindC('pc-transdur', (c, el) => c.transDur = Math.max(0.2, parseFloat(el.value) || 0.6));
+    bindC('pc-preset', (c, el) => c.preset = el.value);
+    bindC('pc-lum', (c, el) => { c.lum = +el.value; $('pc-lum-v').textContent = el.value; });
+    bindC('pc-con', (c, el) => { c.con = +el.value; $('pc-con-v').textContent = el.value; });
+    bindC('pc-sat', (c, el) => { c.sat = +el.value; $('pc-sat-v').textContent = el.value; });
+    bindC('pc-vol', (c, el) => { c.vol = el.value / 100; $('pc-vol-v').textContent = el.value + '%'; });
+    $('pc-kb').addEventListener('change', () => { const c = clipSel(); if (c) c.kb = $('pc-kb').checked; });
+    $('pc-in-ph').addEventListener('click', () => { const c = clipSel(); const s = segDi(c); if (c && s) { c.in = Math.max(0, Math.min(tClip(s, playhead), c.out - 0.1)); riempiPannelloClip(c); render(); } });
+    $('pc-out-ph').addEventListener('click', () => { const c = clipSel(); const s = segDi(c); if (c && s) { c.out = Math.min(c.durata, Math.max(tClip(s, playhead), c.in + 0.1)); riempiPannelloClip(c); render(); } });
+    $('pc-prima').addEventListener('click', () => muovi(-1));
+    $('pc-dopo').addEventListener('click', () => muovi(1));
+    $('pc-dup').addEventListener('click', () => { const c = clipSel(); if (!c) return; const i = clips.indexOf(c);
+        const copia = Object.assign({}, c, { id: uid++, srcNode: null, gain: null }); clips.splice(i + 1, 0, copia); seleziona('clip', copia.id); });
+    $('pc-del').addEventListener('click', () => { const c = clipSel(); if (!c) return; clips.splice(clips.indexOf(c), 1); sel = null; seleziona('clip', -1); });
+    function muovi(dir) { const c = clipSel(); if (!c) return; const i = clips.indexOf(c), j = i + dir;
+        if (j < 0 || j >= clips.length) return; [clips[i], clips[j]] = [clips[j], clips[i]]; render(); }
+    const segDi = c => segmenti().find(s => s.c === c);
+
+    // binding pannello overlay
+    const bindO = (id, fn) => $(id).addEventListener('input', () => { const o = ovSel(); if (o) { fn(o, $(id)); render(); disegnaA(playhead); } });
+    bindO('po-testo', (o, el) => o.testo = el.value);
+    bindO('po-da', (o, el) => o.da = Math.max(0, parseFloat(el.value) || 0));
+    bindO('po-a', (o, el) => o.a = Math.max(o.da + 0.2, parseFloat(el.value) || 0));
+    bindO('po-size', (o, el) => o.size = parseFloat(el.value));
+    bindO('po-pos', (o, el) => o.pos = el.value);
+    bindO('po-colore', (o, el) => o.colore = el.value);
+    bindO('po-bg', (o, el) => o.bg = el.value);
+    $('po-ph').addEventListener('click', () => { const o = ovSel(); if (o) { const d = o.a - o.da; o.da = playhead; o.a = playhead + d; riempiPannelloOv(o); render(); } });
+    $('po-del').addEventListener('click', () => { const o = ovSel(); if (!o) return; overlays.splice(overlays.indexOf(o), 1); sel = null; $('pan-ov').style.display = 'none'; render(); });
+    $('btn-overlay').addEventListener('click', () => {
+        const o = { id: uid++, testo: 'NUOVO TESTO', da: playhead, a: Math.min(playhead + 3, Math.max(durataTotale(), playhead + 3)), size: 0.07, pos: 'b', colore: '#ffffff', bg: '' };
+        overlays.push(o); seleziona('ov', o.id);
+    });
+
+    // binding musica
+    $('pm-vol').addEventListener('input', () => { if (musica) { musica.vol = $('pm-vol').value / 100; $('pm-vol-v').textContent = $('pm-vol').value + '%'; } });
+    $('pm-fi').addEventListener('input', () => { if (musica) musica.fadeIn = parseFloat($('pm-fi').value) || 0; });
+    $('pm-fo').addEventListener('input', () => { if (musica) musica.fadeOut = parseFloat($('pm-fo').value) || 0; });
+    $('pm-del').addEventListener('click', () => { if (musica) { musica.audio.pause(); } musica = null; $('pan-mus').style.display = 'none'; render(); });
+
+    // split al cursore
+    $('btn-split').addEventListener('click', () => {
+        const s = segmenti().find(s => playhead > s.t0 + 0.15 && playhead < s.t1 - 0.15);
+        if (!s) return;
+        const tc = tClip(s, playhead), c = s.c, i = clips.indexOf(c);
+        const copia = Object.assign({}, c, { id: uid++, in: tc, trans: 'taglio', srcNode: null, gain: null });
+        c.out = tc;
+        clips.splice(i + 1, 0, copia);
+        seleziona('clip', copia.id);
+    });
+
+    /* ================= timeline UI ================= */
+    $('zoom').addEventListener('input', () => { scala = +$('zoom').value; render(); });
+
+    function render() {
+        const durata = Math.max(durataTotale(), 10);
+        const W = Math.max(durata * scala + 60, 400);
+        $('tl-inner').style.width = W + 'px';
+
+        // righello
+        const ruler = $('ruler'); ruler.innerHTML = '';
+        const passo = scala < 14 ? 5 : scala < 30 ? 2 : 1;
+        for (let s = 0; s <= durata + passo; s += passo) {
+            const d = document.createElement('div'); d.className = 'tick'; d.style.left = (s * scala) + 'px'; d.textContent = s + 's';
+            ruler.appendChild(d);
+        }
+
+        // traccia video
+        const tv = $('track-video'); tv.innerHTML = '<span class="ev-track-label">Video</span>';
+        segmenti().forEach(s => {
+            const d = document.createElement('div');
+            d.className = 'ev-clip' + (sel && sel.tipo === 'clip' && sel.id === s.c.id ? ' sel' : '');
+            d.style.left = (s.t0 * scala) + 'px'; d.style.width = Math.max(26, (s.t1 - s.t0) * scala) + 'px';
+            if (s.c.thumb) { const im = document.createElement('img'); im.src = s.c.thumb; d.appendChild(im); }
+            const n = document.createElement('div'); n.className = 'nome';
+            n.textContent = (s.overlapIn ? '⇄ ' : '') + s.c.nome + ' · ' + effDur(s.c).toFixed(1) + 's' + (s.c.vel !== 1 ? ' · ' + s.c.vel + '×' : '');
+            d.appendChild(n);
+            d.draggable = true;
+            d.addEventListener('dragstart', ev => ev.dataTransfer.setData('text/plain', String(s.c.id)));
+            d.addEventListener('dragover', ev => ev.preventDefault());
+            d.addEventListener('drop', ev => {
+                ev.preventDefault();
+                const daId = +ev.dataTransfer.getData('text/plain');
+                const da = clips.findIndex(c => c.id === daId), a = clips.indexOf(s.c);
+                if (da >= 0 && a >= 0 && da !== a) { const [m] = clips.splice(da, 1); clips.splice(a, 0, m); render(); }
             });
-            sel.value = c.preset;
-            sel.addEventListener('change', () => c.preset = sel.value);
-            controlli.appendChild(sel);
-
-            const btn = (t, title, fn) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'btn'; b.style.cssText = 'padding:2px 8px;font-size:12px'; b.textContent = t; b.title = title; b.addEventListener('click', fn); return b; };
-            controlli.appendChild(btn('↑', 'Sposta su', () => { if (i > 0) { [clips[i - 1], clips[i]] = [clips[i], clips[i - 1]]; renderClips(); } }));
-            controlli.appendChild(btn('↓', 'Sposta giù', () => { if (i < clips.length - 1) { [clips[i + 1], clips[i]] = [clips[i], clips[i + 1]]; renderClips(); } }));
-            controlli.appendChild(btn('✕', 'Rimuovi clip', () => { clips.splice(i, 1); renderClips(); }));
-
-            div.append(info, controlli);
-            box.appendChild(div);
+            d.addEventListener('click', ev => { ev.stopPropagation(); seleziona('clip', s.c.id); });
+            tv.appendChild(d);
         });
-        if (!clips.length) box.innerHTML = '<p class="muted" style="font-size:12px;margin:0">Nessuna clip caricata.</p>';
-        stato.textContent = clips.length ? 'Pronto: ' + clips.length + ' clip.' : 'Carica almeno una clip per iniziare.';
+
+        // traccia overlay
+        const to = $('track-overlay'); to.innerHTML = '<span class="ev-track-label">Testi</span>';
+        overlays.forEach(o => {
+            const d = document.createElement('div');
+            d.className = 'ev-ov' + (sel && sel.tipo === 'ov' && sel.id === o.id ? ' sel' : '');
+            d.style.left = (o.da * scala) + 'px'; d.style.width = Math.max(22, (o.a - o.da) * scala) + 'px';
+            d.textContent = o.testo || 'testo';
+            d.addEventListener('click', ev => { ev.stopPropagation(); seleziona('ov', o.id); });
+            to.appendChild(d);
+        });
+
+        // traccia musica
+        const tm = $('track-musica'); tm.innerHTML = '<span class="ev-track-label">Musica</span>';
+        if (musica) {
+            const d = document.createElement('div'); d.className = 'ev-mus';
+            d.style.left = '0px'; d.style.width = (durataTotale() * scala) + 'px';
+            d.textContent = '🎵 ' + musica.nome + ' · ' + Math.round(musica.vol * 100) + '%';
+            d.addEventListener('click', ev => { ev.stopPropagation(); seleziona('mus', 0); });
+            tm.appendChild(d);
+        }
+
+        $('playhead').style.left = (playhead * scala) + 'px';
+        $('t-tot').textContent = durataTotale().toFixed(1);
+        $('t-cur').textContent = playhead.toFixed(1);
+        $('stato').textContent = clips.length ? clips.length + ' clip · ' + durataTotale().toFixed(1) + 's' : 'Carica le clip per iniziare.';
     }
 
-    /* ---------- disegno ---------- */
-    function disegnaFrame(clip, alpha, tGlobale) {
-        const v = clip.video, W = tela.width, H = tela.height;
-        ctx.filter = PRESET[clip.preset] || 'none';
-        // cover-fit
-        const r = Math.max(W / v.videoWidth, H / v.videoHeight);
+    // scrub: click/drag sulla timeline
+    let scrubbing = false;
+    function scrubA(ev) {
+        const r = $('tl-inner').getBoundingClientRect();
+        playhead = Math.max(0, Math.min((ev.clientX - r.left) / scala, durataTotale()));
+        $('playhead').style.left = (playhead * scala) + 'px';
+        $('t-cur').textContent = playhead.toFixed(1);
+        disegnaA(playhead);
+    }
+    $('timeline').addEventListener('mousedown', ev => { if (inPlay) return; scrubbing = true; scrubA(ev); });
+    document.addEventListener('mousemove', ev => { if (scrubbing) scrubA(ev); });
+    document.addEventListener('mouseup', () => scrubbing = false);
+
+    /* ================= disegno frame ================= */
+    function dimensioni() { const f = $('imp-formato').value; return f === '1:1' ? [1080, 1080] : f === '16:9' ? [1920, 1080] : [1080, 1920]; }
+    function applicaFormato() { const [w, h] = dimensioni(); tela.width = w; tela.height = h; disegnaA(playhead); }
+    $('imp-formato').addEventListener('change', applicaFormato);
+    $('imp-logo-size').addEventListener('input', () => { $('logo-size-v').textContent = $('imp-logo-size').value + '%'; disegnaA(playhead); });
+    $('imp-logo').addEventListener('change', () => disegnaA(playhead));
+
+    function filtroClip(c) {
+        const reg = 'brightness(' + c.lum / 100 + ') contrast(' + c.con / 100 + ') saturate(' + c.sat / 100 + ')';
+        return ((PRESET[c.preset] || '') + ' ' + reg).trim();
+    }
+
+    function disegnaVideo(c, t, dx) {
+        const v = c.video, W = tela.width, H = tela.height;
+        if (!v.videoWidth) return;
+        ctx.save();
+        ctx.filter = filtroClip(c);
+        let z = 1;
+        if (c.kb) { const p = Math.max(0, Math.min(1, (t - c.in) / Math.max(0.1, c.out - c.in))); z = 1 + 0.08 * p; }
+        const r = Math.max(W / v.videoWidth, H / v.videoHeight) * z;
         const w = v.videoWidth * r, h = v.videoHeight * r;
+        ctx.translate(dx || 0, 0);
         ctx.drawImage(v, (W - w) / 2, (H - h) / 2, w, h);
-        ctx.filter = 'none';
+        ctx.restore();
+    }
 
-        // dissolvenza (a nero)
-        if (alpha < 1) { ctx.fillStyle = 'rgba(0,0,0,' + (1 - alpha) + ')'; ctx.fillRect(0, 0, W, H); }
-
-        // titolo nei primi 3 secondi (con fade out)
-        const titolo = document.getElementById('imp-titolo').value.trim();
-        const sotto = document.getElementById('imp-sottotitolo').value.trim();
-        if (titolo && tGlobale < 3) {
-            const a = tGlobale > 2.4 ? (3 - tGlobale) / 0.6 : 1;
-            ctx.save(); ctx.globalAlpha = Math.max(0, a);
-            ctx.textAlign = 'center';
-            ctx.shadowColor = 'rgba(0,0,0,.55)'; ctx.shadowBlur = 24;
-            ctx.fillStyle = '#fff';
-            ctx.font = '900 ' + Math.round(W * 0.07) + 'px ' + FONT_TITOLI;
-            ctx.fillText(titolo.toUpperCase(), W / 2, H * 0.44);
-            if (sotto) {
-                ctx.font = '600 ' + Math.round(W * 0.035) + 'px ' + FONT_TESTO;
-                ctx.fillStyle = '#f6a41f';
-                ctx.fillText(sotto, W / 2, H * 0.44 + W * 0.055);
+    function disegnaFrame(t) {
+        const W = tela.width, H = tela.height;
+        ctx.filter = 'none'; ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H);
+        const segs = segmenti();
+        const attivi = segs.filter(s => t >= s.t0 && t < s.t1);
+        if (attivi.length === 1) {
+            const s = attivi[0];
+            disegnaVideo(s.c, tClip(s, t), 0);
+            // dissolvenza al nero (non-overlap): metà in uscita, metà in ingresso
+            if (s.c.trans === 'nero') {
+                const dIn = t - s.t0, half = s.c.transDur / 2;
+                if (segs.indexOf(s) > 0 && dIn < half) { ctx.fillStyle = 'rgba(0,0,0,' + (1 - dIn / half) + ')'; ctx.fillRect(0, 0, W, H); }
             }
-            ctx.restore();
+            const i = segs.indexOf(s), next = segs[i + 1];
+            if (next && next.c.trans === 'nero') {
+                const manca = s.t1 - t, half = next.c.transDur / 2;
+                if (manca < half) { ctx.fillStyle = 'rgba(0,0,0,' + (1 - manca / half) + ')'; ctx.fillRect(0, 0, W, H); }
+            }
+        } else if (attivi.length >= 2) {
+            // transizione overlap: A (precedente) + B (entrante)
+            const A = attivi[0], B = attivi[1];
+            const p = Math.max(0, Math.min(1, (t - B.t0) / Math.max(0.1, B.overlapIn)));
+            if (B.c.trans === 'scorri') {
+                disegnaVideo(A.c, tClip(A, t), -p * W * 0.3);
+                ctx.save(); ctx.globalAlpha = 1; disegnaVideo(B.c, tClip(B, t), (1 - p) * W); ctx.restore();
+            } else if (B.c.trans === 'wipe') {
+                disegnaVideo(A.c, tClip(A, t), 0);
+                ctx.save(); ctx.beginPath(); ctx.rect(0, 0, p * W, H); ctx.clip();
+                disegnaVideo(B.c, tClip(B, t), 0); ctx.restore();
+            } else { // dissolvenza incrociata
+                disegnaVideo(A.c, tClip(A, t), 0);
+                ctx.save(); ctx.globalAlpha = p; disegnaVideo(B.c, tClip(B, t), 0); ctx.restore();
+            }
         }
 
-        // logo watermark
-        if (document.getElementById('imp-logo').checked && logoImg) {
-            const lw = W * 0.18, lh = lw * logoImg.height / logoImg.width;
-            ctx.save(); ctx.globalAlpha = 0.92;
-            ctx.drawImage(logoImg, W - lw - W * 0.04, H * 0.035, lw, lh);
+        // overlay testi
+        overlays.forEach(o => {
+            if (t < o.da || t > o.a || !o.testo) return;
+            const bordo = Math.min(0.3, (o.a - o.da) / 3);
+            const a = Math.min(1, (t - o.da) / bordo, (o.a - t) / bordo);
+            const size = Math.round(W * o.size);
+            ctx.save(); ctx.globalAlpha = Math.max(0, a);
+            ctx.font = '900 ' + size + 'px ' + FONT_TITOLI;
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            const y = o.pos === 't' ? H * 0.14 : o.pos === 'c' ? H * 0.5 : H * 0.84;
+            const tw = ctx.measureText(o.testo).width;
+            if (o.bg === 'pill') {
+                ctx.fillStyle = 'rgba(10,22,44,.78)';
+                const px = W / 2 - tw / 2 - size * 0.5, pw = tw + size, ph = size * 1.5;
+                ctx.beginPath(); ctx.roundRect(px, y - ph / 2, pw, ph, ph / 2); ctx.fill();
+            } else if (o.bg === 'band') {
+                ctx.fillStyle = 'rgba(10,22,44,.65)'; ctx.fillRect(0, y - size * 0.9, W, size * 1.8);
+            } else {
+                ctx.shadowColor = 'rgba(0,0,0,.6)'; ctx.shadowBlur = 20;
+            }
+            ctx.fillStyle = o.colore;
+            ctx.fillText(o.testo, W / 2, y);
             ctx.restore();
+        });
+
+        // logo
+        const pos = $('imp-logo').value;
+        if (pos && logoImg) {
+            const lw = W * ($('imp-logo-size').value / 100), lh = lw * logoImg.height / logoImg.width, m = W * 0.035;
+            const x = pos.endsWith('r') ? W - lw - m : m;
+            const y = pos.startsWith('t') ? m : H - lh - m;
+            ctx.save(); ctx.globalAlpha = 0.92; ctx.drawImage(logoImg, x, y, lw, lh); ctx.restore();
         }
     }
 
-    /** Riproduce la timeline disegnando sul canvas; chiama onFine() al termine. */
-    async function riproduci(onFine) {
-        const usaDissolvenze = document.getElementById('imp-dissolvenze').checked;
-        inRiproduzione = true; fermaRichiesto = false;
-        document.getElementById('btn-stop').disabled = false;
-        let tGlobale = 0;
+    // disegno asincrono di un singolo frame (scrub): seeka i video coinvolti
+    let disegnoTok = 0;
+    function disegnaA(t) {
+        const tok = ++disegnoTok;
+        const attivi = segmenti().filter(s => t >= s.t0 && t < s.t1);
+        if (!attivi.length) { disegnaFrame(t); return; }
+        let pend = 0;
+        attivi.forEach(s => {
+            const v = s.c.video, tc = Math.min(tClip(s, t), s.c.durata - 0.05);
+            if (v.readyState >= 1 && Math.abs(v.currentTime - tc) > 0.05) {
+                pend++;
+                v.addEventListener('seeked', function una() { v.removeEventListener('seeked', una); if (tok === disegnoTok && --pend <= 0) disegnaFrame(t); }, { once: true });
+                v.currentTime = tc;
+            }
+        });
+        if (pend === 0) disegnaFrame(t);
+    }
 
-        for (let i = 0; i < clips.length && !fermaRichiesto; i++) {
-            const c = clips[i], v = c.video;
-            const fine = Math.min(c.out || c.durata, c.durata);
-            v.currentTime = Math.min(c.in, fine);
-            await v.play();
-            await new Promise((res) => {
-                const loop = () => {
-                    if (fermaRichiesto || v.currentTime >= fine || v.ended) { v.pause(); res(); return; }
-                    let alpha = 1;
-                    if (usaDissolvenze) {
-                        const dentro = v.currentTime - c.in, manca = fine - v.currentTime;
-                        if ((i > 0 || true) && dentro < FADE) alpha = dentro / FADE;
-                        if (manca < FADE && (i < clips.length - 1 || true)) alpha = Math.min(alpha, manca / FADE);
-                    }
-                    disegnaFrame(c, alpha, tGlobale + (v.currentTime - c.in));
-                    requestAnimationFrame(loop);
-                };
-                requestAnimationFrame(loop);
-            });
-            tGlobale += Math.max(0, fine - c.in);
+    /* ================= audio ================= */
+    function setupAudio() {
+        audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+        audioDest = audioDest || audioCtx.createMediaStreamDestination();
+        clips.forEach(c => {
+            if (!c.srcNode) {
+                c.srcNode = audioCtx.createMediaElementSource(c.video);
+                c.gain = audioCtx.createGain(); c.gain.gain.value = 0;
+                c.srcNode.connect(c.gain); c.gain.connect(audioCtx.destination); c.gain.connect(audioDest);
+            }
+        });
+        if (musica && !musica.srcNode) {
+            musica.srcNode = audioCtx.createMediaElementSource(musica.audio);
+            musica.gain = audioCtx.createGain(); musica.gain.gain.value = 0;
+            musica.srcNode.connect(musica.gain); musica.gain.connect(audioCtx.destination); musica.gain.connect(audioDest);
         }
+        return audioCtx.resume();
+    }
 
-        inRiproduzione = false;
-        document.getElementById('btn-stop').disabled = true;
+    function volumeMusica(t, durata) {
+        if (!musica) return 0;
+        let v = musica.vol;
+        if (musica.fadeIn > 0) v *= Math.min(1, t / musica.fadeIn);
+        if (musica.fadeOut > 0) v *= Math.max(0, Math.min(1, (durata - t) / musica.fadeOut));
+        return Math.max(0, v);
+    }
+
+    /* ================= motore di riproduzione ================= */
+    async function riproduci(daT, onFine) {
+        if (!clips.length) return;
+        await setupAudio();
+        inPlay = true; fermaRichiesto = false;
+        $('btn-stop').disabled = false; $('btn-play').disabled = true;
+        const durata = durataTotale();
+        const t0clock = performance.now() / 1000 - daT;
+        if (musica) { musica.audio.currentTime = daT % (musica.audio.duration || 9999); musica.audio.play().catch(() => {}); }
+
+        await new Promise(res => {
+            const loop = () => {
+                const t = performance.now() / 1000 - t0clock;
+                if (fermaRichiesto || t >= durata) { res(); return; }
+                playhead = t;
+                const segs = segmenti();
+                segs.forEach(s => {
+                    const v = s.c.video;
+                    const attivo = t >= s.t0 && t < s.t1;
+                    const prossimo = t >= s.t0 - 0.4 && t < s.t0; // pre-roll
+                    if (attivo || prossimo) {
+                        const tc = Math.min(tClip(s, Math.max(t, s.t0)), s.c.durata - 0.05);
+                        if (v.paused) { v.playbackRate = s.c.vel; v.currentTime = tc; v.play().catch(() => {}); }
+                        else if (Math.abs(v.currentTime - tc) > 0.12) { v.currentTime = tc; }
+                        if (s.c.gain) {
+                            // volume: durante le transizioni overlap sfuma tra le clip
+                            let g = attivo ? s.c.vol : 0;
+                            if (attivo && s.overlapIn && t < s.t0 + s.overlapIn) g *= (t - s.t0) / s.overlapIn;
+                            const next = segs[segs.indexOf(s) + 1];
+                            if (attivo && next && next.overlapIn && t > next.t0) g *= 1 - (t - next.t0) / next.overlapIn;
+                            s.c.gain.gain.setTargetAtTime(g, audioCtx.currentTime, 0.03);
+                        }
+                    } else if (!v.paused) { v.pause(); if (s.c.gain) s.c.gain.gain.value = 0; }
+                });
+                if (musica && musica.gain) musica.gain.gain.setTargetAtTime(volumeMusica(t, durata), audioCtx.currentTime, 0.05);
+                disegnaFrame(t);
+                $('playhead').style.left = (t * scala) + 'px';
+                $('t-cur').textContent = t.toFixed(1);
+                requestAnimationFrame(loop);
+            };
+            requestAnimationFrame(loop);
+        });
+
+        clips.forEach(c => { c.video.pause(); if (c.gain) c.gain.gain.value = 0; });
+        if (musica) { musica.audio.pause(); if (musica.gain) musica.gain.gain.value = 0; }
+        inPlay = false; $('btn-stop').disabled = true; $('btn-play').disabled = false;
         onFine && onFine();
     }
 
-    document.getElementById('btn-anteprima').addEventListener('click', () => {
-        if (!clips.length || inRiproduzione) return;
+    $('btn-play').addEventListener('click', () => {
+        if (!clips.length || inPlay) return;
         applicaFormato();
-        stato.textContent = 'Anteprima in corso…';
-        riproduci(() => stato.textContent = 'Anteprima terminata.');
+        const da = playhead >= durataTotale() - 0.2 ? 0 : playhead;
+        riproduci(da, () => $('stato').textContent = 'Riproduzione terminata.');
     });
-    document.getElementById('btn-stop').addEventListener('click', () => { fermaRichiesto = true; });
+    $('btn-stop').addEventListener('click', () => fermaRichiesto = true);
 
-    /* ---------- export ---------- */
-    let audioCtx = null, audioDest = null, ultimoBlob = null, ultimaExt = 'webm';
-
-    function sorgenteAudio(clip) {
-        // createMediaElementSource si può chiamare UNA volta per elemento: cache sul clip
-        if (!clip.srcNode) {
-            clip.srcNode = audioCtx.createMediaElementSource(clip.video);
-            clip.srcNode.connect(audioDest);
-            clip.srcNode.connect(audioCtx.destination); // si sente anche durante l'export
-        }
-    }
-
-    document.getElementById('btn-esporta').addEventListener('click', async () => {
-        if (!clips.length || inRiproduzione) return;
+    /* ================= export ================= */
+    $('btn-esporta').addEventListener('click', async () => {
+        if (!clips.length || inPlay) return;
         applicaFormato();
-        audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
-        await audioCtx.resume();
-        audioDest = audioDest || audioCtx.createMediaStreamDestination();
-        clips.forEach(sorgenteAudio);
-
+        await setupAudio();
         const mime = MediaRecorder.isTypeSupported('video/mp4') ? 'video/mp4'
             : MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus') ? 'video/webm;codecs=vp9,opus' : 'video/webm';
         ultimaExt = mime.indexOf('mp4') !== -1 ? 'mp4' : 'webm';
-
         const flusso = tela.captureStream(30);
-        audioDest.stream.getAudioTracks().forEach(t => flusso.addTrack(t));
+        audioDest.stream.getAudioTracks().forEach(tr => flusso.addTrack(tr));
         const rec = new MediaRecorder(flusso, { mimeType: mime, videoBitsPerSecond: 8_000_000 });
         const pezzi = [];
-        rec.ondataavailable = (e) => { if (e.data.size) pezzi.push(e.data); };
+        rec.ondataavailable = e => { if (e.data.size) pezzi.push(e.data); };
         rec.onstop = () => {
             ultimoBlob = new Blob(pezzi, { type: mime });
             const url = URL.createObjectURL(ultimoBlob);
-            document.getElementById('risultato').style.display = 'block';
-            document.getElementById('video-finale').src = url;
-            const a = document.getElementById('btn-scarica');
-            a.href = url; a.download = (document.getElementById('imp-nome').value.trim() || 'video') + '.' + ultimaExt;
-            stato.textContent = 'Export completato (' + ultimaExt.toUpperCase() + ', ' + (ultimoBlob.size / 1048576).toFixed(1) + ' MB).';
+            $('risultato').style.display = 'block';
+            $('video-finale').src = url;
+            $('btn-scarica').href = url;
+            $('btn-scarica').download = ($('imp-nome').value.trim() || 'video') + '.' + ultimaExt;
+            $('stato').textContent = 'Export completato (' + ultimaExt.toUpperCase() + ', ' + (ultimoBlob.size / 1048576).toFixed(1) + ' MB).';
         };
-
-        stato.textContent = 'Export in corso… (tempo reale)';
+        $('stato').textContent = 'Export in corso… (tempo reale: ' + durataTotale().toFixed(0) + 's)';
         rec.start();
-        riproduci(() => rec.stop());
+        riproduci(0, () => rec.stop());
     });
 
-    document.getElementById('btn-archivia').addEventListener('click', async () => {
+    $('btn-archivia').addEventListener('click', async () => {
         if (!ultimoBlob) return;
-        const b = document.getElementById('btn-archivia'); b.disabled = true; b.textContent = '… archivio';
+        const b = $('btn-archivia'); b.disabled = true; b.textContent = '… archivio';
         try {
             const fd = new FormData();
-            const nome = (document.getElementById('imp-nome').value.trim() || 'video');
+            const nome = ($('imp-nome').value.trim() || 'video');
             fd.append('titolo', nome);
             fd.append('file', new File([ultimoBlob], nome + '.' + ultimaExt, { type: ultimoBlob.type }));
             const r = await fetch(URL_ARCHIVIA, { method: 'POST', headers: { 'X-CSRF-Token': CSRF }, body: fd });
@@ -332,6 +705,7 @@
     });
 
     applicaFormato();
+    render();
 })();
 </script>
 {% endblock %}
