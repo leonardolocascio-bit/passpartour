@@ -1,0 +1,48 @@
+{% extends 'app.html.twig' %}
+
+{% block title %}{{ contenuto.titolo }} · Passpartour{% endblock %}
+{% block page_title %}Anteprima · {{ contenuto.titolo }}{% endblock %}
+
+{% block main %}
+<div style="display:grid;grid-template-columns:minmax(0,2fr) minmax(260px,1fr);gap:18px;align-items:start">
+    <div class="card card-pad" style="text-align:center">
+        {% set url = asset('uploads/creator/digital/' ~ contenuto.file) %}
+        {% if contenuto.isFileVideo %}
+            <video src="{{ url }}" controls style="max-width:100%;max-height:70vh;border-radius:10px"></video>
+        {% else %}
+            <img src="{{ url }}" alt="{{ contenuto.titolo }}" style="max-width:100%;max-height:70vh;border-radius:10px">
+        {% endif %}
+        {% if contenuto.caption %}
+            <p class="muted" style="text-align:left;white-space:pre-wrap;margin:14px 0 0">{{ contenuto.caption }}</p>
+        {% endif %}
+    </div>
+
+    <div class="card card-pad">
+        <h3 style="margin-bottom:12px">Dettagli</h3>
+        <div style="display:grid;gap:10px;font-size:14px">
+            <div><span class="muted">Tipo:</span> {{ contenuto.tipo.label }}</div>
+            <div><span class="muted">Offerta:</span> {{ contenuto.offerta ? contenuto.offerta.titolo : '—' }}</div>
+            <div><span class="muted">Creato il:</span> {{ contenuto.createdAt|date('d/m/Y H:i') }}</div>
+            <div><span class="muted">Pubblicazione:</span> {{ contenuto.dataPubblicazione ? contenuto.dataPubblicazione|date('d/m/Y H:i') : '—' }}</div>
+            <div><span class="muted">Stato:</span> <span class="{{ contenuto.stato.badgeClass }}">{{ contenuto.stato.label }}</span></div>
+        </div>
+
+        <form method="post" action="{{ path('app_creator_digital_pubblicato', {id: contenuto.id}) }}" style="margin-top:16px">
+            <input type="hidden" name="_token" value="{{ csrf_token('digital_pubblicato_' ~ contenuto.id) }}">
+            {% if contenuto.pubblicato %}
+                <button class="btn">↩ Riporta a non pubblicato</button>
+            {% else %}
+                <button class="btn btn-primary">✓ Segna come pubblicato</button>
+            {% endif %}
+        </form>
+
+        <div style="margin-top:16px;display:flex;gap:10px;justify-content:space-between">
+            <a class="btn" href="{{ path('app_creator_archivio_digital') }}">← Archivio</a>
+            <form method="post" action="{{ path('app_creator_digital_elimina', {id: contenuto.id}) }}" onsubmit="return confirm('Eliminare questo contenuto?')">
+                <input type="hidden" name="_token" value="{{ csrf_token('digital_elimina_' ~ contenuto.id) }}">
+                <button class="btn" style="color:var(--danger)">Elimina</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

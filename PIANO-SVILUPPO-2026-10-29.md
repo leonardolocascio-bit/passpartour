@@ -121,7 +121,7 @@ vendite, fatturato.
 |---|--------|------------|
 | 1 ✓ | Riorganizzazione sidebar: nuovo menu a sezioni collassabili (Sales, Portale, Creator Studio) + separatore | — |
 | 2 ✓ | Rubrica: Fornitori (nuova anagrafica) + spostamento Clienti (lead→cliente automatico arriverà con le Vendite, blocco 6) | 1 |
-| 3 | Creator Studio: struttura, Archivio (Digital+Print) e Media Kit | 1 |
+| 3 ✓ | Creator Studio: struttura, Archivio (Digital+Print) e Media Kit | 1 |
 | 4 | Editor Content (JPG RGB) e Print (PDF CMYK) generalizzati; poi Editor Video | 3 |
 | 5 | Campagne: generatore landing da offerte + aggancio Meta lead gen | 3 |
 | 6 | Vendite: pipeline pratica, piano pagamenti, attività operative, promemoria fattura, contratti | 2 |

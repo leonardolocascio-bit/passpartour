@@ -31,24 +31,6 @@ class CreatorStudioController extends AbstractController
         return $this->placeholder('Editor Print', 'Formati di stampa A3/A4, orizzontale/verticale, a partire dalle offerte. Output PDF CMYK.');
     }
 
-    #[Route('/creator-studio/archivio/digital', name: 'app_creator_archivio_digital')]
-    public function archivioDigital(): Response
-    {
-        return $this->placeholder('Archivio Digital', 'Contenuti digitali con stato: inedito, programmato (con data di pubblicazione), pubblicato.');
-    }
-
-    #[Route('/creator-studio/archivio/print', name: 'app_creator_archivio_print')]
-    public function archivioPrint(): Response
-    {
-        return $this->placeholder('Archivio Print', 'Archivio dei PDF generati: [offerta]_[formato]_[orientamento]_[data generazione].');
-    }
-
-    #[Route('/creator-studio/media-kit', name: 'app_creator_mediakit')]
-    public function mediaKit(): Response
-    {
-        return $this->placeholder('Media Kit', 'Loghi (quadricromia, light, dark), format video, format post, format carosello (prima immagine, interna, ultima) e font: gli editor pescano da qui.');
-    }
-
     private function placeholder(string $titolo, string $descrizione): Response
     {
         return $this->render('sezione_in_sviluppo.html.twig', [
