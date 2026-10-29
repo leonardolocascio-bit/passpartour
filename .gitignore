@@ -1,4 +1,7 @@
 
+# contenuti caricati/generati dal Creator Studio (runtime, non sorgenti)
+/public/uploads/creator/
+
 ###> symfony/framework-bundle ###
 /.env.local
 /.env.local.php

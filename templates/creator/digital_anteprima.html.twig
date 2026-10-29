@@ -9,6 +9,14 @@
         {% set url = asset('uploads/creator/digital/' ~ contenuto.file) %}
         {% if contenuto.isFileVideo %}
             <video src="{{ url }}" controls style="max-width:100%;max-height:70vh;border-radius:10px"></video>
+        {% elseif contenuto.fileExtra|length %}
+            {# carosello: tutte le slide in sequenza #}
+            <div style="display:flex;gap:10px;overflow-x:auto;padding-bottom:6px">
+                {% for f in contenuto.tuttiIFile %}
+                    <img src="{{ asset('uploads/creator/digital/' ~ f) }}" alt="Slide {{ loop.index }}" style="height:420px;border-radius:10px;flex-shrink:0">
+                {% endfor %}
+            </div>
+            <div class="muted" style="font-size:12px;margin-top:6px">{{ contenuto.tuttiIFile|length }} slide</div>
         {% else %}
             <img src="{{ url }}" alt="{{ contenuto.titolo }}" style="max-width:100%;max-height:70vh;border-radius:10px">
         {% endif %}

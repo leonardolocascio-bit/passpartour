@@ -1,0 +1,32 @@
+{% extends 'app.html.twig' %}
+
+{% block title %}Editor Content · Passpartour{% endblock %}
+{% block page_title %}Creator Studio · Editor Content{% endblock %}
+
+{% block main %}
+<p class="muted" style="margin:0 0 16px;max-width:760px">
+    Scegli un'offerta e apri l'impaginatore: post singoli e caroselli Instagram/Facebook (3:4, 1080×1440).
+    Con «Salva in Archivio Digital» le slide finiscono in archivio come JPG, pronte per la pubblicazione.
+    Contenuti già pronti si caricano direttamente dall'<a class="tab-link" href="{{ path('app_creator_archivio_digital') }}">Archivio Digital</a>.
+</p>
+
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px">
+    {% for o in offerte %}
+        <a class="card" href="{{ path('app_offerta_impaginatore', {id: o.id}) }}" style="overflow:hidden;display:block">
+            {% if o.immagineFile %}
+                <img src="{{ asset('uploads/destinazioni/' ~ o.immagineFile) }}" alt="" style="width:100%;height:130px;object-fit:cover;display:block">
+            {% else %}
+                <div style="height:130px;background:linear-gradient(135deg,var(--navy),var(--cyan))"></div>
+            {% endif %}
+            <div class="card-pad">
+                <strong>{{ o.titolo }}</strong>
+                <div class="muted" style="font-size:12px;margin-top:4px">
+                    {{ o.destinazioneMacro ?: '—' }}{{ o.prezzoDa ? ' · da € ' ~ o.prezzoDa|number_format(0, ',', '.') }}
+                </div>
+            </div>
+        </a>
+    {% else %}
+        <div class="card card-pad muted">Nessuna offerta: creane una nella sezione Portale → Offerte.</div>
+    {% endfor %}
+</div>
+{% endblock %}

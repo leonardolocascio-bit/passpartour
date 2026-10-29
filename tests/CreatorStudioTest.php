@@ -149,6 +149,82 @@ class CreatorStudioTest extends WebTestCase
         self::assertFileDoesNotExist($percorso);
     }
 
+    public function testEditorContentEPrintRendono(): void
+    {
+        $this->client->request('GET', '/creator-studio/editor/content');
+        self::assertResponseIsSuccessful();
+        $this->client->request('GET', '/creator-studio/editor/print');
+        self::assertResponseIsSuccessful();
+    }
+
+    public function testArchiviaCaroselloDallImpaginatore(): void
+    {
+        $offerta = $this->em->getRepository(\App\Entity\Offerta::class)->findOneBy([]);
+        self::assertNotNull($offerta, 'Serve almeno un\'offerta nelle fixtures');
+
+        $crawler = $this->client->request('GET', '/offerte/' . $offerta->getId() . '/impaginatore');
+        self::assertResponseIsSuccessful();
+        preg_match('/const CSRF = "([^"]+)"/', $this->client->getResponse()->getContent(), $m);
+        self::assertNotEmpty($m[1] ?? '', 'Token CSRF dell\'impaginatore non trovato');
+
+        $slide = 'data:image/jpeg;base64,' . base64_encode('jpeg finto');
+        $this->client->request('POST', '/offerte/' . $offerta->getId() . '/impaginatore/archivia', [], [], [
+            'CONTENT_TYPE' => 'application/json',
+            'HTTP_X-CSRF-Token' => $m[1],
+        ], json_encode(['slides' => [$slide, $slide, $slide], 'caption' => 'Caption di prova']));
+        self::assertResponseIsSuccessful();
+        $risposta = json_decode($this->client->getResponse()->getContent(), true);
+        self::assertTrue($risposta['ok'] ?? false);
+
+        $this->em->clear();
+        $contenuto = $this->em->getRepository(ContenutoDigitale::class)->findOneBy(['titolo' => $offerta->getTitolo()], ['id' => 'DESC']);
+        self::assertNotNull($contenuto);
+        self::assertSame('carosello', $contenuto->getTipo()->value);
+        self::assertCount(3, $contenuto->getTuttiIFile());
+        self::assertSame('Caption di prova', $contenuto->getCaption());
+        self::assertSame(StatoContenuto::INEDITO, $contenuto->getStato());
+
+        // pulizia: l'elimina rimuove anche i file extra
+        $base = self::getContainer()->getParameter('kernel.project_dir') . '/public/uploads/creator/digital/';
+        foreach ($contenuto->getTuttiIFile() as $f) {
+            self::assertFileExists($base . $f);
+        }
+        $crawler = $this->client->request('GET', '/creator-studio/archivio/digital/' . $contenuto->getId());
+        $this->client->submit($crawler->selectButton('Elimina')->form());
+        foreach ($contenuto->getTuttiIFile() as $f) {
+            self::assertFileDoesNotExist($base . $f);
+        }
+    }
+
+    public function testPrintGeneraPdfInArchivio(): void
+    {
+        $offerta = $this->em->getRepository(\App\Entity\Offerta::class)->findOneBy([]);
+        self::assertNotNull($offerta);
+
+        $crawler = $this->client->request('GET', '/creator-studio/editor/print');
+        $this->client->request('POST', '/creator-studio/editor/print/genera', [
+            '_token' => $this->csrf($crawler, '/editor/print/genera'),
+            'offerta_id' => $offerta->getId(),
+            'formato' => 'a3o',
+        ]);
+        self::assertResponseRedirects('/creator-studio/archivio/print');
+
+        $this->em->clear();
+        $contenuto = $this->em->getRepository(ContenutoPrint::class)->findOneBy([], ['id' => 'DESC']);
+        self::assertNotNull($contenuto);
+        self::assertSame('a3o', $contenuto->getFormato()->value);
+        self::assertStringContainsString('_a3_orizzontale_', $contenuto->getFile());
+
+        $percorso = self::getContainer()->getParameter('kernel.project_dir') . '/public/uploads/creator/print/' . $contenuto->getFile();
+        self::assertFileExists($percorso);
+        self::assertStringStartsWith('%PDF', (string) file_get_contents($percorso));
+
+        // pulizia
+        $crawler = $this->client->request('GET', '/creator-studio/archivio/print');
+        $this->client->submit($crawler->selectButton('Elimina')->form());
+        self::assertFileDoesNotExist($percorso);
+    }
+
     /** Estrae il token CSRF dal form della pagina la cui action termina così (CSRF di sessione). */
     private function csrf(Crawler $crawler, string $fineAction): string
     {

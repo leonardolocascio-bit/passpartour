@@ -10,7 +10,7 @@ use Dompdf\Options;
  */
 class GeneratorePdf
 {
-    public function daHtml(string $html, string $orientamento = 'portrait'): string
+    public function daHtml(string $html, string $orientamento = 'portrait', string $carta = 'A4'): string
     {
         $options = new Options();
         // DejaVu Sans è incluso in dompdf e supporta € e accenti
@@ -19,7 +19,7 @@ class GeneratorePdf
 
         $dompdf = new Dompdf($options);
         $dompdf->loadHtml($html, 'UTF-8');
-        $dompdf->setPaper('A4', $orientamento);
+        $dompdf->setPaper($carta, $orientamento);
         $dompdf->render();
 
         return $dompdf->output();

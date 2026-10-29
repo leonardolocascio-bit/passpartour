@@ -50,6 +50,27 @@ class UploaderCreator
         );
     }
 
+    /** Salva contenuto binario già in memoria (es. PDF generato, JPEG da canvas). */
+    public function salvaBinario(string $binario, string $sottocartella, string $nomeFile): ?string
+    {
+        if ($nomeFile === '' || str_contains($nomeFile, '/') || str_contains($nomeFile, '..')) {
+            return null;
+        }
+        if (@file_put_contents($this->cartella($sottocartella) . '/' . $nomeFile, $binario) === false) {
+            return null;
+        }
+
+        return $nomeFile;
+    }
+
+    /** Nome file per una slide di un contenuto digitale. */
+    public function nomeFileDigitale(string $nomeBase, int $indice, string $ext = 'jpg'): string
+    {
+        $slug = $this->slugger->slug($nomeBase !== '' ? $nomeBase : 'contenuto')->lower();
+
+        return $slug . '-slide-' . $indice . '-' . bin2hex(random_bytes(4)) . '.' . $ext;
+    }
+
     public function elimina(string $sottocartella, string $nomeFile): void
     {
         // niente path traversal: si accetta solo un nome file semplice

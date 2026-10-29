@@ -33,6 +33,10 @@ class ContenutoDigitale
     #[ORM\Column(length: 255)]
     private string $file = '';
 
+    /** Slide successive alla prima (carosello): array di nomi file. */
+    #[ORM\Column(type: 'json', nullable: true)]
+    private ?array $fileExtra = null;
+
     #[ORM\Column(type: 'text', nullable: true)]
     private ?string $caption = null;
 
@@ -101,6 +105,26 @@ class ContenutoDigitale
         $this->file = $file;
 
         return $this;
+    }
+
+    /** @return string[] */
+    public function getFileExtra(): array
+    {
+        return $this->fileExtra ?? [];
+    }
+
+    /** @param string[]|null $fileExtra */
+    public function setFileExtra(?array $fileExtra): static
+    {
+        $this->fileExtra = $fileExtra ?: null;
+
+        return $this;
+    }
+
+    /** Tutti i file del contenuto (cover + slide successive). @return string[] */
+    public function getTuttiIFile(): array
+    {
+        return array_merge([$this->file], $this->getFileExtra());
     }
 
     public function getCaption(): ?string

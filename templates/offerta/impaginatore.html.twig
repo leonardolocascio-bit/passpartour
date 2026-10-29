@@ -139,6 +139,7 @@
             <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center">
                 <button type="button" class="btn btn-primary" id="btn-png">⬇ Scarica PNG (1080×1440)</button>
                 <button type="button" class="btn" id="btn-png-tutte">⬇ Scarica tutto il carosello</button>
+                <button type="button" class="btn" id="btn-archivia">🗂 Salva in Archivio Digital (JPG)</button>
             </div>
             <p class="muted" style="font-size:11px;margin:0;text-align:center">Formato 3:4 secondo le linee guida Instagram (1080×1440 px). Max 20 slide per carosello.</p>
         </div></div>
@@ -174,8 +175,9 @@
         unsplashSearch: {{ path('api_unsplash_search')|json_encode|raw }},
         unsplashSelect: {{ path('api_unsplash_select')|json_encode|raw }},
         uploads: {{ asset('uploads/destinazioni/')|json_encode|raw }},
-        logo: {{ asset('images/passpartour-white.png')|json_encode|raw }},
-        logoColor: {{ asset('images/passpartour-color.png')|json_encode|raw }},
+        logo: {{ asset(logo_scuro)|json_encode|raw }},
+        logoColor: {{ asset(logo_chiaro)|json_encode|raw }},
+        archivia: {{ path('app_offerta_impaginatore_archivia', {id: offerta.id})|json_encode|raw }},
     };
     const CSRF = {{ csrf_token('impaginatore_' ~ offerta.id)|json_encode|raw }};
 
@@ -739,6 +741,29 @@
             scaricaCanvas(off, slugOfferta() + '-slide-' + (i + 1) + '.png');
             await new Promise(res => setTimeout(res, 400)); // il browser ha bisogno di respiro tra i download
         }
+    });
+
+    /* ---------- Archivio Digital: esporta le slide in JPG e le salva lato server ---------- */
+    $('btn-archivia').addEventListener('click', async () => {
+        const b = $('btn-archivia'); b.disabled = true; const label = b.textContent; b.textContent = '… archivio';
+        try {
+            const off = document.createElement('canvas');
+            off.width = 1080; off.height = 1440;
+            const octx = off.getContext('2d');
+            const slides = [];
+            for (const s of stato.slides) {
+                await disegna(s, octx);
+                slides.push(off.toDataURL('image/jpeg', 0.92));
+            }
+            const r = await fetch(URLS.archivia, {
+                method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': CSRF },
+                body: JSON.stringify({ slides, caption: txtCaption.value }),
+            });
+            const data = await r.json();
+            if (data.ok) { b.textContent = '✓ In archivio'; setTimeout(() => { b.textContent = label; b.disabled = false; }, 2500); window.open(data.url, '_blank'); return; }
+            alert(data.error || 'Archiviazione non riuscita.');
+        } catch (e) { alert('Archiviazione non riuscita.'); }
+        b.textContent = label; b.disabled = false;
     });
 
     /* ---------- Salvataggio ---------- */

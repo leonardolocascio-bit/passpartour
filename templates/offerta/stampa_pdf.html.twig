@@ -1,0 +1,131 @@
+{# Variante dompdf del layout di stampa: niente flex/grid (non supportati),
+   tabella per l'orizzontale, blocchi per il verticale, immagini come data URI.
+   Icone emoji sostituite da pallini (DejaVu non ha i glifi emoji). #}
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<style>
+    {% set a3 = carta == 'A3' %}
+    {% set verticale = orientamento == 'verticale' %}
+    {# dimensioni pagina in mm (dompdf: @page gestita da setPaper, qui solo i blocchi) #}
+    {% set pw = a3 ? (verticale ? 297 : 420) : (verticale ? 210 : 297) %}
+    {% set ph = a3 ? (verticale ? 420 : 297) : (verticale ? 297 : 210) %}
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    @page { margin: 0; }
+    body { font-family: "DejaVu Sans", sans-serif; }
+
+    .hero {
+        position: relative; background: #123a72;
+        {% if verticale %}width: {{ pw }}mm; height: {{ (ph * 0.48)|round }}mm;{% else %}width: 100%; height: {{ ph }}mm;{% endif %}
+        {% if foto_uri %}background-image: url('{{ foto_uri }}'); background-size: cover; background-position: center;{% endif %}
+    }
+    .logo { position: absolute; top: 10mm; left: 10mm; width: 46mm; }
+    .durata {
+        position: absolute; top: 10mm; right: 10mm; background: #1f9fd6; color: #fff;
+        font-weight: bold; padding: 2mm 5mm; border-radius: 6mm; font-size: 11pt; text-transform: uppercase;
+    }
+    .credito { position: absolute; bottom: 3mm; left: 10mm; color: #ffffff; opacity: .85; font-size: 6.5pt; }
+
+    .contenuto { padding: 10mm 14mm; }
+    h1 { color: #123a72; font-size: {{ a3 ? '42pt' : '28pt' }}; text-transform: uppercase; line-height: 1.08; }
+    .claim { color: #f6a41f; font-style: italic; font-weight: bold; font-size: {{ a3 ? '19pt' : '13pt' }}; margin-top: 2mm; }
+    .descrizione { color: #333; font-size: {{ a3 ? '12.5pt' : '10pt' }}; line-height: 1.5; margin-top: 6mm; }
+
+    .righe { margin-top: 6mm; }
+    .riga { font-size: {{ a3 ? '13.5pt' : '10.5pt' }}; padding: 1.4mm 0; }
+    .riga .argomento { font-weight: bold; color: #123a72; text-transform: uppercase; }
+    .riga.evidenza { background: #f6a41f; border-radius: 2mm; padding: 1.6mm 3mm; }
+    .riga.evidenza .argomento { color: #fff; }
+    .pallino { color: #ea5b24; font-weight: bold; }
+
+    .fondo { margin-top: 8mm; width: 100%; }
+    .validita { color: #666; font-size: {{ a3 ? '10.5pt' : '8pt' }}; }
+    .prezzo { background: #ea5b24; color: #fff; border-radius: 3mm; padding: 4mm 8mm; text-align: center; display: inline-block; }
+    .prezzo .da { font-size: {{ a3 ? '12pt' : '9pt' }}; }
+    .prezzo .valore { font-size: {{ a3 ? '44pt' : '30pt' }}; font-weight: bold; line-height: 1.05; }
+    .prezzo-variante { background: #ea5b24; color: #fff; border-radius: 3mm; padding: 2.5mm 6mm; margin: 1mm 0; display: inline-block; }
+    .prezzo-variante .etichetta { font-weight: bold; text-transform: uppercase; font-size: {{ a3 ? '13pt' : '10pt' }}; }
+    .prezzo-variante .importo { font-weight: bold; font-size: {{ a3 ? '24pt' : '17pt' }}; }
+
+    table.pagina { width: {{ pw }}mm; height: {{ ph }}mm; border-collapse: collapse; }
+    table.pagina td { vertical-align: top; padding: 0; }
+    table.fondo-t { width: 100%; border-collapse: collapse; }
+    table.fondo-t td { vertical-align: bottom; }
+</style>
+</head>
+<body>
+
+{% set contenuto %}
+    <h1>{{ offerta.titolo }}</h1>
+    {% if offerta.claim %}<div class="claim">{{ offerta.claim }}</div>
+    {% elseif offerta.sottotitolo %}<div class="claim">{{ offerta.sottotitolo }}</div>{% endif %}
+
+    {% set righe = offerta.righe %}
+    {% set vPartenza = offerta.varianti|filter(v => v.campo == 'partenza') %}
+    {% set vValidita = offerta.varianti|filter(v => v.campo == 'validita') %}
+    {% if righe|length or vPartenza|length or vValidita|length %}
+        <div class="righe">
+            {% for r in righe %}
+                <div class="riga{{ r.evidenza|default(false) ? ' evidenza' }}">
+                    <span class="pallino">●</span>
+                    {% if r.argomento|default('') %}<span class="argomento">{{ r.argomento }}</span>{% endif %}
+                    <span>
+                        {{ r.testo|default('') }}
+                        {%- for v in offerta.varianti|filter(v => v.campo == r.id) %}{{ loop.first and r.testo|default('') ? ' ·' }} {{ v.valore }}{% if v.prezzo %} <strong>{{ '€' in v.prezzo ? v.prezzo : '€ ' ~ v.prezzo }}</strong>{% endif %}{{ not loop.last ? ' ·' }}{% endfor %}
+                    </span>
+                </div>
+            {% endfor %}
+            {% if vPartenza|length %}
+                <div class="riga"><span class="pallino">●</span> <span class="argomento">Partenze da</span>
+                    <span>{% for v in vPartenza %}{{ v.valore }}{% if v.prezzo %} <strong>{{ '€' in v.prezzo ? v.prezzo : '€ ' ~ v.prezzo }}</strong>{% endif %}{{ not loop.last ? ' · ' }}{% endfor %}</span></div>
+            {% endif %}
+            {% if vValidita|length %}
+                <div class="riga"><span class="pallino">●</span> <span class="argomento">Validità</span>
+                    <span>{% for v in vValidita %}{{ v.valore }}{% if v.prezzo %} <strong>{{ '€' in v.prezzo ? v.prezzo : '€ ' ~ v.prezzo }}</strong>{% endif %}{{ not loop.last ? ' · ' }}{% endfor %}</span></div>
+            {% endif %}
+        </div>
+    {% elseif offerta.descrizione %}
+        <div class="descrizione">{{ offerta.descrizione|nl2br }}</div>
+    {% endif %}
+
+    <table class="fondo-t"><tr>
+        <td class="validita">
+            {% if offerta.validoAl %}Offerta valida fino al {{ offerta.validoAl|date('d/m/Y') }}.<br>{% endif %}
+            Quota per persona, soggetta a disponibilità.
+        </td>
+        <td style="text-align:right">
+            {% set vDurata = offerta.varianti|filter(v => v.campo == 'durata') %}
+            {% if vDurata|length %}
+                {% for v in vDurata %}
+                    <div class="prezzo-variante"><span class="etichetta">{{ v.valore }}</span>
+                        {% if v.prezzo %}&nbsp;<span class="importo">{{ '€' in v.prezzo ? v.prezzo : '€ ' ~ v.prezzo }}</span>{% endif %}</div><br>
+                {% endfor %}
+            {% elseif offerta.prezzoDa %}
+                <div class="prezzo"><div class="da">a partire da</div>
+                    <div class="valore">€ {{ offerta.prezzoDa|number_format(0, ',', '.') }}</div></div>
+            {% endif %}
+        </td>
+    </tr></table>
+{% endset %}
+
+{% set hero %}
+    <div class="hero">
+        {% if logo_uri %}<img class="logo" src="{{ logo_uri }}" alt="">{% endif %}
+        {% if offerta.durata %}<div class="durata">{{ offerta.durata }}</div>{% endif %}
+        {% if offerta.fotografoEffettivo %}<div class="credito">Foto: {{ offerta.fotografoEffettivo }} / Unsplash</div>{% endif %}
+    </div>
+{% endset %}
+
+{% if orientamento == 'verticale' %}
+    {{ hero }}
+    <div class="contenuto">{{ contenuto }}</div>
+{% else %}
+    <table class="pagina"><tr>
+        <td style="width:48%">{{ hero }}</td>
+        <td><div class="contenuto">{{ contenuto }}</div></td>
+    </tr></table>
+{% endif %}
+
+</body>
+</html>

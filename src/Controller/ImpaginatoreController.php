@@ -4,9 +4,14 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use App\Entity\ContenutoDigitale;
+use App\Entity\MediaKitAsset;
 use App\Entity\Offerta;
+use App\Enum\TipoAssetMediaKit;
+use App\Enum\TipoContenutoDigitale;
 use App\Service\CaptionGenerator;
 use App\Service\UnsplashClient;
+use App\Service\UploaderCreator;
 use App\Service\UploaderImmagini;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -34,12 +39,68 @@ class ImpaginatoreController extends AbstractController
     {
         $this->migraRigheLegacy($offerta, $em);
 
+        // loghi dal Media Kit, se caricati (tema scuro → light, tema chiaro → quadricromia)
+        $kit = [];
+        foreach ($em->getRepository(MediaKitAsset::class)->findAll() as $asset) {
+            $kit[$asset->getTipo()->value] = 'uploads/creator/mediakit/' . $asset->getFile();
+        }
+
         return $this->render('offerta/impaginatore.html.twig', [
             'offerta' => $offerta,
             'unsplash_configurato' => $unsplash->isConfigured(),
             'ai_configurata' => $caption->isConfigured(),
             'toni' => CaptionGenerator::TONI,
             'embed' => $request->query->getBoolean('embed'),
+            'logo_scuro' => $kit[TipoAssetMediaKit::LOGO_LIGHT->value] ?? 'images/passpartour-white.png',
+            'logo_chiaro' => $kit[TipoAssetMediaKit::LOGO_QUADRICROMIA->value] ?? 'images/passpartour-color.png',
+        ]);
+    }
+
+    /**
+     * Archivia le slide esportate (JPEG dal canvas) come ContenutoDigitale:
+     * prima slide = cover, le altre in fileExtra; caption dall'editor.
+     */
+    #[Route('/offerte/{id}/impaginatore/archivia', name: 'app_offerta_impaginatore_archivia', requirements: ['id' => '\d+'], methods: ['POST'])]
+    public function archivia(Offerta $offerta, Request $request, EntityManagerInterface $em, UploaderCreator $uploader): JsonResponse
+    {
+        if (!$this->isCsrfTokenValid('impaginatore_' . $offerta->getId(), (string) $request->headers->get('X-CSRF-Token'))) {
+            return $this->json(['error' => 'Token non valido.'], 403);
+        }
+        $dati = json_decode($request->getContent() ?: '{}', true);
+        $slides = \is_array($dati['slides'] ?? null) ? $dati['slides'] : [];
+        if ($slides === [] || \count($slides) > 20) {
+            return $this->json(['error' => 'Nessuna slide da archiviare (max 20).'], 400);
+        }
+
+        $nomi = [];
+        foreach ($slides as $i => $dataUrl) {
+            if (!\is_string($dataUrl) || !str_starts_with($dataUrl, 'data:image/jpeg;base64,')) {
+                return $this->json(['error' => 'Formato slide non valido.'], 400);
+            }
+            $binario = base64_decode(substr($dataUrl, \strlen('data:image/jpeg;base64,')), true);
+            if ($binario === false || $binario === '') {
+                return $this->json(['error' => 'Slide non decodificabile.'], 400);
+            }
+            $nome = $uploader->salvaBinario($binario, 'digital', $uploader->nomeFileDigitale($offerta->getTitolo(), $i + 1));
+            if ($nome === null) {
+                return $this->json(['error' => 'Salvataggio non riuscito.'], 500);
+            }
+            $nomi[] = $nome;
+        }
+
+        $contenuto = (new ContenutoDigitale())
+            ->setTitolo($offerta->getTitolo())
+            ->setTipo(\count($nomi) > 1 ? TipoContenutoDigitale::CAROSELLO : TipoContenutoDigitale::POST)
+            ->setOfferta($offerta)
+            ->setCaption(trim((string) ($dati['caption'] ?? '')) ?: null)
+            ->setFile($nomi[0])
+            ->setFileExtra(\array_slice($nomi, 1));
+        $em->persist($contenuto);
+        $em->flush();
+
+        return $this->json([
+            'ok' => true,
+            'url' => $this->generateUrl('app_creator_digital_anteprima', ['id' => $contenuto->getId()]),
         ]);
     }
 

@@ -1,0 +1,50 @@
+{% extends 'app.html.twig' %}
+
+{% block title %}Editor Print · Passpartour{% endblock %}
+{% block page_title %}Creator Studio · Editor Print{% endblock %}
+
+{% block main %}
+<div class="card" style="max-width:720px"><div class="card-pad">
+    <h3 style="margin-bottom:6px">Cartelli vetrina e locandine</h3>
+    <p class="muted" style="margin:0 0 16px">
+        Scegli offerta e formato: l'anteprima si stampa dal browser (⌘P), «Genera PDF» archivia il file
+        come <code>[offerta]_[formato]_[orientamento]_[data].pdf</code> nell'<a class="tab-link" href="{{ path('app_creator_archivio_print') }}">Archivio Print</a>.
+    </p>
+
+    <form method="post" action="{{ path('app_creator_print_genera') }}" id="form-print">
+        <input type="hidden" name="_token" value="{{ csrf_token('print_genera') }}">
+        <div style="display:grid;grid-template-columns:2fr 1fr;gap:14px">
+            <div>
+                <label>Offerta</label>
+                <select name="offerta_id" id="sel-offerta" required>
+                    <option value="">— scegli —</option>
+                    {% for o in offerte %}<option value="{{ o.id }}">{{ o.titolo }}</option>{% endfor %}
+                </select>
+            </div>
+            <div>
+                <label>Formato</label>
+                <select name="formato" id="sel-formato">
+                    {% for f in formati %}<option value="{{ f.value }}">{{ f.label }}</option>{% endfor %}
+                </select>
+            </div>
+        </div>
+        <div style="display:flex;gap:10px;margin-top:14px">
+            <button type="button" class="btn" id="btn-anteprima">👁 Anteprima di stampa</button>
+            <button class="btn btn-primary">🗂 Genera PDF e archivia</button>
+        </div>
+    </form>
+    <p class="muted" style="margin:12px 0 0;font-size:12px">
+        Il PDF generato è in RGB: per la tipografia la conversione CMYK si fa in prestampa.
+        Per il massimo controllo tipografico resta disponibile la stampa dal browser.
+    </p>
+</div></div>
+
+<script>
+document.getElementById('btn-anteprima').addEventListener('click', () => {
+    const id = document.getElementById('sel-offerta').value;
+    if (!id) { alert('Scegli un\'offerta.'); return; }
+    const formato = document.getElementById('sel-formato').value;
+    window.open('/offerte/' + id + '/stampa/' + formato, '_blank');
+});
+</script>
+{% endblock %}

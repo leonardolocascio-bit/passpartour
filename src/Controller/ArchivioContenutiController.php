@@ -4,11 +4,15 @@ namespace App\Controller;
 
 use App\Entity\ContenutoDigitale;
 use App\Entity\ContenutoPrint;
+use App\Entity\MediaKitAsset;
 use App\Entity\Offerta;
 use App\Enum\FormatoStampa;
+use App\Enum\TipoAssetMediaKit;
 use App\Enum\TipoContenutoDigitale;
+use App\Service\GeneratorePdf;
 use App\Service\UploaderCreator;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\Request;
@@ -22,6 +26,11 @@ use Symfony\Component\Routing\Attribute\Route;
 class ArchivioContenutiController extends AbstractController
 {
     private const EXT_DIGITAL = ['jpg', 'jpeg', 'png', 'webp', 'mp4', 'mov', 'webm'];
+
+    public function __construct(
+        #[Autowire('%kernel.project_dir%')] private readonly string $projectDir,
+    ) {
+    }
 
     // ---- Digital ----
 
@@ -103,7 +112,9 @@ class ArchivioContenutiController extends AbstractController
     public function digitalElimina(ContenutoDigitale $contenuto, Request $request, EntityManagerInterface $em, UploaderCreator $uploader): Response
     {
         if ($this->isCsrfTokenValid('digital_elimina_' . $contenuto->getId(), (string) $request->request->get('_token'))) {
-            $uploader->elimina('digital', $contenuto->getFile());
+            foreach ($contenuto->getTuttiIFile() as $file) {
+                $uploader->elimina('digital', $file);
+            }
             $em->remove($contenuto);
             $em->flush();
             $this->addFlash('success', 'Contenuto eliminato.');
@@ -161,6 +172,70 @@ class ArchivioContenutiController extends AbstractController
         $this->addFlash('success', 'PDF aggiunto all\'archivio print.');
 
         return $this->redirectToRoute('app_creator_archivio_print');
+    }
+
+    /** Genera il PDF di stampa dell'offerta lato server (dompdf) e lo archivia. */
+    #[Route('/creator-studio/editor/print/genera', name: 'app_creator_print_genera', methods: ['POST'])]
+    public function printGenera(Request $request, EntityManagerInterface $em, UploaderCreator $uploader, GeneratorePdf $pdf): Response
+    {
+        if (!$this->isCsrfTokenValid('print_genera', (string) $request->request->get('_token'))) {
+            return $this->redirectToRoute('app_creator_print');
+        }
+
+        $offerta = $em->getRepository(Offerta::class)->find($request->request->getInt('offerta_id'));
+        if ($offerta === null) {
+            $this->addFlash('error', 'Scegli un\'offerta.');
+
+            return $this->redirectToRoute('app_creator_print');
+        }
+        $formato = FormatoStampa::tryFrom((string) $request->request->get('formato')) ?? FormatoStampa::A4V;
+
+        // logo dal Media Kit se caricato, altrimenti quello ufficiale
+        $logoKit = $em->getRepository(MediaKitAsset::class)->findOneBy(['tipo' => TipoAssetMediaKit::LOGO_LIGHT]);
+        $logo = $logoKit !== null
+            ? 'public/uploads/creator/mediakit/' . $logoKit->getFile()
+            : 'public/images/passpartour-white.png';
+
+        $html = $this->renderView('offerta/stampa_pdf.html.twig', [
+            'offerta' => $offerta,
+            'carta' => $formato->carta(),
+            'orientamento' => $formato->orientamento(),
+            'foto_uri' => $offerta->getImmagineFile() ? $this->dataUri('public/uploads/destinazioni/' . $offerta->getImmagineFile()) : null,
+            'logo_uri' => $this->dataUri($logo),
+        ]);
+        $binario = $pdf->daHtml($html, $formato->orientamento() === 'verticale' ? 'portrait' : 'landscape', $formato->carta());
+
+        $nomeFile = $uploader->salvaBinario($binario, 'print', $uploader->nomeFilePrint($offerta->getTitolo(), $formato->carta(), $formato->orientamento()));
+        if ($nomeFile === null) {
+            $this->addFlash('error', 'Salvataggio del PDF non riuscito.');
+
+            return $this->redirectToRoute('app_creator_print');
+        }
+
+        $em->persist((new ContenutoPrint())
+            ->setTitolo($offerta->getTitolo())->setOfferta($offerta)->setFormato($formato)->setFile($nomeFile));
+        $em->flush();
+        $this->addFlash('success', 'PDF generato e archiviato (' . $nomeFile . ').');
+
+        return $this->redirectToRoute('app_creator_archivio_print');
+    }
+
+    /** Immagine locale come data URI (dompdf gira con isRemoteEnabled=false). */
+    private function dataUri(string $percorsoRelativo): ?string
+    {
+        $percorso = $this->projectDir . '/' . $percorsoRelativo;
+        $contenuto = @file_get_contents($percorso);
+        if ($contenuto === false) {
+            return null;
+        }
+        $mime = match (strtolower(pathinfo($percorso, PATHINFO_EXTENSION))) {
+            'png' => 'image/png',
+            'webp' => 'image/webp',
+            'svg' => 'image/svg+xml',
+            default => 'image/jpeg',
+        };
+
+        return 'data:' . $mime . ';base64,' . base64_encode($contenuto);
     }
 
     #[Route('/creator-studio/archivio/print/{id}/elimina', name: 'app_creator_print_elimina', requirements: ['id' => '\d+'], methods: ['POST'])]
