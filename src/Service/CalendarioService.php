@@ -3,11 +3,13 @@
 namespace App\Service;
 
 use App\Entity\Attivita;
+use App\Entity\EventoGoogle;
 use Doctrine\ORM\EntityManagerInterface;
 
 /**
  * Costruisce le griglie del calendario (giorno/settimana/mese/anno)
- * e vi distribuisce le attività per data di scadenza.
+ * e vi distribuisce le attività per data di scadenza, insieme agli
+ * eventi Google Calendar importati dei singoli operatori.
  */
 class CalendarioService
 {
@@ -43,12 +45,14 @@ class CalendarioService
     {
         $inizio = $rif->setTime(0, 0);
         $attivita = $this->attivitaTra($inizio, $inizio->modify('+1 day'));
+        $eventi = $this->eventiGoogleTra($inizio, $inizio->modify('+1 day'));
 
         return [
             'titolo' => $this->formattaData($rif),
             'prev' => $rif->modify('-1 day'),
             'next' => $rif->modify('+1 day'),
             'attivita' => $attivita[$rif->format('Y-m-d')] ?? [],
+            'eventi' => $eventi[$rif->format('Y-m-d')] ?? [],
         ];
     }
 
@@ -57,6 +61,7 @@ class CalendarioService
         $lunedi = $rif->modify(('1' === $rif->format('N')) ? 'today' : 'monday this week')->setTime(0, 0);
         $fine = $lunedi->modify('+7 days');
         $perGiorno = $this->attivitaTra($lunedi, $fine);
+        $eventiPerGiorno = $this->eventiGoogleTra($lunedi, $fine);
 
         $giorni = [];
         for ($i = 0; $i < 7; $i++) {
@@ -65,6 +70,7 @@ class CalendarioService
                 'data' => $d,
                 'oggi' => $d->format('Y-m-d') === $oggi->format('Y-m-d'),
                 'attivita' => $perGiorno[$d->format('Y-m-d')] ?? [],
+                'eventi' => $eventiPerGiorno[$d->format('Y-m-d')] ?? [],
             ];
         }
 
@@ -82,6 +88,7 @@ class CalendarioService
         $inizioGriglia = $primo->modify(('1' === $primo->format('N')) ? 'today' : 'monday this week');
         $fineGriglia = $inizioGriglia->modify('+42 days'); // 6 settimane
         $perGiorno = $this->attivitaTra($inizioGriglia, $fineGriglia);
+        $eventiPerGiorno = $this->eventiGoogleTra($inizioGriglia, $fineGriglia);
 
         $settimane = [];
         $cursore = $inizioGriglia;
@@ -93,6 +100,7 @@ class CalendarioService
                     'in_mese' => $cursore->format('n') === $primo->format('n'),
                     'oggi' => $cursore->format('Y-m-d') === $oggi->format('Y-m-d'),
                     'attivita' => $perGiorno[$cursore->format('Y-m-d')] ?? [],
+                    'eventi' => $eventiPerGiorno[$cursore->format('Y-m-d')] ?? [],
                 ];
                 $cursore = $cursore->modify('+1 day');
             }
@@ -111,6 +119,7 @@ class CalendarioService
     {
         $primoAnno = $rif->modify('first day of January this year')->setTime(0, 0);
         $perGiorno = $this->attivitaTra($primoAnno, $primoAnno->modify('+1 year'));
+        $eventiPerGiorno = $this->eventiGoogleTra($primoAnno, $primoAnno->modify('+1 year'));
 
         $anno = (int) $primoAnno->format('Y');
         $mesi = [];
@@ -121,7 +130,7 @@ class CalendarioService
             $giorniNelMese = (int) $primoMese->format('t');
             for ($g = 1; $g <= $giorniNelMese; $g++) {
                 $chiave = $primoMese->format('Y-m-') . str_pad((string) $g, 2, '0', STR_PAD_LEFT);
-                $n = count($perGiorno[$chiave] ?? []);
+                $n = count($perGiorno[$chiave] ?? []) + count($eventiPerGiorno[$chiave] ?? []);
                 if ($n > 0) {
                     $count += $n;
                     $giorniConAttivita[$g] = $n;
@@ -162,6 +171,28 @@ class CalendarioService
         $perGiorno = [];
         foreach ($lista as $a) {
             $perGiorno[$a->getDataScadenza()->format('Y-m-d')][] = $a;
+        }
+
+        return $perGiorno;
+    }
+
+    /**
+     * @return array<string, EventoGoogle[]> eventi Google (operatori collegati) raggruppati per Y-m-d
+     */
+    private function eventiGoogleTra(\DateTimeImmutable $inizio, \DateTimeImmutable $fine): array
+    {
+        /** @var EventoGoogle[] $lista */
+        $lista = $this->em->getRepository(EventoGoogle::class)->createQueryBuilder('e')
+            ->andWhere('e.inizio >= :i AND e.inizio < :f')
+            ->setParameter('i', $inizio)
+            ->setParameter('f', $fine)
+            ->orderBy('e.inizio', 'ASC')
+            ->getQuery()
+            ->getResult();
+
+        $perGiorno = [];
+        foreach ($lista as $e) {
+            $perGiorno[$e->getInizio()->format('Y-m-d')][] = $e;
         }
 
         return $perGiorno;

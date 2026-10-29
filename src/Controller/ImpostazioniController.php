@@ -75,7 +75,7 @@ class ImpostazioniController extends AbstractController
         if ($this->isCsrfTokenValid('google_sincronizza', (string) $request->request->get('_token')) && $collegamento !== null) {
             try {
                 $r = $google->sincronizza($collegamento);
-                $this->addFlash('success', sprintf('Sincronizzato: %d inviati, %d aggiornati, %d chiusi da Google.', $r['push'], $r['aggiornati'], $r['chiusi']));
+                $this->addFlash('success', sprintf('Sincronizzato: %d inviati, %d aggiornati, %d chiusi, %d eventi Google in agenda.', $r['push'], $r['aggiornati'], $r['chiusi'], $r['importati']));
             } catch (\Throwable $e) {
                 $this->addFlash('error', 'Sincronizzazione non riuscita: ' . $e->getMessage());
             }

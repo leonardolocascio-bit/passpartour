@@ -3,6 +3,7 @@
 namespace App\Service;
 
 use App\Entity\Attivita;
+use App\Entity\EventoGoogle;
 use App\Entity\GoogleCalendarCollegamento;
 use App\Entity\Utente;
 use Doctrine\ORM\EntityManagerInterface;
@@ -122,20 +123,22 @@ class GoogleCalendarService
         }
         $this->em->flush();
 
-        // --- PULL: modifiche remote → attività collegate ---
+        // --- PULL: modifiche remote → attività collegate + import eventi esterni in agenda ---
         $aggiornati = 0;
         $chiusi = 0;
+        $importati = 0;
         $params = $c->getSyncToken()
-            ? ['syncToken' => $c->getSyncToken(), 'showDeleted' => true]
+            ? ['syncToken' => $c->getSyncToken(), 'showDeleted' => true, 'singleEvents' => true]
             : ['timeMin' => (new \DateTimeImmutable('-30 days'))->format(\DateTimeInterface::RFC3339), 'showDeleted' => true, 'singleEvents' => true];
 
         try {
             do {
                 $eventi = $service->events->listEvents($calId, $params);
                 foreach ($eventi->getItems() as $event) {
-                    $esito = $this->applicaEventoRemoto($event);
+                    $esito = $this->applicaEventoRemoto($event, $c);
                     $aggiornati += $esito['aggiornato'];
                     $chiusi += $esito['chiuso'];
+                    $importati += $esito['importato'];
                 }
                 $params['pageToken'] = $eventi->getNextPageToken();
             } while (!empty($params['pageToken']));
@@ -151,7 +154,7 @@ class GoogleCalendarService
             }
         }
 
-        return ['push' => $push, 'aggiornati' => $aggiornati, 'chiusi' => $chiusi];
+        return ['push' => $push, 'aggiornati' => $aggiornati, 'chiusi' => $chiusi, 'importati' => $importati];
     }
 
     private function pushAttivita(Calendar $service, string $calId, Attivita $a): void
@@ -165,22 +168,44 @@ class GoogleCalendarService
         }
     }
 
-    /** @return array{aggiornato:int, chiuso:int} */
-    private function applicaEventoRemoto(Event $event): array
+    /** @return array{aggiornato:int, chiuso:int, importato:int} */
+    private function applicaEventoRemoto(Event $event, GoogleCalendarCollegamento $c): array
     {
         $a = $this->em->getRepository(Attivita::class)->findOneBy(['googleEventId' => $event->getId()]);
         if ($a === null) {
-            return ['aggiornato' => 0, 'chiuso' => 0]; // evento non collegato a un lead: ignorato
+            // evento non collegato a un lead: è un appuntamento dell'operatore → in agenda
+            return ['aggiornato' => 0, 'chiuso' => 0, 'importato' => $this->importaEventoEsterno($event, $c)];
         }
         if ($event->getStatus() === 'cancelled') {
             $a->setCompletata(true);
             $a->setGoogleEventId(null);
 
-            return ['aggiornato' => 0, 'chiuso' => 1];
+            return ['aggiornato' => 0, 'chiuso' => 1, 'importato' => 0];
         }
         $this->aggiornaAttivitaDaEvent($a, $event);
 
-        return ['aggiornato' => 1, 'chiuso' => 0];
+        return ['aggiornato' => 1, 'chiuso' => 0, 'importato' => 0];
+    }
+
+    /** Crea/aggiorna (o rimuove, se cancellato) la copia locale di un evento esterno. Ritorna 1 se importato. */
+    private function importaEventoEsterno(Event $event, GoogleCalendarCollegamento $c): int
+    {
+        $repo = $this->em->getRepository(EventoGoogle::class);
+        $locale = $repo->findOneBy(['collegamento' => $c, 'googleEventId' => $event->getId()]);
+
+        if ($event->getStatus() === 'cancelled' || $event->getStart() === null) {
+            if ($locale !== null) {
+                $this->em->remove($locale);
+            }
+
+            return 0;
+        }
+
+        $locale ??= (new EventoGoogle())->setCollegamento($c)->setGoogleEventId($event->getId());
+        $this->aggiornaEventoGoogleDaEvent($locale, $event);
+        $this->em->persist($locale);
+
+        return 1;
     }
 
     // ---- Mapping puro (testabile senza rete) ----
@@ -211,6 +236,22 @@ class GoogleCalendarService
         $event->setEnd($fine);
 
         return $event;
+    }
+
+    public function aggiornaEventoGoogleDaEvent(EventoGoogle $e, Event $event): void
+    {
+        $e->setTitolo($event->getSummary() ?: '(senza titolo)');
+
+        $start = $event->getStart();
+        $tuttoIlGiorno = $start->getDate() !== null;
+        $e->setTuttoIlGiorno($tuttoIlGiorno);
+        $e->setInizio(new \DateTimeImmutable($start->getDateTime() ?: $start->getDate()));
+
+        $end = $event->getEnd();
+        $isoFine = $end?->getDateTime() ?: $end?->getDate();
+        // per i tutto-il-giorno Google indica la fine esclusiva (giorno dopo): non serve mostrarla
+        $e->setFine($isoFine !== null && !$tuttoIlGiorno ? new \DateTimeImmutable($isoFine) : null);
+        $e->setAggiornatoIl(new \DateTimeImmutable());
     }
 
     public function aggiornaAttivitaDaEvent(Attivita $a, Event $event): void

@@ -10,6 +10,10 @@
        href="{{ path('app_lead_scheda', {id: a.lead.id}) }}"
        title="{{ a.tipo.label }} · {{ a.titolo }} · {{ a.lead.nomeCompleto }}">{{ full and a.dataScadenza|date('H:i') != '00:00' ? a.dataScadenza|date('H:i') ~ ' ' }}{{ a.titolo }}</a>
 {% endmacro %}
+{% macro chipGoogle(e, full) %}
+    <span class="cal-chip google"
+          title="Google Calendar · {{ e.utente ? e.utente.nomeCompleto ~ ' · ' }}{{ e.titolo }}{{ not e.tuttoIlGiorno ? ' · ' ~ e.inizio|date('H:i') }}">🗓 {{ full and not e.tuttoIlGiorno ? e.inizio|date('H:i') ~ ' ' }}{{ e.utente ? e.utente.nome ~ ': ' }}{{ e.titolo }}</span>
+{% endmacro %}
 {% import _self as ui %}
 
 {% block main %}
@@ -43,6 +47,22 @@
         {% else %}
             <p class="muted" style="margin:0;text-align:center;padding:24px">Nessuna attività in questo giorno.</p>
         {% endif %}
+        {% if eventi|length > 0 %}
+            <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--line)">
+                <div class="muted" style="font-size:11px;text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px">🗓 Google Calendar operatori</div>
+                <div style="display:grid;gap:8px">
+                    {% for e in eventi %}
+                        <div style="display:flex;align-items:center;gap:12px">
+                            <span style="width:8px;height:8px;border-radius:50%;border:2px solid #1f9fd6"></span>
+                            <span class="muted" style="width:44px;font-size:12px">{{ e.tuttoIlGiorno ? '—' : e.inizio|date('H:i') }}</span>
+                            {% if e.utente %}<span class="badge" style="font-size:11px">{{ e.utente.nomeCompleto }}</span>{% endif %}
+                            <span style="font-weight:600">{{ e.titolo }}</span>
+                            {% if e.fine %}<span class="muted" style="font-size:12px">fino alle {{ e.fine|date('H:i') }}</span>{% endif %}
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        {% endif %}
     </div></div>
 
 {% elseif vista == 'settimana' %}
@@ -52,7 +72,9 @@
     <div class="cal-week">
         {% for g in giorni %}
             <div class="cal-week-col {{ g.oggi ? 'oggi' }}">
-                {% for a in g.attivita %}{{ ui.chip(a, tipoColore, true) }}{% else %}<span class="cal-more">—</span>{% endfor %}
+                {% for a in g.attivita %}{{ ui.chip(a, tipoColore, true) }}{% endfor %}
+                {% for e in g.eventi %}{{ ui.chipGoogle(e, true) }}{% endfor %}
+                {% if g.attivita|length + g.eventi|length == 0 %}<span class="cal-more">—</span>{% endif %}
             </div>
         {% endfor %}
     </div>
@@ -87,7 +109,9 @@
                 <div class="cal-cell {{ cella.in_mese ? '' : 'fuori' }} {{ cella.oggi ? 'oggi' }}">
                     <div class="cal-daynum">{{ cella.data|date('j') }}</div>
                     {% for a in cella.attivita|slice(0, 3) %}{{ ui.chip(a, tipoColore, false) }}{% endfor %}
-                    {% if cella.attivita|length > 3 %}<div class="cal-more">+{{ cella.attivita|length - 3 }} altre</div>{% endif %}
+                    {% for e in cella.eventi|slice(0, 2) %}{{ ui.chipGoogle(e, false) }}{% endfor %}
+                    {% set extra = (cella.attivita|length > 3 ? cella.attivita|length - 3 : 0) + (cella.eventi|length > 2 ? cella.eventi|length - 2 : 0) %}
+                    {% if extra > 0 %}<div class="cal-more">+{{ extra }} altre</div>{% endif %}
                 </div>
             {% endfor %}
         {% endfor %}

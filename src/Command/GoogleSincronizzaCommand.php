@@ -42,11 +42,12 @@ class GoogleSincronizzaCommand extends Command
             try {
                 $r = $this->google->sincronizza($c);
                 $io->writeln(sprintf(
-                    '<info>%s</info>: %d inviati, %d aggiornati, %d chiusi',
+                    '<info>%s</info>: %d inviati, %d aggiornati, %d chiusi, %d eventi importati',
                     $c->getUtente()->getUserIdentifier(),
                     $r['push'],
                     $r['aggiornati'],
-                    $r['chiusi']
+                    $r['chiusi'],
+                    $r['importati']
                 ));
             } catch (\Throwable $e) {
                 $io->error($c->getUtente()->getUserIdentifier() . ': ' . $e->getMessage());
