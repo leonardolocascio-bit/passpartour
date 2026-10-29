@@ -91,6 +91,12 @@
 
     <table class="fondo-t"><tr>
         <td class="validita">
+            {% if to_logo_uri|default(null) %}
+                <div style="margin-bottom:3mm"><span style="font-size:7.5pt;color:#888">In collaborazione con</span><br>
+                <img src="{{ to_logo_uri }}" style="height:11mm;width:auto" alt="{{ offerta.tourOperator ? offerta.tourOperator.nome }}"></div>
+            {% elseif offerta.tourOperator %}
+                <div style="margin-bottom:2mm;color:#555;font-size:8.5pt">In collaborazione con <strong>{{ offerta.tourOperator.nome }}</strong></div>
+            {% endif %}
             {% if offerta.validoAl %}Offerta valida fino al {{ offerta.validoAl|date('d/m/Y') }}.<br>{% endif %}
             Quota per persona, soggetta a disponibilità.
         </td>

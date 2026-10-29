@@ -12,7 +12,7 @@
 
 <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px">
     {% for o in offerte %}
-        <a class="card" href="{{ path('app_offerta_impaginatore', {id: o.id}) }}" style="overflow:hidden;display:block">
+        <a class="card" href="{{ path('app_creator_content_offerta', {id: o.id}) }}" style="overflow:hidden;display:block">
             {% if o.immagineFile %}
                 <img src="{{ asset('uploads/destinazioni/' ~ o.immagineFile) }}" alt="" style="width:100%;height:130px;object-fit:cover;display:block">
             {% else %}

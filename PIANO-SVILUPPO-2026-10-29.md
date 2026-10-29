@@ -129,5 +129,32 @@ vendite, fatturato.
 | 8 ✓ | Dashboard nuova: lead, opportunità (preventivi in attesa + potenziale), vendite, fatturato/incassato, ultime pratiche | tutto |
 | — | Fix connettore immagini in collaudo (chiave `UNSPLASH_ACCESS_KEY` nello staging) | al prossimo deploy |
 
-> **Piano completato il 29/10/2026.** Restano fuori, in attesa di input: Editor Video (valutare Canva),
-> contratto Giramondo (serve il template di Maria), pubblicazione diretta sui social e valutazione ManyChat.
+> **Piano completato il 29/10/2026 (mattina).**
+
+---
+
+# Revisione del 29/10/2026 (seconda riunione, trascrizione «Revisione CRM e Sviluppo Funzionalità»)
+
+## Applicato ✓
+
+- **Dashboard**: 4ª finestra **Margine** (markup agenzia + commissione TO) nella riga vendite/fatturato/incassato.
+- **Vendita**: sezione **Economics** (costo fornitore/TO + margine, precompilati dal preventivo alla trasformazione; margine derivato da importo−costo se lasciato vuoto).
+- **Pipeline lead — automatismi** (`PipelineLead`): attività di contatto → *contattato*; preventivo creato → *preventivo inviato*; preventivo inviato via email → *trattativa*; mai regredire, lead chiusi intoccati.
+- **Fonti lead**: «Inserimento manuale» → «In agenzia / di persona»; nuove fonti TikTok, Instagram, Vetrina, Passaparola (canali non collegati al CRM).
+- **Tour operator**: sezione in Portale (prima di Offerte), nome+logo; select nell'offerta; logo in scheda web/landing e nel PDF di stampa («In collaborazione con»).
+- **Scheda offerta**: ordine tema → tipologia → destinazione; un tema custom crea la scheda in Temi; destinazione macro/micro con suggerimenti dalle Destinazioni e collegamento automatico (via campo doppio «collega destinazione»); tab «Post social» rimosso (si lavora dal Creator Studio, Anteprima web resta); supplemento singola dopo le quote; bagaglio con check «Altro» + testo libero; itinerario con giorno singolo o intervallo (es. «Giorni 2–3») e stay se senza orari.
+- **Creator Studio**: l'impaginatore si apre sotto `/creator-studio/editor/content/{id}` (sidebar CS attiva); archivi Digital e Print senza upload manuale (i contenuti li generano gli editor); bottone «Anteprima landing» nella scheda campagna.
+
+## Rimandato (in attesa / da specificare)
+
+| Tema | Stato |
+|------|-------|
+| **Editor Video completo** (taglio clip, filtri/preset, effetti, titoli/sottotitoli, loghi dal Media Kit) | progetto a sé, da pianificare |
+| **Media Kit multi-set** (set di loghi N, più set format/font; scelta del set negli editor) | «lo vedremo con calma» — da specificare |
+| **Sezione Mailing in Inbox** (campagne email/WhatsApp a tutti i contatti + canale email in inbox) | nuova sezione, da pianificare |
+| **Alloggi multipli** nella scheda offerta | richiede rework del read-side (scheda, email, anteprima) |
+| **Righe/opzioni di viaggio → editor** (via dalla scheda offerta) | «credo» in riunione — da confermare |
+| **Percorso recupero lead persi** (mailing/messaggistica) | «definiremo in un secondo momento» |
+| **Landing su dominio passpartourviaggi.com** | quando c'è il sito |
+| **Disposizione quota / sezione commissioni «da ottimizzare»** | fatta la parte supplemento singola; resta la rifinitura UI commissioni |
+| Editor Video (Canva), contratto Giramondo, pubblicazione diretta social, ManyChat, chiave Unsplash in staging | come da piano mattina |

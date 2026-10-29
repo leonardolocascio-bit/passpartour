@@ -168,7 +168,7 @@ class LeadController extends AbstractController
     }
 
     #[Route('/lead/{id}/attivita', name: 'app_lead_attivita_nuova', requirements: ['id' => '\d+'], methods: ['POST'])]
-    public function nuovaAttivita(Lead $lead, Request $request, EntityManagerInterface $em): Response
+    public function nuovaAttivita(Lead $lead, Request $request, EntityManagerInterface $em, \App\Service\PipelineLead $pipeline): Response
     {
         $attivita = new Attivita();
         $form = $this->createForm(AttivitaType::class, $attivita);
@@ -182,6 +182,11 @@ class LeadController extends AbstractController
             $em->persist($attivita);
             $em->flush();
             $this->addFlash('success', 'Attività registrata.');
+
+            // automatismo pipeline: un'attività di contatto fa avanzare il lead
+            if ($pipeline->eventoContatto($lead, $attivita->getTipo())) {
+                $this->addFlash('success', 'Il lead è passato a «Contattato».');
+            }
         }
 
         return $this->redirectToRoute('app_lead_scheda', ['id' => $lead->getId()]);

@@ -141,6 +141,7 @@ class CruscottoService
         }
         $fatturato = 0.0;
         $incassato = 0.0;
+        $margineVendite = 0.0;
         $pratiche = 0;
         $praticheAperte = 0;
         foreach ($vendite as $v) {
@@ -154,6 +155,7 @@ class CruscottoService
             }
             $fatturato += (float) ($v->getImportoTotale() ?? 0);
             $incassato += $v->totaleIncassato();
+            $margineVendite += (float) ($v->getMargine() ?? 0);
         }
 
         return [
@@ -175,6 +177,7 @@ class CruscottoService
             'pratiche_aperte' => $praticheAperte,
             'fatturato' => $fatturato,
             'incassato' => $incassato,
+            'margine_vendite' => $margineVendite,
             'da_incassare' => max(0.0, $fatturato - $incassato),
             'vendite_per_stato' => $venditePerStato,
             'vendite_recenti' => array_slice($vendite, 0, 6),

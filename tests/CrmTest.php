@@ -103,6 +103,11 @@ class CrmTest extends WebTestCase
 
         $this->em->clear();
         $lead = $this->em->getRepository(Lead::class)->find($lead->getId());
-        self::assertSame($prima + 1, $lead->getAttivita()->count());
+        // almeno l'attività registrata (l'automatismo pipeline può aggiungerne di nurturing)
+        self::assertGreaterThanOrEqual($prima + 1, $lead->getAttivita()->count());
+        $titoli = array_map(static fn ($a) => $a->getTitolo(), $lead->getAttivita()->toArray());
+        self::assertContains('Chiamata di prova', $titoli);
+        // automatismo: un'attività di contatto non lascia il lead su «nuovo»
+        self::assertNotSame(\App\Enum\StatoLead::NUOVO, $lead->getStato());
     }
 }

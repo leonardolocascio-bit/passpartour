@@ -57,4 +57,21 @@ class PreventivoCalculator
 
         return $scelto ? $this->prezzoFinale($scelto) : null;
     }
+
+    /** Commissioni dello scenario consigliato (o del primo): margine d'agenzia atteso. */
+    public function commissioniRappresentative(Preventivo $preventivo): ?float
+    {
+        $scelto = null;
+        foreach ($preventivo->getScenari() as $scenario) {
+            if ($scelto === null) {
+                $scelto = $scenario;
+            }
+            if ($scenario->isConsigliato()) {
+                $scelto = $scenario;
+                break;
+            }
+        }
+
+        return $scelto ? $this->commissioni($scelto) : null;
+    }
 }

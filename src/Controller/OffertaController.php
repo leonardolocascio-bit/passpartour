@@ -95,6 +95,11 @@ class OffertaController extends AbstractController
             // multi-selezioni gestite dal chip picker (hidden JSON, non mappate nel form)
             $offerta->setTipologie($this->decodeChip($request->request->get('tipologie')));
             $offerta->setTemi($this->decodeChip($request->request->get('temi')));
+
+            // la destinazione collegata si risolve dalle macro/micro (niente campo doppio)
+            $offerta->setDestinazione($this->risolviDestinazione($em, $offerta));
+            // un tema custom diventa una scheda Tema (e quindi una sezione del sito)
+            $this->creaTemiMancanti($em, $offerta->getTemi() ?? []);
             $offerta->setAssicurazioni($this->decodeChip($request->request->get('assicurazioni')));
 
             // alloggio: campi manuali name="alloggio[...]" (persistiti come JSON)
@@ -124,9 +129,15 @@ class OffertaController extends AbstractController
             return $this->redirectToRoute('app_offerta_index');
         }
 
+        $destinazioniNomi = array_map(
+            static fn (\App\Entity\Destinazione $d) => $d->getNome(),
+            $em->getRepository(\App\Entity\Destinazione::class)->findBy([], ['nome' => 'ASC']),
+        );
+
         return $this->render('offerta/form.html.twig', [
             'form' => $form,
             'offerta' => $offerta,
+            'destinazioni_nomi' => $destinazioniNomi,
             'unsplash_configurato' => $unsplash->isConfigured(),
             'margine' => $this->margine->calcola($offerta),
             'tipologie_scelte' => TipologiaViaggio::scelte(),
@@ -141,6 +152,42 @@ class OffertaController extends AbstractController
             ),
             'titolo' => $isNuovo ? 'Nuova offerta' : 'Modifica offerta',
         ]);
+    }
+
+    /** Collega la Destinazione di libreria che combacia con micro (poi macro). */
+    private function risolviDestinazione(EntityManagerInterface $em, Offerta $offerta): ?\App\Entity\Destinazione
+    {
+        foreach ([$offerta->getDestinazioneMicro(), $offerta->getDestinazioneMacro()] as $nome) {
+            if ($nome === null || trim($nome) === '') {
+                continue;
+            }
+            $trovata = $em->getRepository(\App\Entity\Destinazione::class)->createQueryBuilder('d')
+                ->where('LOWER(d.nome) = :n')->setParameter('n', mb_strtolower(trim($nome)))
+                ->setMaxResults(1)->getQuery()->getOneOrNullResult();
+            if ($trovata !== null) {
+                return $trovata;
+            }
+        }
+
+        return null;
+    }
+
+    /** Ogni tema scelto nell'offerta che non esiste come scheda Tema viene creato. */
+    private function creaTemiMancanti(EntityManagerInterface $em, array $temi): void
+    {
+        $repo = $em->getRepository(\App\Entity\Tema::class);
+        foreach ($temi as $nome) {
+            $nome = trim((string) $nome);
+            if ($nome === '') {
+                continue;
+            }
+            $esiste = $repo->createQueryBuilder('t')
+                ->where('LOWER(t.nome) = :n')->setParameter('n', mb_strtolower($nome))
+                ->setMaxResults(1)->getQuery()->getOneOrNullResult();
+            if ($esiste === null) {
+                $em->persist((new \App\Entity\Tema())->setNome($nome));
+            }
+        }
     }
 
     /**
@@ -253,6 +300,13 @@ class OffertaController extends AbstractController
                 if ($kg !== '') {
                     $out[$tipo . 'Kg'] = (float) $kg;
                 }
+            }
+        }
+        if (!empty($dati['altro'])) {
+            $out['altro'] = true;
+            $testo = trim((string) ($dati['altroTesto'] ?? ''));
+            if ($testo !== '') {
+                $out['altroTesto'] = mb_substr($testo, 0, 200);
             }
         }
 

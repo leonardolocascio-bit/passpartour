@@ -209,6 +209,11 @@ class Offerta
     #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
     private ?Destinazione $destinazione = null;
 
+    /** Tour operator del pacchetto: il suo logo compare nelle visual. */
+    #[ORM\ManyToOne(targetEntity: TourOperator::class)]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    private ?TourOperator $tourOperator = null;
+
     #[ORM\Column(type: 'text', nullable: true)]
     private ?string $descrizione = null;
 
@@ -668,6 +673,18 @@ class Offerta
     public function getDestinazione(): ?Destinazione
     {
         return $this->destinazione;
+    }
+
+    public function getTourOperator(): ?TourOperator
+    {
+        return $this->tourOperator;
+    }
+
+    public function setTourOperator(?TourOperator $tourOperator): static
+    {
+        $this->tourOperator = $tourOperator;
+
+        return $this;
     }
 
     public function setDestinazione(?Destinazione $destinazione): static

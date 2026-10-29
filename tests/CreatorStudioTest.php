@@ -47,20 +47,20 @@ class CreatorStudioTest extends WebTestCase
 
     public function testArchivioDigitale(): void
     {
-        // upload
+        // l'archivio non ha più upload manuale: i contenuti li generano gli editor
         $crawler = $this->client->request('GET', '/creator-studio/archivio/digital');
         self::assertResponseIsSuccessful();
-        $this->client->request('POST', '/creator-studio/archivio/digital/nuovo', [
-            '_token' => $this->csrf($crawler, '/archivio/digital/nuovo'),
-            'titolo' => 'Carosello di prova',
-            'tipo' => 'carosello',
-            'data_pubblicazione' => '2026-11-20T10:00',
-        ], ['file' => $this->fileFinto('slide.png')]);
-        self::assertResponseRedirects('/creator-studio/archivio/digital');
+        self::assertSelectorNotExists('input[type="file"]');
 
-        $this->em->clear();
-        $contenuto = $this->em->getRepository(ContenutoDigitale::class)->findOneBy(['titolo' => 'Carosello di prova']);
-        self::assertNotNull($contenuto);
+        // contenuto come lo creerebbe un editor
+        $dir = self::getContainer()->getParameter('kernel.project_dir') . '/public/uploads/creator/digital';
+        @mkdir($dir, 0775, true);
+        file_put_contents($dir . '/test-stato.jpg', 'finto');
+        $contenuto = (new ContenutoDigitale())
+            ->setTitolo('Carosello di prova')->setFile('test-stato.jpg')
+            ->setDataPubblicazione(new \DateTimeImmutable('2026-11-20 10:00'));
+        $this->em->persist($contenuto);
+        $this->em->flush();
         self::assertSame(StatoContenuto::PROGRAMMATO, $contenuto->getStato());
 
         // anteprima + flag pubblicato
@@ -73,34 +73,12 @@ class CreatorStudioTest extends WebTestCase
         self::assertSame(StatoContenuto::PUBBLICATO, $contenuto->getStato());
 
         // elimina (rimuove anche il file)
-        $percorso = self::getContainer()->getParameter('kernel.project_dir') . '/public/uploads/creator/digital/' . $contenuto->getFile();
+        $percorso = $dir . '/' . $contenuto->getFile();
         self::assertFileExists($percorso);
         $crawler = $this->client->request('GET', '/creator-studio/archivio/digital/' . $contenuto->getId());
         $this->client->submit($crawler->selectButton('Elimina')->form());
         self::assertResponseRedirects('/creator-studio/archivio/digital');
         self::assertFileDoesNotExist($percorso);
-    }
-
-    public function testArchivioPrintConvenzioneNome(): void
-    {
-        $crawler = $this->client->request('GET', '/creator-studio/archivio/print');
-        self::assertResponseIsSuccessful();
-        $this->client->request('POST', '/creator-studio/archivio/print/nuovo', [
-            '_token' => $this->csrf($crawler, '/archivio/print/nuovo'),
-            'titolo' => 'Cartello Natale',
-            'formato' => 'a3o',
-        ], ['file' => $this->fileFinto('stampa.pdf')]);
-        self::assertResponseRedirects('/creator-studio/archivio/print');
-
-        $this->em->clear();
-        $contenuto = $this->em->getRepository(ContenutoPrint::class)->findOneBy(['titolo' => 'Cartello Natale']);
-        self::assertNotNull($contenuto);
-        self::assertMatchesRegularExpression('/^cartello-natale_a3_orizzontale_\d{4}-\d{2}-\d{2}-\d{6}\.pdf$/', $contenuto->getFile());
-
-        // pulizia: elimina via form
-        $crawler = $this->client->request('GET', '/creator-studio/archivio/print');
-        $this->client->submit($crawler->selectButton('Elimina')->form());
-        self::assertResponseRedirects('/creator-studio/archivio/print');
     }
 
     public function testMediaKitCaricaSostituisciRimuovi(): void

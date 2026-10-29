@@ -24,7 +24,7 @@
 </div>
 
 {# ---- KPI: vendite e fatturato ---- #}
-<div class="grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:16px">
+<div class="grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:16px">
     <div class="card stat">
         <div class="label">Vendite</div>
         <div class="value">{{ pratiche }}</div>
@@ -39,6 +39,11 @@
         <div class="label">Incassato</div>
         <div class="value">€ {{ (incassato / 1000)|number_format(1, ',', '.') }}k</div>
         <div class="sub">da incassare € {{ da_incassare|number_format(0, ',', '.') }}</div>
+    </div>
+    <div class="card stat">
+        <div class="label">Margine</div>
+        <div class="value" style="color:var(--amber)">€ {{ margine_vendite|number_format(0, ',', '.') }}</div>
+        <div class="sub">markup agenzia + commissioni TO</div>
     </div>
 </div>
 

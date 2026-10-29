@@ -4,39 +4,10 @@
 {% block page_title %}Creator Studio · Archivio Print{% endblock %}
 
 {% block main %}
-<div class="card" style="margin-bottom:18px">
-    <div class="card-pad">
-        <h3 style="margin-bottom:12px">Aggiungi PDF</h3>
-        <form method="post" action="{{ path('app_creator_print_nuovo') }}" enctype="multipart/form-data">
-            <input type="hidden" name="_token" value="{{ csrf_token('print_nuovo') }}">
-            <div style="display:grid;grid-template-columns:2fr 2fr 1fr 2fr;gap:14px;align-items:end">
-                <div>
-                    <label>Offerta</label>
-                    <select name="offerta_id">
-                        <option value="">— nessuna (titolo libero) —</option>
-                        {% for o in offerte %}<option value="{{ o.id }}">{{ o.titolo }}</option>{% endfor %}
-                    </select>
-                </div>
-                <div>
-                    <label>Titolo <span class="muted" style="font-weight:400">(se nessuna offerta)</span></label>
-                    <input type="text" name="titolo" placeholder="es. Cartello vetrina Natale">
-                </div>
-                <div>
-                    <label>Formato</label>
-                    <select name="formato">
-                        {% for f in formati %}<option value="{{ f.value }}">{{ f.label }}</option>{% endfor %}
-                    </select>
-                </div>
-                <div>
-                    <label>File PDF</label>
-                    <input type="file" name="file" accept=".pdf" required>
-                </div>
-            </div>
-            <button class="btn btn-primary" style="margin-top:12px">Aggiungi all'archivio</button>
-        </form>
-        <p class="muted" style="margin:10px 0 0;font-size:12px">Il file viene archiviato come <code>[offerta]_[formato]_[orientamento]_[data generazione].pdf</code></p>
-    </div>
-</div>
+<p class="muted" style="margin:0 0 16px;max-width:760px">
+    Qui arrivano i PDF generati dall'<a class="tab-link" href="{{ path('app_creator_print') }}">Editor Print</a>,
+    archiviati come <code>[offerta]_[formato]_[orientamento]_[data generazione].pdf</code>.
+</p>
 
 <div class="card">
     <div class="card-pad" style="border-bottom:1px solid var(--line)">

@@ -9,7 +9,7 @@
             <img src="{{ asset('images/passpartour-white.png') }}" alt="Passpartour" class="brand-logo">
         </div>
         {% set inSales = _route starts with 'app_lead' or _route starts with 'app_preventivo' or _route starts with 'app_vendita' or _route starts with 'app_attivita' %}
-        {% set inPortale = _route starts with 'app_tema' or _route starts with 'app_tipologia' or _route starts with 'app_destinazione' or _route starts with 'app_offerta' %}
+        {% set inPortale = _route starts with 'app_tema' or _route starts with 'app_tipologia' or _route starts with 'app_destinazione' or _route starts with 'app_touroperator' or _route starts with 'app_offerta' %}
         {% set inCreator = _route starts with 'app_campagna' or _route starts with 'app_creator' %}
         <nav class="nav">
             <a href="{{ path('app_dashboard') }}" class="{{ _route == 'app_dashboard' ? 'active' }}">
@@ -55,6 +55,9 @@
                     </a>
                     <a href="{{ path('app_destinazione_index') }}" class="{{ _route starts with 'app_destinazione' ? 'active' }}">
                         <span class="ic">◇</span> Destinazioni
+                    </a>
+                    <a href="{{ path('app_touroperator_index') }}" class="{{ _route starts with 'app_touroperator' ? 'active' }}">
+                        <span class="ic">✈</span> Tour operator
                     </a>
                     <a href="{{ path('app_offerta_index') }}" class="{{ _route starts with 'app_offerta' ? 'active' }}">
                         <span class="ic">✦</span> Offerte

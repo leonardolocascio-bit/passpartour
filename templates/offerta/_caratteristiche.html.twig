@@ -99,6 +99,15 @@
                 <div><label>Kg</label><input type="number" min="0" step="0.1" name="bagaglio[stivaKg]" value="{{ bg.stivaKg|default('') }}"></div>
             </div>
         </div>
+
+        <div>
+            <label style="display:flex;align-items:center;gap:8px;font-weight:500;cursor:pointer">
+                <input type="checkbox" name="bagaglio[altro]" value="1" data-bag-toggle="bag-altro"{{ bg.altro|default(false) ? ' checked' }}> Altro
+            </label>
+            <div id="bag-altro" style="margin-top:8px{{ bg.altro|default(false) ? '' : ';display:none' }}">
+                <input type="text" name="bagaglio[altroTesto]" value="{{ bg.altroTesto|default('') }}" placeholder="es. Attrezzatura sportiva 1 × 20 kg">
+            </div>
+        </div>
     </div>
 </fieldset>
 

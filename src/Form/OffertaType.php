@@ -2,7 +2,6 @@
 
 namespace App\Form;
 
-use App\Entity\Destinazione;
 use App\Entity\Offerta;
 use Doctrine\ORM\EntityRepository;
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
@@ -26,8 +25,8 @@ class OffertaType extends AbstractType
             ->add('titolo', TextType::class, ['label' => 'Titolo', 'attr' => ['placeholder' => 'Es. Maldive da sogno']])
             ->add('sottotitolo', TextType::class, ['label' => 'Sottotitolo', 'required' => false, 'attr' => ['placeholder' => 'Es. 7 notti in overwater']])
             ->add('claim', TextType::class, ['label' => 'Claim (per social e stampa)', 'required' => false, 'attr' => ['placeholder' => 'Es. Il paradiso esiste, prenotalo']])
-            ->add('destinazioneMacro', TextType::class, ['label' => 'Destinazione macro (area/regione)', 'required' => false, 'attr' => ['placeholder' => 'Es. Oceano Indiano']])
-            ->add('destinazioneMicro', TextType::class, ['label' => 'Destinazione micro (meta)', 'required' => false, 'attr' => ['placeholder' => 'Es. Maldive']])
+            ->add('destinazioneMacro', TextType::class, ['label' => 'Destinazione macro (area/regione)', 'required' => false, 'attr' => ['placeholder' => 'Scegli dalle Destinazioni o scrivi', 'list' => 'lista-destinazioni']])
+            ->add('destinazioneMicro', TextType::class, ['label' => 'Destinazione micro (meta)', 'required' => false, 'attr' => ['placeholder' => 'Manuale, o dalle Destinazioni', 'list' => 'lista-destinazioni']])
             ->add('immagineFile', FileType::class, [
                 'label' => 'Immagine',
                 'mapped' => false,
@@ -36,13 +35,13 @@ class OffertaType extends AbstractType
                     new File(maxSize: '6M', mimeTypes: ['image/jpeg', 'image/png', 'image/webp'], mimeTypesMessage: 'Carica un\'immagine JPG, PNG o WebP'),
                 ],
             ])
-            ->add('destinazione', EntityType::class, [
-                'label' => 'Collega a una destinazione (facoltativo)',
-                'class' => Destinazione::class,
+            ->add('tourOperator', EntityType::class, [
+                'label' => 'Tour operator (il logo compare nelle visual)',
+                'class' => \App\Entity\TourOperator::class,
                 'choice_label' => 'nome',
                 'required' => false,
-                'placeholder' => '— nessuna —',
-                'query_builder' => fn (EntityRepository $r) => $r->createQueryBuilder('d')->orderBy('d.nome', 'ASC'),
+                'placeholder' => '— nessuno —',
+                'query_builder' => fn (EntityRepository $r) => $r->createQueryBuilder('t')->orderBy('t.nome', 'ASC'),
             ])
             ->add('descrizione', TextareaType::class, ['label' => 'Descrizione', 'required' => false])
             ->add('comprende', TextareaType::class, ['label' => 'Il pacchetto comprende', 'required' => false, 'attr' => ['rows' => 4, 'placeholder' => 'Generato dalle caratteristiche, modificabile a mano']])

@@ -4,48 +4,11 @@
 {% block page_title %}Creator Studio · Archivio Digital{% endblock %}
 
 {% block main %}
-<div class="card" style="margin-bottom:18px">
-    <div class="card-pad">
-        <h3 style="margin-bottom:12px">Aggiungi contenuto</h3>
-        <form method="post" action="{{ path('app_creator_digital_nuovo') }}" enctype="multipart/form-data">
-            <input type="hidden" name="_token" value="{{ csrf_token('digital_nuovo') }}">
-            <div style="display:grid;grid-template-columns:2fr 1fr 2fr;gap:14px">
-                <div>
-                    <label>Titolo</label>
-                    <input type="text" name="titolo" required placeholder="es. Carosello Maldive inverno">
-                </div>
-                <div>
-                    <label>Tipo</label>
-                    <select name="tipo">
-                        {% for t in tipi %}<option value="{{ t.value }}">{{ t.label }}</option>{% endfor %}
-                    </select>
-                </div>
-                <div>
-                    <label>Offerta collegata</label>
-                    <select name="offerta_id">
-                        <option value="">— nessuna —</option>
-                        {% for o in offerte %}<option value="{{ o.id }}">{{ o.titolo }}</option>{% endfor %}
-                    </select>
-                </div>
-            </div>
-            <div style="display:grid;grid-template-columns:2fr 1fr;gap:14px;margin-top:12px">
-                <div>
-                    <label>File (immagine o video)</label>
-                    <input type="file" name="file" accept=".jpg,.jpeg,.png,.webp,.mp4,.mov,.webm" required>
-                </div>
-                <div>
-                    <label>Data di pubblicazione <span class="muted" style="font-weight:400">(opzionale → stato «Programmato»)</span></label>
-                    <input type="datetime-local" name="data_pubblicazione">
-                </div>
-            </div>
-            <div style="margin-top:12px">
-                <label>Caption <span class="muted" style="font-weight:400">(opzionale)</span></label>
-                <textarea name="caption" placeholder="Testo del post…"></textarea>
-            </div>
-            <button class="btn btn-primary" style="margin-top:12px">Aggiungi all'archivio</button>
-        </form>
-    </div>
-</div>
+<p class="muted" style="margin:0 0 16px;max-width:760px">
+    Qui arrivano i contenuti generati dagli editor del Creator Studio:
+    <a class="tab-link" href="{{ path('app_creator_content') }}">Content</a> (post e caroselli) e, in futuro, Video.
+    Dall'anteprima si imposta il flag «pubblicato».
+</p>
 
 <div class="card">
     <div class="card-pad" style="border-bottom:1px solid var(--line)">

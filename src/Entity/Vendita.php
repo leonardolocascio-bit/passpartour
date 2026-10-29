@@ -41,6 +41,14 @@ class Vendita
     #[ORM\Column(type: 'decimal', precision: 12, scale: 2, nullable: true)]
     private ?string $importoTotale = null;
 
+    /** Costo fornitore/tour operator della pratica (quota netta). */
+    #[ORM\Column(type: 'decimal', precision: 12, scale: 2, nullable: true)]
+    private ?string $costoFornitore = null;
+
+    /** Margine d'agenzia (markup + commissione TO); precompilato dal preventivo. */
+    #[ORM\Column(type: 'decimal', precision: 12, scale: 2, nullable: true)]
+    private ?string $margine = null;
+
     /** Piano pagamenti: righe JSON (vedi doc di classe). */
     #[ORM\Column(type: 'json', nullable: true)]
     private ?array $pagamenti = null;
@@ -135,6 +143,30 @@ class Vendita
     public function setImportoTotale(?string $importoTotale): static
     {
         $this->importoTotale = $importoTotale;
+
+        return $this;
+    }
+
+    public function getCostoFornitore(): ?string
+    {
+        return $this->costoFornitore;
+    }
+
+    public function setCostoFornitore(?string $costoFornitore): static
+    {
+        $this->costoFornitore = $costoFornitore;
+
+        return $this;
+    }
+
+    public function getMargine(): ?string
+    {
+        return $this->margine;
+    }
+
+    public function setMargine(?string $margine): static
+    {
+        $this->margine = $margine;
 
         return $this;
     }

@@ -37,6 +37,7 @@
         <div style="margin-top:14px;padding:12px;border:1px dashed var(--line);border-radius:10px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
             <span class="muted" style="font-size:13px">Landing:</span>
             <a class="tab-link" href="{{ urlLanding }}" target="_blank" style="font-size:13px">{{ urlLanding }}</a>
+            <a class="btn btn-primary" style="font-size:12px" href="{{ urlLanding }}" target="_blank">👁 Anteprima landing</a>
             <button type="button" class="btn" style="font-size:12px" onclick="navigator.clipboard.writeText('{{ urlLanding|e('js') }}').then(() => this.textContent = '✓ Copiato')">📋 Copia URL</button>
         </div>
     {% endif %}

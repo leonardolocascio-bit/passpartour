@@ -55,11 +55,12 @@ class OffertaTest extends WebTestCase
         self::assertStringContainsString('Tema colore del post', $body); // selettore tema presente
         self::assertStringNotContainsString('class="nav"', $body);        // niente sidebar
 
-        // la scheda offerta incorpora l'impaginatore come tab con iframe
+        // l'impaginatore NON è più dentro la scheda offerta: vive nel Creator Studio
         $this->client->request('GET', '/offerte/' . $id . '/modifica');
         $form = (string) $this->client->getResponse()->getContent();
-        self::assertStringContainsString('data-tab="impaginatore"', $form);
-        self::assertStringContainsString('data-impaginatore-src', $form);
+        self::assertStringNotContainsString('data-tab="impaginatore"', $form);
+        $this->client->request('GET', '/creator-studio/editor/content/' . $id);
+        self::assertResponseIsSuccessful();
     }
 
     public function testImpaginatoreSalvaStato(): void

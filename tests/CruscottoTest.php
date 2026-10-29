@@ -20,7 +20,7 @@ class CruscottoTest extends KernelTestCase
 
         // chiavi principali presenti
         foreach (['tot_lead', 'tasso_conversione', 'valore_pipeline', 'per_fonte', 'agenti', 'campagne', 'prev_per_stato',
-            'opportunita_n', 'opportunita_valore', 'pratiche', 'pratiche_aperte', 'fatturato', 'incassato', 'da_incassare',
+            'opportunita_n', 'opportunita_valore', 'pratiche', 'pratiche_aperte', 'fatturato', 'incassato', 'da_incassare', 'margine_vendite',
             'vendite_per_stato', 'vendite_recenti'] as $k) {
             self::assertArrayHasKey($k, $m);
         }

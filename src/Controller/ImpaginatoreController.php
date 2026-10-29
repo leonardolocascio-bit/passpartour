@@ -35,6 +35,7 @@ class ImpaginatoreController extends AbstractController
     ];
 
     #[Route('/offerte/{id}/impaginatore', name: 'app_offerta_impaginatore', requirements: ['id' => '\d+'])]
+    #[Route('/creator-studio/editor/content/{id}', name: 'app_creator_content_offerta', requirements: ['id' => '\d+'])]
     public function editor(Offerta $offerta, Request $request, UnsplashClient $unsplash, CaptionGenerator $caption, EntityManagerInterface $em): Response
     {
         $this->migraRigheLegacy($offerta, $em);

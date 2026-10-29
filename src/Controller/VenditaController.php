@@ -72,12 +72,15 @@ class VenditaController extends AbstractController
         $preventivo->setCliente($cliente);
 
         $prezzo = $calc->prezzoRappresentativo($preventivo);
+        $margine = $calc->commissioniRappresentative($preventivo);
         $vendita = (new Vendita())
             ->setTitolo($preventivo->getTitolo() ?: $preventivo->getNumero())
             ->setPreventivo($preventivo)
             ->setLead($lead)
             ->setCliente($cliente)
-            ->setImportoTotale($prezzo !== null ? number_format($prezzo, 2, '.', '') : null);
+            ->setImportoTotale($prezzo !== null ? number_format($prezzo, 2, '.', '') : null)
+            ->setCostoFornitore($prezzo !== null && $margine !== null ? number_format($prezzo - $margine, 2, '.', '') : null)
+            ->setMargine($margine !== null ? number_format($margine, 2, '.', '') : null);
         $em->persist($vendita);
         $em->flush();
 
@@ -118,6 +121,18 @@ class VenditaController extends AbstractController
         $importo = str_replace(',', '.', trim((string) $request->request->get('importo_totale')));
         $vendita->setImportoTotale(is_numeric($importo) ? number_format((float) $importo, 2, '.', '') : null);
         $vendita->setNote(trim((string) $request->request->get('note')) ?: null);
+
+        // economics: costo fornitore + margine (se vuoto, derivato da importo − costo)
+        $costo = str_replace(',', '.', trim((string) $request->request->get('costo_fornitore')));
+        $vendita->setCostoFornitore(is_numeric($costo) ? number_format((float) $costo, 2, '.', '') : null);
+        $margine = str_replace(',', '.', trim((string) $request->request->get('margine')));
+        if (is_numeric($margine)) {
+            $vendita->setMargine(number_format((float) $margine, 2, '.', ''));
+        } elseif ($vendita->getImportoTotale() !== null && $vendita->getCostoFornitore() !== null) {
+            $vendita->setMargine(number_format((float) $vendita->getImportoTotale() - (float) $vendita->getCostoFornitore(), 2, '.', ''));
+        } else {
+            $vendita->setMargine(null);
+        }
 
         $righe = json_decode((string) $request->request->get('pagamenti_json'), true);
         if (\is_array($righe)) {

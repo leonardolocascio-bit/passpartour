@@ -24,6 +24,10 @@ use Symfony\Component\Routing\Attribute\Route;
 
 class PreventivoController extends AbstractController
 {
+    public function __construct(private readonly \App\Service\PipelineLead $pipeline)
+    {
+    }
+
     #[Route('/preventivi', name: 'app_preventivo_index')]
     public function index(EntityManagerInterface $em, PreventivoCalculator $calc): Response
     {
@@ -77,6 +81,10 @@ class PreventivoController extends AbstractController
                 $em->persist($preventivo);
             }
             $em->flush();
+            // automatismo pipeline: lead con un preventivo → «preventivo inviato»
+            if ($isNuovo) {
+                $this->pipeline->eventoPreventivoCreato($preventivo->getLead());
+            }
             $this->addFlash('success', 'Preventivo salvato.');
 
             return $this->redirectToRoute('app_preventivo_scheda', ['id' => $preventivo->getId()]);
@@ -173,6 +181,8 @@ class PreventivoController extends AbstractController
                 $preventivo->setStato(StatoPreventivo::INVIATO);
             }
             $em->flush();
+            // automatismo pipeline: preventivo inviato al cliente → lead in trattativa
+            $this->pipeline->eventoPreventivoInviato($preventivo->getLead());
 
             $this->addFlash('success', 'Preventivo inviato a ' . $a . '.');
 

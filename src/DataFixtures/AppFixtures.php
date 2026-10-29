@@ -123,6 +123,8 @@ class AppFixtures extends Fixture
             ->setCliente($cliente)
             ->setStato(\App\Enum\StatoVendita::IN_LAVORAZIONE)
             ->setImportoTotale('3200.00')
+            ->setCostoFornitore('2780.00')
+            ->setMargine('420.00')
             ->setPagamenti([
                 ['id' => 'p1', 'descrizione' => 'Acconto 25%', 'importo' => '800.00', 'scadenza' => (new \DateTimeImmutable('-10 days'))->format('Y-m-d'), 'incassato' => true, 'attivitaId' => null],
                 ['id' => 'p2', 'descrizione' => 'Saldo', 'importo' => '2400.00', 'scadenza' => (new \DateTimeImmutable('+30 days'))->format('Y-m-d'), 'incassato' => false, 'attivitaId' => null],
@@ -185,6 +187,12 @@ class AppFixtures extends Fixture
             $manager->persist($offerta);
             $offertaByTitolo[$o[0]] = $offerta;
         }
+
+        // ---- Tour operator censiti (il logo compare nelle visual dell'offerta) ----
+        $giramondoTo = (new \App\Entity\TourOperator())->setNome('Giramondo Tour Operator');
+        $manager->persist($giramondoTo);
+        $manager->persist((new \App\Entity\TourOperator())->setNome('Alpitour World'));
+        $offertaByTitolo['Maldive da sogno']->setTourOperator($giramondoTo);
 
         // le campagne lead gen promuovono le offerte tramite landing pubblica /c/{slug}
         $maldive->setOfferta($offertaByTitolo['Maldive da sogno'])->setSlug('maldive-inverno-2026')

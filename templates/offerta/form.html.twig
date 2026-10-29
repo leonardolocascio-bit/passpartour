@@ -14,7 +14,7 @@
         <button type="button" class="tab-btn" data-tab="offerta">Offerta</button>
         <button type="button" class="tab-btn" data-tab="info">Info utili</button>
         {% if offerta.id %}
-            <button type="button" class="tab-btn" data-tab="impaginatore">Post social</button>
+            {# post social e stampa si fanno nel Creator Studio; qui resta l'anteprima web #}
             <a class="tab-btn tab-link" href="{{ path('app_offerta_anteprima', {id: offerta.id}) }}" target="_blank">Anteprima ↗</a>
         {% endif %}
     </div>
@@ -25,18 +25,7 @@
         {{ form_row(form.sottotitolo) }}
         {{ form_row(form.claim) }}
 
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
-            {{ form_row(form.destinazioneMacro) }}
-            {{ form_row(form.destinazioneMicro) }}
-        </div>
-
-        {{ include('_partials/_chip_picker.html.twig', {
-            name: 'tipologie',
-            label: 'Tipologia di viaggio',
-            scelte: tipologie_scelte,
-            selezionati: offerta.tipologie,
-            placeholder: 'Aggiungi una tipologia…',
-        }) }}
+        {# ordine richiesto: tema → tipologia → destinazione #}
         {{ include('_partials/_chip_picker.html.twig', {
             name: 'temi',
             label: 'Tema / occasione',
@@ -44,6 +33,25 @@
             selezionati: offerta.temi,
             placeholder: 'Aggiungi un tema…',
         }) }}
+        <p class="muted" style="font-size:12px;margin:-6px 0 12px">Un tema nuovo crea anche la sua scheda in Portale → Temi (e quindi la sezione sul sito).</p>
+        {{ include('_partials/_chip_picker.html.twig', {
+            name: 'tipologie',
+            label: 'Tipologia di viaggio',
+            scelte: tipologie_scelte,
+            selezionati: offerta.tipologie,
+            placeholder: 'Aggiungi una tipologia…',
+        }) }}
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+            {{ form_row(form.destinazioneMacro) }}
+            {{ form_row(form.destinazioneMicro) }}
+        </div>
+        <datalist id="lista-destinazioni">
+            {% for n in destinazioni_nomi %}<option value="{{ n }}">{% endfor %}
+        </datalist>
+        <p class="muted" style="font-size:12px;margin:-6px 0 12px">Se il nome combacia con una voce di Portale → Destinazioni, l'offerta viene collegata (immagine inclusa).</p>
+
+        {{ form_row(form.tourOperator) }}
 
         {{ include('_partials/_image_picker.html.twig', {
             form: form,
@@ -53,7 +61,6 @@
             fotografoUrl: offerta.fotografoUrlEffettivo,
         }) }}
 
-        {{ form_row(form.destinazione) }}
         {{ form_row(form.descrizione) }}
     </section>
 
@@ -80,10 +87,10 @@
             add_label: 'Tappa',
             hint: 'Giorno, porto/città, orari e descrizione.',
             campi: [
-                {key: 'giorno', label: 'Giorno', type: 'text', placeholder: 'es. Giorno 1'},
+                {key: 'giorno', label: 'Giorno', type: 'text', placeholder: 'es. Giorno 1, o Giorni 2–3'},
                 {key: 'luogo', label: 'Porto / città', type: 'text'},
-                {key: 'arrivo', label: 'Arrivo', type: 'text', placeholder: 'es. 08:00'},
-                {key: 'partenza', label: 'Partenza', type: 'text', placeholder: 'es. 18:00'},
+                {key: 'arrivo', label: 'Arrivo', type: 'text', placeholder: 'es. 08:00 (vuoto = stay)'},
+                {key: 'partenza', label: 'Partenza', type: 'text', placeholder: 'es. 18:00 (vuoto = stay)'},
                 {key: 'descrizione', label: 'Descrizione', type: 'textarea'},
             ],
         }) }}
@@ -95,9 +102,8 @@
         <fieldset style="border:1px solid var(--line);border-radius:10px;padding:14px;margin:0">
             <legend style="font-weight:700;padding:0 6px">Quota</legend>
             <p class="muted" style="font-size:12px;margin:0 0 10px">Le quote si intendono IVA inclusa.</p>
-            <div style="display:grid;grid-template-columns:160px 1fr;gap:14px;align-items:end">
+            <div style="display:grid;grid-template-columns:160px;gap:14px;align-items:end">
                 {{ form_row(form.valuta) }}
-                {{ form_row(form.supplementoSingola) }}
             </div>
             {{ include('_partials/_segmenti_editor.html.twig', {
                 name: 'quote',
@@ -111,6 +117,10 @@
                     {key: 'importo', label: 'Importo', type: 'text'},
                 ],
             }) }}
+            {# il supplemento singola viene DOPO le quote #}
+            <div style="margin-top:12px;max-width:260px">
+                {{ form_row(form.supplementoSingola) }}
+            </div>
         </fieldset>
 
         {# Costi / MOL — dato interno all'operatore #}
@@ -219,18 +229,6 @@
         <div class="section-hint">Clima nel periodo, dress code e usi locali: in arrivo.</div>
     </section>
 
-    {% if offerta.id %}
-        {# Impaginatore embeddato: l'editor del post social vive dentro la scheda #}
-        <section class="tab-panel" data-panel="impaginatore" hidden>
-            <div style="display:flex;justify-content:flex-end;margin-bottom:8px">
-                <a class="btn" href="{{ path('app_offerta_impaginatore', {id: offerta.id}) }}" target="_blank">Apri a tutta pagina ↗</a>
-            </div>
-            <iframe data-impaginatore-src="{{ path('app_offerta_impaginatore', {id: offerta.id}) }}?embed=1"
-                    style="width:100%;height:1700px;border:1px solid var(--line);border-radius:10px;background:#fff"
-                    title="Impaginatore post social"></iframe>
-        </section>
-    {% endif %}
-
     {{ form_end(form) }}
 
     {# form di eliminazione: separato (NON annidato nel form principale) #}
@@ -280,9 +278,6 @@
         btn.addEventListener('click', function () {
             tabs.forEach(function (b) { b.classList.toggle('is-active', b === btn); });
             panels.forEach(function (p) { p.hidden = (p.dataset.panel !== btn.dataset.tab); });
-            // lazy-load dell'iframe impaginatore alla prima apertura
-            var att = document.querySelector('[data-panel="' + btn.dataset.tab + '"] iframe[data-impaginatore-src]');
-            if (att && !att.src) att.src = att.getAttribute('data-impaginatore-src');
         });
     });
 })();
