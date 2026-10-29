@@ -45,6 +45,10 @@ class Conversazione
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $anteprima = null;
 
+    /** Oggetto del thread (solo canale email): usato per il «Re:» in risposta. */
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $oggetto = null;
+
     #[ORM\Column]
     private \DateTimeImmutable $ultimoMessaggioAt;
 
@@ -163,6 +167,18 @@ class Conversazione
     public function getAnteprima(): ?string
     {
         return $this->anteprima;
+    }
+
+    public function getOggetto(): ?string
+    {
+        return $this->oggetto;
+    }
+
+    public function setOggetto(?string $oggetto): static
+    {
+        $this->oggetto = $oggetto;
+
+        return $this;
     }
 
     public function setAnteprima(?string $anteprima): static

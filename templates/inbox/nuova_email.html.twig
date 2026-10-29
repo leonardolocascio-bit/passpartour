@@ -1,0 +1,37 @@
+{% extends 'app.html.twig' %}
+
+{% block title %}Nuova email · Inbox · Passpartour{% endblock %}
+{% block page_title %}Inbox · Nuova email{% endblock %}
+
+{% block main %}
+<div class="card" style="max-width:680px"><div class="card-pad">
+    <form method="post">
+        <input type="hidden" name="_token" value="{{ csrf_token('inbox_nuova_email') }}">
+        <div style="display:grid;gap:14px">
+            <div>
+                <label>Destinatario</label>
+                <input type="email" name="destinatario" required list="lista-contatti"
+                       value="{{ precompilato }}" placeholder="nome@esempio.com — o scegli un contatto">
+                <datalist id="lista-contatti">
+                    {% for c in contatti %}<option value="{{ c.email }}">{{ c.nome }}</option>{% endfor %}
+                </datalist>
+            </div>
+            <div>
+                <label>Oggetto</label>
+                <input type="text" name="oggetto" placeholder="es. La tua proposta di viaggio">
+            </div>
+            <div>
+                <label>Messaggio</label>
+                <textarea name="testo" rows="8" required placeholder="Scrivi qui…"></textarea>
+            </div>
+        </div>
+        <div style="display:flex;gap:10px;margin-top:16px">
+            <button class="btn btn-primary">✉️ Invia</button>
+            <a class="btn" href="{{ path('app_inbox') }}">Annulla</a>
+        </div>
+    </form>
+    <p class="muted" style="font-size:12px;margin:12px 0 0">
+        L'email parte dalla casella dell'agenzia (MAILER) e apre una conversazione nel canale Email dell'inbox.
+    </p>
+</div></div>
+{% endblock %}

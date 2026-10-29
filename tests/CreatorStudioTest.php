@@ -273,6 +273,36 @@ class CreatorStudioTest extends WebTestCase
         self::assertNull($this->em->getRepository(\App\Entity\MediaKitIcona::class)->find($icona->getId()));
     }
 
+    public function testEditorVideoArchivia(): void
+    {
+        // la pagina dell'editor rende (con il token per archiviare)
+        $this->client->request('GET', '/creator-studio/editor/video');
+        self::assertResponseIsSuccessful();
+        preg_match('/const CSRF = "([^"]+)"/', (string) $this->client->getResponse()->getContent(), $m);
+        self::assertNotEmpty($m[1] ?? '', 'Token CSRF dell\'editor video non trovato');
+
+        // l'export viene archiviato come ContenutoDigitale di tipo video
+        $this->client->request('POST', '/creator-studio/editor/video/archivia', [
+            'titolo' => 'Reel di prova',
+        ], ['file' => $this->fileFinto('reel.webm')], ['HTTP_X-CSRF-Token' => $m[1]]);
+        self::assertResponseIsSuccessful();
+        $risposta = json_decode((string) $this->client->getResponse()->getContent(), true);
+        self::assertTrue($risposta['ok'] ?? false);
+
+        $this->em->clear();
+        $video = $this->em->getRepository(ContenutoDigitale::class)->findOneBy(['titolo' => 'Reel di prova']);
+        self::assertNotNull($video);
+        self::assertSame('video', $video->getTipo()->value);
+        self::assertTrue($video->isFileVideo());
+
+        // pulizia via elimina (rimuove anche il file)
+        $percorso = self::getContainer()->getParameter('kernel.project_dir') . '/public/uploads/creator/digital/' . $video->getFile();
+        self::assertFileExists($percorso);
+        $crawler = $this->client->request('GET', '/creator-studio/archivio/digital/' . $video->getId());
+        $this->client->submit($crawler->selectButton('Elimina')->form());
+        self::assertFileDoesNotExist($percorso);
+    }
+
     /** Estrae il token CSRF dal form della pagina la cui action termina così (CSRF di sessione). */
     private function csrf(Crawler $crawler, string $fineAction): string
     {

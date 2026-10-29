@@ -1,14 +1,18 @@
 {% extends 'app.html.twig' %}
 
 {% block title %}Inbox · Passpartour{% endblock %}
-{% block page_title %}Inbox Meta{% endblock %}
+{% block page_title %}Inbox{% endblock %}
 
 {% block main %}
-<div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
+<div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center">
     <a class="chip {{ canaleAttivo is null ? 'chip--on' }}" href="{{ path('app_inbox') }}">Tutti</a>
     {% for c in canali %}
         <a class="chip {{ canaleAttivo == c ? 'chip--on' }}" href="{{ path('app_inbox', {canale: c.value}) }}">{{ c.label }}</a>
     {% endfor %}
+    <span style="margin-left:auto;display:flex;gap:8px">
+        <a class="btn" href="{{ path('app_inbox_mailing') }}">📣 Mailing</a>
+        <a class="btn btn-primary" href="{{ path('app_inbox_nuova_email') }}">✉️ Nuova email</a>
+    </span>
 </div>
 
 <div class="card">

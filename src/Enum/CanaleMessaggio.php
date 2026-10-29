@@ -3,13 +3,15 @@
 namespace App\Enum;
 
 /**
- * Canale di messaggistica Meta collegato alla pagina Passpartour.
+ * Canale dell'inbox unificata: messaggistica Meta della pagina Passpartour
+ * più la casella email dell'agenzia.
  */
 enum CanaleMessaggio: string
 {
     case WHATSAPP = 'whatsapp';
     case MESSENGER = 'messenger';
     case INSTAGRAM = 'instagram';
+    case EMAIL = 'email';
 
     public function label(): string
     {
@@ -17,6 +19,7 @@ enum CanaleMessaggio: string
             self::WHATSAPP => 'WhatsApp',
             self::MESSENGER => 'Messenger',
             self::INSTAGRAM => 'Instagram Direct',
+            self::EMAIL => 'Email',
         };
     }
 }

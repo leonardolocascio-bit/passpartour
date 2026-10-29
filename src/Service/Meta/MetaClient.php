@@ -29,6 +29,7 @@ class MetaClient
         return match ($canale) {
             CanaleMessaggio::WHATSAPP => $this->whatsappToken !== '' && $this->whatsappPhoneNumberId !== '',
             CanaleMessaggio::MESSENGER, CanaleMessaggio::INSTAGRAM => $this->pageToken !== '',
+            CanaleMessaggio::EMAIL => false, // le email le invia il mailer, non Meta
         };
     }
 

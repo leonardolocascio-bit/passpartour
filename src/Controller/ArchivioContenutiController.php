@@ -8,6 +8,7 @@ use App\Entity\MediaKitAsset;
 use App\Entity\Offerta;
 use App\Enum\FormatoStampa;
 use App\Enum\TipoAssetMediaKit;
+use App\Enum\TipoContenutoDigitale;
 use App\Service\GeneratorePdf;
 use App\Service\UploaderCreator;
 use Doctrine\ORM\EntityManagerInterface;
@@ -35,6 +36,40 @@ class ArchivioContenutiController extends AbstractController
     {
         return $this->render('creator/archivio_digital.html.twig', [
             'contenuti' => $em->getRepository(ContenutoDigitale::class)->findBy([], ['createdAt' => 'DESC']),
+        ]);
+    }
+
+    /** Riceve il video esportato dall'Editor Video e lo archivia in Digital. */
+    #[Route('/creator-studio/editor/video/archivia', name: 'app_creator_video_archivia', methods: ['POST'])]
+    public function videoArchivia(Request $request, EntityManagerInterface $em, UploaderCreator $uploader): Response
+    {
+        if (!$this->isCsrfTokenValid('video_archivia', (string) $request->headers->get('X-CSRF-Token'))) {
+            return $this->json(['error' => 'Token non valido.'], 403);
+        }
+
+        $file = $request->files->get('file');
+        $ext = $file ? strtolower($file->getClientOriginalExtension() ?: (string) $file->guessExtension()) : '';
+        if ($file === null || !in_array($ext, ['webm', 'mp4'], true)) {
+            return $this->json(['error' => 'Formato video non valido (webm o mp4).'], 400);
+        }
+
+        $titolo = trim((string) $request->request->get('titolo')) ?: 'Video';
+        // estensione esplicita: il blob del MediaRecorder non sempre si sniffa come video
+        $nomeFile = $uploader->salva($file, 'digital', $titolo, 'video-' . bin2hex(random_bytes(5)) . '.' . $ext);
+        if ($nomeFile === null) {
+            return $this->json(['error' => 'Salvataggio non riuscito.'], 500);
+        }
+
+        $contenuto = (new ContenutoDigitale())
+            ->setTitolo(mb_substr($titolo, 0, 150))
+            ->setTipo(TipoContenutoDigitale::VIDEO)
+            ->setFile($nomeFile);
+        $em->persist($contenuto);
+        $em->flush();
+
+        return $this->json([
+            'ok' => true,
+            'url' => $this->generateUrl('app_creator_digital_anteprima', ['id' => $contenuto->getId()]),
         ]);
     }
 

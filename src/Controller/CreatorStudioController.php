@@ -16,12 +16,23 @@ use Symfony\Component\Routing\Attribute\Route;
  */
 class CreatorStudioController extends AbstractController
 {
+    /** Editor Video: montaggio clip lato client (canvas + MediaRecorder), logatura dal Media Kit. */
     #[Route('/creator-studio/editor/video', name: 'app_creator_video')]
-    public function video(): Response
+    public function video(EntityManagerInterface $em): Response
     {
-        return $this->render('sezione_in_sviluppo.html.twig', [
-            'titolo' => 'Editor Video',
-            'descrizione' => 'Editor per il montaggio video con i segni distintivi presi dal Media Kit (in valutazione anche la connessione a Canva).',
+        $kit = [];
+        $kitFont = [];
+        foreach ($em->getRepository(\App\Entity\MediaKitAsset::class)->findBy(['gruppo' => 1]) as $asset) {
+            if ($asset->getTipo() === \App\Enum\TipoAssetMediaKit::FONT) {
+                $kitFont = $asset->getValore();
+                continue;
+            }
+            $kit[$asset->getTipo()->value] = 'uploads/creator/mediakit/' . $asset->getFile();
+        }
+
+        return $this->render('creator/editor_video.html.twig', [
+            'logo_url' => $kit[\App\Enum\TipoAssetMediaKit::LOGO_LIGHT->value] ?? 'images/passpartour-white.png',
+            'kit_font' => $kitFont,
         ]);
     }
 

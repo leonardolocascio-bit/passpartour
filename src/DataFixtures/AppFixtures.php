@@ -300,6 +300,16 @@ class AppFixtures extends Fixture
         $manager->persist($convIg);
         $this->messaggio($convIg, DirezioneMessaggio::ENTRATA, 'Ho visto il vostro reel su Santorini 😍 quanto costa il pacchetto?', '-3 hours');
 
+        $convEmail = (new Conversazione())
+            ->setCanale(CanaleMessaggio::EMAIL)
+            ->setIdEsterno('anna.greco@example.com')
+            ->setNome('Anna Greco')
+            ->setOggetto('Informazioni viaggio Maldive a gennaio')
+            ->setLead($leadByNome['Anna']);
+        $manager->persist($convEmail);
+        $this->messaggio($convEmail, DirezioneMessaggio::ENTRATA, "✉️ Informazioni viaggio Maldive a gennaio\n\nBuongiorno, vorrei qualche informazione in più sul pacchetto Maldive per due persone a gennaio. Che documenti servono? Grazie, Anna", '-5 hours');
+        $this->messaggio($convEmail, DirezioneMessaggio::USCITA, 'Buongiorno Anna, per le Maldive basta il passaporto con 6 mesi di validità residua. Le invio il dettaglio del pacchetto in giornata!', '-4 hours', $giulia);
+
         $manager->flush();
 
         // genera le attività di nurturing per i lead demo in base al loro stato attuale

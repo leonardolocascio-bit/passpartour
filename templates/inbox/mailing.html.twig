@@ -1,0 +1,43 @@
+{% extends 'app.html.twig' %}
+
+{% block title %}Mailing · Inbox · Passpartour{% endblock %}
+{% block page_title %}Inbox · Mailing{% endblock %}
+
+{% block main %}
+<div class="card" style="max-width:680px"><div class="card-pad">
+    <h3 style="margin-bottom:6px">Newsletter / mailing massivo</h3>
+    <p class="muted" style="font-size:13px;margin:0 0 16px">
+        Un'email a tutti i contatti scelti. I lead sono inclusi <strong>solo col consenso marketing</strong>.
+        Usa <code>{nome}</code> nel testo per personalizzare.
+    </p>
+
+    <form method="post" onsubmit="return confirm('Inviare il mailing a tutti i destinatari selezionati?')">
+        <input type="hidden" name="_token" value="{{ csrf_token('inbox_mailing') }}">
+        <div style="display:grid;gap:14px">
+            <div>
+                <label>Destinatari</label>
+                <select name="segmento">
+                    <option value="tutti">Clienti + lead con consenso ({{ n_clienti + n_lead }} max, al netto dei doppioni)</option>
+                    <option value="clienti">Solo clienti ({{ n_clienti }})</option>
+                    <option value="lead">Solo lead con consenso marketing ({{ n_lead }})</option>
+                </select>
+            </div>
+            <div>
+                <label>Oggetto</label>
+                <input type="text" name="oggetto" required placeholder="es. Le offerte di dicembre di Passpartour">
+            </div>
+            <div>
+                <label>Testo</label>
+                <textarea name="testo" rows="10" required placeholder="Ciao {nome},&#10;&#10;…"></textarea>
+            </div>
+        </div>
+        <div style="display:flex;gap:10px;margin-top:16px">
+            <button class="btn btn-primary">📣 Invia mailing</button>
+            <a class="btn" href="{{ path('app_inbox') }}">Annulla</a>
+        </div>
+    </form>
+    <p class="muted" style="font-size:12px;margin:12px 0 0">
+        Le campagne massive su WhatsApp richiedono i template approvati da Meta: arriveranno in un secondo momento.
+    </p>
+</div></div>
+{% endblock %}

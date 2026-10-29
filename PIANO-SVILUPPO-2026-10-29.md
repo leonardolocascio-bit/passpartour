@@ -148,15 +148,21 @@ vendite, fatturato.
 - **Media Kit multi-set**: slot organizzati in set (Set 1 = predefinito usato dagli editor; «Aggiungi set N» per i successivi); la scelta del set negli editor resta rimandata («lo vedremo con calma»).
 - **Media Kit rifinito** (richieste del 29/10 sera): layout degli slot corretto (niente campi accavallati); **font indicati per nome** (Google Fonts, titoli+testo) e applicati automaticamente dall'impaginatore (titolo/prezzi col font titoli); **sezione Icone** con upload per ogni dettaglio del viaggio — compaiono nel picker delle righe (configuratore offerta e impaginatore) come `mk:<id>` e vengono tinte nel colore del tema come le emoji.
 
+## Completato in seconda battuta (29/10 sera)
+
+- **Canale Email in Inbox**: sync IMAP (`app:email:sincronizza`, config IMAP_* in .env.local), conversazioni email con oggetto, dedup per Message-ID, aggancio lead per email, risposta dal thread via mailer (Re: oggetto), badge e filtro canale.
+- **Nuova email dall'inbox**: bottone «✉️ Nuova email» → destinatario (con suggerimenti da clienti/lead), oggetto, testo; apre/riprende la conversazione.
+- **Mailing massivo in Inbox**: bottone «📣 Mailing» → newsletter a clienti e/o lead **solo con consenso marketing**, dedup destinatari, personalizzazione `{nome}`.
+- **Editor Video v1** (browser, niente upload su server esterni): clip multiple con trim e ordinamento, preset colore per clip, dissolvenze, titolo/sottotitolo (font del Media Kit), logo watermark dal Media Kit, formati 9:16 / 1:1 / 16:9, anteprima, export (mp4 se il browser lo supporta, altrimenti WebM) con download e «Salva in Archivio Digital».
+
 ## Rimandato (in attesa / da specificare)
 
 | Tema | Stato |
 |------|-------|
-| **Editor Video completo** (taglio clip, filtri/preset, effetti, titoli/sottotitoli, loghi dal Media Kit) | progetto a sé, da pianificare |
 | **Scelta del set Media Kit dentro gli editor** (multi-set fatto; gli editor usano il set 1) | «lo vedremo con calma» |
-| **Sezione Mailing in Inbox** (campagne email/WhatsApp a tutti i contatti + canale email in inbox) | nuova sezione, da pianificare |
+| **Campagne massive WhatsApp** (servono i template approvati Meta) | secondo momento |
 | **Righe/opzioni di viaggio → editor** (via dalla scheda offerta) | «credo» in riunione — da confermare |
-| **Percorso recupero lead persi** (mailing/messaggistica) | «definiremo in un secondo momento» |
+| **Percorso recupero lead persi** (mailing/messaggistica) | «definiremo in un secondo momento» — intanto c'è il mailing manuale |
 | **Landing su dominio passpartourviaggi.com** | quando c'è il sito |
-| **Disposizione quota / sezione commissioni «da ottimizzare»** | fatta la parte supplemento singola; resta la rifinitura UI commissioni |
-| Editor Video (Canva), contratto Giramondo, pubblicazione diretta social, ManyChat, chiave Unsplash in staging | come da piano mattina |
+| **Rifinitura UI commissioni** | resta da ottimizzare |
+| Contratto Giramondo (template da Maria), pubblicazione diretta social, ManyChat, chiave Unsplash in staging | come da piano mattina |

@@ -22,10 +22,189 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 
 /**
- * Inbox unificata dei canali Meta (WhatsApp, Messenger, Instagram Direct).
+ * Inbox unificata: canali Meta (WhatsApp, Messenger, Instagram Direct)
+ * più la casella email dell'agenzia (sync `app:email:sincronizza`).
  */
 class InboxController extends AbstractController
 {
+    public function __construct(
+        private readonly \Symfony\Component\Mailer\MailerInterface $mailer,
+        #[\Symfony\Component\DependencyInjection\Attribute\Autowire('%env(MAILER_FROM)%')] private readonly string $mittente,
+    ) {
+    }
+
+    /** Invio email grezzo (mailer). @return array{ok:bool,id?:string,errore?:string} */
+    private function inviaEmailGrezza(string $a, string $oggetto, string $testo): array
+    {
+        if (!filter_var($a, FILTER_VALIDATE_EMAIL)) {
+            return ['ok' => false, 'errore' => 'indirizzo email del destinatario non valido'];
+        }
+        try {
+            $this->mailer->send((new \Symfony\Component\Mime\Email())
+                ->from(\Symfony\Component\Mime\Address::create($this->mittente))
+                ->to($a)
+                ->subject($oggetto !== '' ? $oggetto : 'I tuoi viaggi con Passpartour')
+                ->text($testo));
+        } catch (\Throwable $e) {
+            return ['ok' => false, 'errore' => $e->getMessage()];
+        }
+
+        return ['ok' => true, 'id' => 'email-out-' . bin2hex(random_bytes(6))];
+    }
+
+    /** Risposta sul canale email: Re: oggetto del thread, al mittente della conversazione. */
+    private function inviaEmail(Conversazione $conversazione, string $testo): array
+    {
+        $oggetto = (string) $conversazione->getOggetto();
+        if ($oggetto !== '' && !str_starts_with(mb_strtolower($oggetto), 're:')) {
+            $oggetto = 'Re: ' . $oggetto;
+        }
+
+        return $this->inviaEmailGrezza((string) $conversazione->getIdEsterno(), $oggetto, $testo);
+    }
+
+    /** Nuovo messaggio email dall'inbox: apre (o riprende) la conversazione col destinatario. */
+    #[Route('/inbox/nuova-email', name: 'app_inbox_nuova_email')]
+    public function nuovaEmail(
+        Request $request,
+        EntityManagerInterface $em,
+        ConversazioneRepository $conversazioni,
+        InboxRealtime $realtime,
+    ): Response {
+        if ($request->isMethod('POST')) {
+            if (!$this->isCsrfTokenValid('inbox_nuova_email', (string) $request->request->get('_token'))) {
+                $this->addFlash('error', 'Sessione scaduta, riprova.');
+
+                return $this->redirectToRoute('app_inbox_nuova_email');
+            }
+
+            $a = strtolower(trim((string) $request->request->get('destinatario')));
+            $oggetto = trim((string) $request->request->get('oggetto'));
+            $testo = trim((string) $request->request->get('testo'));
+            if ($testo === '') {
+                $this->addFlash('error', 'Scrivi il testo del messaggio.');
+
+                return $this->redirectToRoute('app_inbox_nuova_email');
+            }
+
+            $esito = $this->inviaEmailGrezza($a, $oggetto, $testo);
+            if (!$esito['ok']) {
+                $this->addFlash('error', 'Invio non riuscito: ' . ($esito['errore'] ?? 'errore sconosciuto'));
+
+                return $this->redirectToRoute('app_inbox_nuova_email');
+            }
+
+            $conv = $conversazioni->trovaPerCanale(CanaleMessaggio::EMAIL, $a);
+            if ($conv === null) {
+                $conv = (new Conversazione())->setCanale(CanaleMessaggio::EMAIL)->setIdEsterno($a);
+                $em->persist($conv);
+            }
+            if ($oggetto !== '') {
+                $conv->setOggetto(mb_substr($oggetto, 0, 255));
+            }
+            $utente = $this->getUser();
+            $messaggio = (new Messaggio())
+                ->setDirezione(DirezioneMessaggio::USCITA)
+                ->setTesto(trim(($oggetto !== '' ? '✉️ ' . $oggetto . "\n\n" : '') . $testo))
+                ->setIdEsterno($esito['id'] ?? null)
+                ->setStato('inviato')
+                ->setAutore($utente instanceof Utente ? $utente : null);
+            $conv->addMessaggio($messaggio);
+            $conv->setAnteprima(mb_substr($oggetto !== '' ? $oggetto : $testo, 0, 255))
+                ->setUltimoMessaggioAt(new \DateTimeImmutable());
+            $em->flush();
+            $realtime->segnala($conv);
+            $this->addFlash('success', 'Email inviata a ' . $a . '.');
+
+            return $this->redirectToRoute('app_inbox_conversazione', ['id' => $conv->getId()]);
+        }
+
+        return $this->render('inbox/nuova_email.html.twig', [
+            'contatti' => $this->contattiEmail($em),
+            'precompilato' => strtolower(trim((string) $request->query->get('a'))),
+        ]);
+    }
+
+    /** Mailing massivo (newsletter): email a clienti e/o lead con consenso marketing. */
+    #[Route('/inbox/mailing', name: 'app_inbox_mailing')]
+    public function mailing(Request $request, EntityManagerInterface $em): Response
+    {
+        $leadConConsenso = $em->getRepository(Lead::class)->createQueryBuilder('l')
+            ->where('l.consensoMarketing = true AND l.email IS NOT NULL')
+            ->getQuery()->getResult();
+        $clienti = $em->getRepository(\App\Entity\Cliente::class)->createQueryBuilder('c')
+            ->where('c.email IS NOT NULL')
+            ->getQuery()->getResult();
+
+        if ($request->isMethod('POST')) {
+            if (!$this->isCsrfTokenValid('inbox_mailing', (string) $request->request->get('_token'))) {
+                $this->addFlash('error', 'Sessione scaduta, riprova.');
+
+                return $this->redirectToRoute('app_inbox_mailing');
+            }
+
+            $segmento = (string) $request->request->get('segmento', 'tutti');
+            $oggetto = trim((string) $request->request->get('oggetto'));
+            $testo = trim((string) $request->request->get('testo'));
+            if ($oggetto === '' || $testo === '') {
+                $this->addFlash('error', 'Servono oggetto e testo del mailing.');
+
+                return $this->redirectToRoute('app_inbox_mailing');
+            }
+
+            $destinatari = [];
+            if ($segmento === 'clienti' || $segmento === 'tutti') {
+                foreach ($clienti as $c) {
+                    $destinatari[strtolower($c->getEmail())] = $c->getNomeCompleto();
+                }
+            }
+            if ($segmento === 'lead' || $segmento === 'tutti') {
+                foreach ($leadConConsenso as $l) {
+                    $destinatari[strtolower($l->getEmail())] = $l->getNomeCompleto();
+                }
+            }
+
+            $inviate = 0;
+            $errori = 0;
+            foreach ($destinatari as $email => $nome) {
+                // personalizzazione minima: {nome} nel testo
+                $corpo = str_replace('{nome}', $nome, $testo);
+                $esito = $this->inviaEmailGrezza($email, $oggetto, $corpo);
+                $esito['ok'] ? ++$inviate : ++$errori;
+            }
+
+            $this->addFlash(
+                $errori > 0 ? 'error' : 'success',
+                'Mailing «' . $oggetto . '»: ' . $inviate . ' email inviate' . ($errori > 0 ? ', ' . $errori . ' non riuscite' : '') . '.',
+            );
+
+            return $this->redirectToRoute('app_inbox');
+        }
+
+        return $this->render('inbox/mailing.html.twig', [
+            'n_clienti' => count($clienti),
+            'n_lead' => count($leadConConsenso),
+        ]);
+    }
+
+    /** Email note (clienti + lead) per la datalist del nuovo messaggio. @return list<array{email:string,nome:string}> */
+    private function contattiEmail(EntityManagerInterface $em): array
+    {
+        $contatti = [];
+        foreach ($em->getRepository(\App\Entity\Cliente::class)->findAll() as $c) {
+            if ($c->getEmail()) {
+                $contatti[strtolower($c->getEmail())] = $c->getNomeCompleto();
+            }
+        }
+        foreach ($em->getRepository(Lead::class)->findAll() as $l) {
+            if ($l->getEmail()) {
+                $contatti[strtolower($l->getEmail())] ??= $l->getNomeCompleto();
+            }
+        }
+        ksort($contatti);
+
+        return array_map(static fn ($email, $nome) => ['email' => $email, 'nome' => $nome], array_keys($contatti), $contatti);
+    }
     #[Route('/inbox', name: 'app_inbox')]
     public function index(Request $request, ConversazioneRepository $conversazioni): Response
     {
@@ -99,7 +278,8 @@ class InboxController extends AbstractController
 
         return $this->render('inbox/conversazione.html.twig', [
             'conv' => $conversazione,
-            'puoInviare' => $meta->puoInviare($conversazione->getCanale()),
+            'puoInviare' => $conversazione->getCanale() === CanaleMessaggio::EMAIL
+                || $meta->puoInviare($conversazione->getCanale()),
             'leadRecenti' => $leadRecenti,
         ]);
     }
@@ -123,7 +303,11 @@ class InboxController extends AbstractController
             return $this->redirectToRoute('app_inbox_conversazione', ['id' => $conversazione->getId()]);
         }
 
-        $esito = $meta->invia($conversazione, $testo);
+        if ($conversazione->getCanale() === CanaleMessaggio::EMAIL) {
+            $esito = $this->inviaEmail($conversazione, $testo);
+        } else {
+            $esito = $meta->invia($conversazione, $testo);
+        }
         if (!$esito['ok']) {
             $this->addFlash('error', 'Invio non riuscito: ' . ($esito['errore'] ?? 'errore sconosciuto'));
 
@@ -175,11 +359,13 @@ class InboxController extends AbstractController
             return $this->redirectToRoute('app_inbox_conversazione', ['id' => $conversazione->getId()]);
         }
 
+        $daEmail = $conversazione->getCanale() === CanaleMessaggio::EMAIL;
         $ris = $intake->ingest(LeadData::fromArray([
             'nome' => $conversazione->getNomeVisuale(),
             'telefono' => $conversazione->getTelefono(),
-            'note' => 'Creato dalla conversazione ' . $conversazione->getCanale()->label() . ' (inbox Meta)',
-        ], FonteLead::META));
+            'email' => $daEmail ? $conversazione->getIdEsterno() : null,
+            'note' => 'Creato dalla conversazione ' . $conversazione->getCanale()->label() . ' (inbox)',
+        ], $daEmail ? FonteLead::ALTRO : FonteLead::META));
 
         if ($ris->lead !== null) {
             $conversazione->setLead($ris->lead);
