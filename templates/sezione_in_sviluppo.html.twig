@@ -1,0 +1,12 @@
+{% extends 'app.html.twig' %}
+
+{% block title %}{{ titolo }} · Passpartour{% endblock %}
+{% block page_title %}{{ titolo }}{% endblock %}
+
+{% block main %}
+<div class="card card-pad" style="max-width:640px">
+    <h3 style="margin-bottom:8px">{{ titolo }}</h3>
+    <p class="muted" style="margin:0 0 14px">{{ descrizione }}</p>
+    <span class="badge">Sezione in sviluppo</span>
+</div>
+{% endblock %}

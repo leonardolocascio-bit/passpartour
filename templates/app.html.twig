@@ -8,41 +8,93 @@
         <div class="brand">
             <img src="{{ asset('images/passpartour-white.png') }}" alt="Passpartour" class="brand-logo">
         </div>
+        {% set inSales = _route starts with 'app_lead' or _route starts with 'app_preventivo' or _route starts with 'app_vendita' or _route starts with 'app_attivita' %}
+        {% set inPortale = _route starts with 'app_tema' or _route starts with 'app_tipologia' or _route starts with 'app_destinazione' or _route starts with 'app_offerta' %}
+        {% set inCreator = _route starts with 'app_campagna' or _route starts with 'app_creator' %}
         <nav class="nav">
             <a href="{{ path('app_dashboard') }}" class="{{ _route == 'app_dashboard' ? 'active' }}">
                 <span class="ic">▚</span> Dashboard
             </a>
-            <a href="{{ path('app_lead_index') }}" class="{{ _route starts with 'app_lead' ? 'active' }}">
-                <span class="ic">◎</span> Lead
+            <a href="{{ path('app_agenda') }}" class="{{ _route starts with 'app_agenda' or _route == 'app_automazioni' ? 'active' }}">
+                <span class="ic">◔</span> Agenda
             </a>
             <a href="{{ path('app_inbox') }}" class="{{ _route starts with 'app_inbox' ? 'active' }}" style="justify-content:flex-start">
                 <span class="ic">✉</span> Inbox
                 {% set nonLetti = inbox_non_letti() %}
                 <span class="unread-pill" id="inbox-badge" style="margin-left:auto;{{ nonLetti == 0 ? 'display:none' }}">{{ nonLetti }}</span>
             </a>
-            <a href="{{ path('app_agenda') }}" class="{{ _route starts with 'app_agenda' or _route == 'app_automazioni' or _route == 'app_impostazioni' ? 'active' }}">
-                <span class="ic">◔</span> Agenda
-            </a>
-            <a href="{{ path('app_preventivo_index') }}" class="{{ _route starts with 'app_preventivo' ? 'active' }}">
-                <span class="ic">✎</span> Preventivi
-            </a>
-            <a href="{{ path('app_offerta_index') }}" class="{{ _route starts with 'app_offerta' ? 'active' }}">
-                <span class="ic">✦</span> Offerte
-            </a>
-            <a href="{{ path('app_destinazione_index') }}" class="{{ _route starts with 'app_destinazione' ? 'active' }}">
-                <span class="ic">◇</span> Destinazioni
-            </a>
-            <a href="{{ path('app_tipologia_index') }}" class="{{ _route starts with 'app_tipologia' ? 'active' }}">
-                <span class="ic">◆</span> Tipologie
-            </a>
-            <a href="{{ path('app_tema_index') }}" class="{{ _route starts with 'app_tema' ? 'active' }}">
-                <span class="ic">❖</span> Temi
-            </a>
-            <a href="{{ path('app_campagna_index') }}" class="{{ _route starts with 'app_campagna' ? 'active' }}">
-                <span class="ic">◈</span> Campagne
-            </a>
             <a href="{{ path('app_cliente_index') }}" class="{{ _route starts with 'app_cliente' ? 'active' }}">
-                <span class="ic">☺</span> Clienti
+                <span class="ic">☰</span> Rubrica
+            </a>
+
+            <div class="nav-sep"></div>
+
+            <details data-nav="sales" {{ inSales ? 'open' }}>
+                <summary>Sales <span class="chev">▸</span></summary>
+                <div class="nav-group-body">
+                    <a href="{{ path('app_lead_index') }}" class="{{ _route starts with 'app_lead' or _route starts with 'app_attivita' ? 'active' }}">
+                        <span class="ic">◎</span> Lead
+                    </a>
+                    <a href="{{ path('app_preventivo_index') }}" class="{{ _route starts with 'app_preventivo' ? 'active' }}">
+                        <span class="ic">✎</span> Preventivi
+                    </a>
+                    <a href="{{ path('app_vendita_index') }}" class="{{ _route starts with 'app_vendita' ? 'active' }}">
+                        <span class="ic">⬡</span> Vendite
+                    </a>
+                </div>
+            </details>
+
+            <details data-nav="portale" {{ inPortale ? 'open' }}>
+                <summary>Portale <span class="chev">▸</span></summary>
+                <div class="nav-group-body">
+                    <a href="{{ path('app_tema_index') }}" class="{{ _route starts with 'app_tema' ? 'active' }}">
+                        <span class="ic">❖</span> Temi
+                    </a>
+                    <a href="{{ path('app_tipologia_index') }}" class="{{ _route starts with 'app_tipologia' ? 'active' }}">
+                        <span class="ic">◆</span> Tipologie
+                    </a>
+                    <a href="{{ path('app_destinazione_index') }}" class="{{ _route starts with 'app_destinazione' ? 'active' }}">
+                        <span class="ic">◇</span> Destinazioni
+                    </a>
+                    <a href="{{ path('app_offerta_index') }}" class="{{ _route starts with 'app_offerta' ? 'active' }}">
+                        <span class="ic">✦</span> Offerte
+                    </a>
+                </div>
+            </details>
+
+            <details data-nav="creator" {{ inCreator ? 'open' }}>
+                <summary>Creator Studio <span class="chev">▸</span></summary>
+                <div class="nav-group-body">
+                    <a href="{{ path('app_campagna_index') }}" class="{{ _route starts with 'app_campagna' ? 'active' }}">
+                        <span class="ic">◈</span> Campagne
+                    </a>
+                    <div class="nav-sublabel">Editor</div>
+                    <a href="{{ path('app_creator_video') }}" class="nav-sub {{ _route == 'app_creator_video' ? 'active' }}">
+                        <span class="ic">▶</span> Video
+                    </a>
+                    <a href="{{ path('app_creator_content') }}" class="nav-sub {{ _route == 'app_creator_content' ? 'active' }}">
+                        <span class="ic">▣</span> Content
+                    </a>
+                    <a href="{{ path('app_creator_print') }}" class="nav-sub {{ _route == 'app_creator_print' ? 'active' }}">
+                        <span class="ic">⎙</span> Print
+                    </a>
+                    <div class="nav-sublabel">Archivio</div>
+                    <a href="{{ path('app_creator_archivio_digital') }}" class="nav-sub {{ _route == 'app_creator_archivio_digital' ? 'active' }}">
+                        <span class="ic">▤</span> Digital
+                    </a>
+                    <a href="{{ path('app_creator_archivio_print') }}" class="nav-sub {{ _route == 'app_creator_archivio_print' ? 'active' }}">
+                        <span class="ic">▥</span> Print
+                    </a>
+                    <a href="{{ path('app_creator_mediakit') }}" class="nav-sub {{ _route == 'app_creator_mediakit' ? 'active' }}">
+                        <span class="ic">✱</span> Media Kit
+                    </a>
+                </div>
+            </details>
+
+            <div class="nav-sep"></div>
+
+            <a href="{{ path('app_impostazioni') }}" class="{{ _route starts with 'app_impostazioni' ? 'active' }}">
+                <span class="ic">⚙</span> Impostazioni
             </a>
         </nav>
         <div class="sidebar-foot">
@@ -72,6 +124,21 @@
         </div>
     </div>
 </div>
+
+{# ---- Sidebar: stato aperto/chiuso delle sezioni collassabili ---- #}
+<script>
+document.querySelectorAll('.nav details').forEach((d) => {
+    const chiave = 'nav-aperta-' + d.dataset.nav;
+    let salvato = null;
+    try { salvato = localStorage.getItem(chiave); } catch (e) {}
+    // La sezione con la voce attiva resta aperta; le altre seguono la scelta
+    // dell'operatore (default: aperte).
+    if (!d.querySelector('a.active')) d.open = salvato === null ? true : salvato === '1';
+    d.addEventListener('toggle', () => {
+        try { localStorage.setItem(chiave, d.open ? '1' : '0'); } catch (e) {}
+    });
+});
+</script>
 
 {# ---- Inbox in tempo reale: Mercure (se configurato) + polling di riserva ---- #}
 <script>
