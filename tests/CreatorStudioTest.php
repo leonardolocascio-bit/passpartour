@@ -87,8 +87,8 @@ class CreatorStudioTest extends WebTestCase
         self::assertResponseIsSuccessful();
 
         // carica logo light
-        $this->client->request('POST', '/creator-studio/media-kit/logo_light/carica', [
-            '_token' => $this->csrf($crawler, '/media-kit/logo_light/carica'),
+        $this->client->request('POST', '/creator-studio/media-kit/1/logo_light/carica', [
+            '_token' => $this->csrf($crawler, '/media-kit/1/logo_light/carica'),
         ], ['file' => $this->fileFinto('logo-bianco.png')]);
         self::assertResponseRedirects('/creator-studio/media-kit');
         $this->em->clear();
@@ -98,8 +98,8 @@ class CreatorStudioTest extends WebTestCase
 
         // sostituisci: lo slot resta uno, il file cambia
         $crawler = $this->client->request('GET', '/creator-studio/media-kit');
-        $this->client->request('POST', '/creator-studio/media-kit/logo_light/carica', [
-            '_token' => $this->csrf($crawler, '/media-kit/logo_light/carica'),
+        $this->client->request('POST', '/creator-studio/media-kit/1/logo_light/carica', [
+            '_token' => $this->csrf($crawler, '/media-kit/1/logo_light/carica'),
         ], ['file' => $this->fileFinto('logo-bianco-v2.png')]);
         self::assertResponseRedirects('/creator-studio/media-kit');
         $this->em->clear();
@@ -109,22 +109,35 @@ class CreatorStudioTest extends WebTestCase
 
         // il font accetta solo zip
         $crawler = $this->client->request('GET', '/creator-studio/media-kit');
-        $this->client->request('POST', '/creator-studio/media-kit/font/carica', [
-            '_token' => $this->csrf($crawler, '/media-kit/font/carica'),
+        $this->client->request('POST', '/creator-studio/media-kit/1/font/carica', [
+            '_token' => $this->csrf($crawler, '/media-kit/1/font/carica'),
         ], ['file' => $this->fileFinto('font.png')]);
         self::assertResponseRedirects('/creator-studio/media-kit');
         $this->em->clear();
         self::assertNull($this->em->getRepository(MediaKitAsset::class)->findOneBy(['tipo' => TipoAssetMediaKit::FONT]));
 
-        // rimuovi
-        $percorso = self::getContainer()->getParameter('kernel.project_dir') . '/public/uploads/creator/mediakit/' . $asset->getFile();
-        self::assertFileExists($percorso);
+        // multi-set: lo stesso slot può esistere in un secondo set
         $crawler = $this->client->request('GET', '/creator-studio/media-kit');
-        $this->client->request('POST', '/creator-studio/media-kit/logo_light/rimuovi', [
-            '_token' => $this->csrf($crawler, '/media-kit/logo_light/rimuovi'),
-        ]);
+        $this->client->request('POST', '/creator-studio/media-kit/2/logo_light/carica', [
+            '_token' => $this->csrf($crawler, '/media-kit/2/logo_light/carica'),
+        ], ['file' => $this->fileFinto('logo-set2.png')]);
         self::assertResponseRedirects('/creator-studio/media-kit');
-        self::assertFileDoesNotExist($percorso);
+        $this->em->clear();
+        self::assertCount(2, $this->em->getRepository(MediaKitAsset::class)->findBy(['tipo' => TipoAssetMediaKit::LOGO_LIGHT]));
+        $set2 = $this->em->getRepository(MediaKitAsset::class)->findOneBy(['tipo' => TipoAssetMediaKit::LOGO_LIGHT, 'gruppo' => 2]);
+        self::assertNotNull($set2);
+
+        // rimuovi (set 1 e set 2)
+        $base = self::getContainer()->getParameter('kernel.project_dir') . '/public/uploads/creator/mediakit/';
+        self::assertFileExists($base . $asset->getFile());
+        foreach ([1 => $asset, 2 => $set2] as $gruppo => $daRimuovere) {
+            $crawler = $this->client->request('GET', '/creator-studio/media-kit');
+            $this->client->request('POST', '/creator-studio/media-kit/' . $gruppo . '/logo_light/rimuovi', [
+                '_token' => $this->csrf($crawler, '/media-kit/' . $gruppo . '/logo_light/rimuovi'),
+            ]);
+            self::assertResponseRedirects('/creator-studio/media-kit');
+            self::assertFileDoesNotExist($base . $daRimuovere->getFile());
+        }
     }
 
     public function testEditorContentEPrintRendono(): void

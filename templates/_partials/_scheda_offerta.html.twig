@@ -77,19 +77,25 @@
     </section>
 {% endif %}
 
-{# ---------- ALLOGGIO ---------- #}
-{% set al = offerta.alloggio %}
-{% if al|length %}
+{# ---------- ALLOGGI ---------- #}
+{% set alloggi = offerta.alloggi %}
+{% if alloggi|length %}
     <section class="sk-sec">
-        <h3 class="sk-h">Alloggio</h3>
-        <div style="font-weight:600;font-size:15px">
-            {{ al.nome|default('Struttura') }}
-            {% if offerta.alloggioStelleLabel %}<span style="color:var(--amber)">{{ offerta.alloggioStelleLabel }}</span>{% endif %}
-        </div>
-        <div class="muted" style="font-size:13px;margin-top:2px">
-            {% if offerta.alloggioTipologiaLabel %}{{ offerta.alloggioTipologiaLabel }}{% endif %}
-            {% if offerta.alloggioTrattamentoLabel %} · {{ offerta.alloggioTrattamentoLabel }}{% endif %}
-            {% if al.citta|default('') %} · {{ al.citta }}{% endif %}{% if al.indirizzo|default('') %}, {{ al.indirizzo }}{% endif %}
+        <h3 class="sk-h">{{ alloggi|length > 1 ? 'Alloggi' : 'Alloggio' }}</h3>
+        <div style="display:grid;gap:10px">
+        {% for al in alloggi %}
+            <div>
+                <div style="font-weight:600;font-size:15px">
+                    {{ al.nome|default('Struttura') }}
+                    {% if offerta.stelleAlloggioLabel(al.stelle|default(null)) %}<span style="color:var(--amber)">{{ offerta.stelleAlloggioLabel(al.stelle|default(null)) }}</span>{% endif %}
+                </div>
+                <div class="muted" style="font-size:13px;margin-top:2px">
+                    {% if offerta.tipologiaAlloggioLabel(al.tipologia|default(null)) %}{{ offerta.tipologiaAlloggioLabel(al.tipologia|default(null)) }}{% endif %}
+                    {% if offerta.trattamentoAlloggioLabel(al.trattamento|default(null)) %} · {{ offerta.trattamentoAlloggioLabel(al.trattamento|default(null)) }}{% endif %}
+                    {% if al.citta|default('') %} · {{ al.citta }}{% endif %}{% if al.indirizzo|default('') %}, {{ al.indirizzo }}{% endif %}
+                </div>
+            </div>
+        {% endfor %}
         </div>
     </section>
 {% endif %}

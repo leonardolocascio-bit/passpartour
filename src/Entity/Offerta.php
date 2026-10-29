@@ -355,35 +355,66 @@ class Offerta
         return array_map(TemaViaggio::etichetta(...), $this->getTemi());
     }
 
-    /** @return array<string, string> {nome, citta, indirizzo, tipologia, stelle, trattamento} */
-    public function getAlloggio(): array
+    /**
+     * Alloggi del pacchetto (più strutture, es. tour con tappe).
+     * Tollerante col formato storico: un singolo oggetto viene esposto come lista.
+     *
+     * @return list<array<string, string>> [{nome, citta, indirizzo, tipologia, stelle, trattamento}]
+     */
+    public function getAlloggi(): array
     {
-        return $this->alloggio ?? [];
+        $dati = $this->alloggio ?? [];
+        if ($dati === []) {
+            return [];
+        }
+
+        // legacy: oggetto singolo con chiavi stringa → lista con un elemento
+        return array_is_list($dati) ? $dati : [$dati];
     }
 
-    /** @param array<string, string>|null $alloggio */
-    public function setAlloggio(?array $alloggio): static
+    /** @param list<array<string, string>>|null $alloggi */
+    public function setAlloggi(?array $alloggi): static
     {
-        $this->alloggio = array_filter($alloggio ?? [], static fn ($v) => $v !== '' && $v !== null) ?: null;
+        $this->alloggio = $alloggi ?: null;
 
         return $this;
     }
 
+    /** Primo alloggio (compatibilità con i punti che ne mostrano uno solo). @return array<string, string> */
+    public function getAlloggio(): array
+    {
+        return $this->getAlloggi()[0] ?? [];
+    }
+
+    // label per riga alloggio (risolvono gli enum, lasciano intatte le custom)
+    public function tipologiaAlloggioLabel(?string $v): ?string
+    {
+        return TipologiaAlloggio::etichetta($v);
+    }
+
+    public function stelleAlloggioLabel(?string $v): ?string
+    {
+        return StelleAlloggio::etichetta($v);
+    }
+
+    public function trattamentoAlloggioLabel(?string $v): ?string
+    {
+        return $v ? (TrattamentoHotel::tryFrom($v)?->label() ?? $v) : null;
+    }
+
     public function getAlloggioTipologiaLabel(): ?string
     {
-        return TipologiaAlloggio::etichetta($this->getAlloggio()['tipologia'] ?? null);
+        return $this->tipologiaAlloggioLabel($this->getAlloggio()['tipologia'] ?? null);
     }
 
     public function getAlloggioStelleLabel(): ?string
     {
-        return StelleAlloggio::etichetta($this->getAlloggio()['stelle'] ?? null);
+        return $this->stelleAlloggioLabel($this->getAlloggio()['stelle'] ?? null);
     }
 
     public function getAlloggioTrattamentoLabel(): ?string
     {
-        $v = $this->getAlloggio()['trattamento'] ?? null;
-
-        return $v ? (TrattamentoHotel::tryFrom($v)?->label() ?? $v) : null;
+        return $this->trattamentoAlloggioLabel($this->getAlloggio()['trattamento'] ?? null);
     }
 
     /** @return list<string> */

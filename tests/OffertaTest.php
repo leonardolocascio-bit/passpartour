@@ -168,12 +168,11 @@ class OffertaTest extends WebTestCase
 
         $crawler = $this->client->request('GET', '/offerte/' . $id . '/modifica');
         $form = $crawler->selectButton('Salva')->form();
-        $form['alloggio[nome]'] = 'Katikies Suites';
-        $form['alloggio[citta]'] = 'Oia';
-        $form['alloggio[indirizzo]'] = 'Caldera';
-        $form['alloggio[tipologia]'] = 'resort';
-        $form['alloggio[stelle]'] = '5s';
-        $form['alloggio[trattamento]'] = 'mezza_pensione';
+        // alloggi multipli: editor ripetibile → hidden JSON
+        $form['alloggi'] = json_encode([
+            ['nome' => 'Katikies Suites', 'citta' => 'Oia', 'indirizzo' => 'Caldera', 'tipologia' => 'resort', 'stelle' => '5s', 'trattamento' => 'mezza_pensione'],
+            ['nome' => 'Mykonos Blu', 'citta' => 'Mykonos', 'tipologia' => 'hotel'],
+        ]);
         $form['assicurazioni'] = json_encode(['annullamento', 'meteo', 'Copertura extra']);
         $form['offerta[comprende]'] = 'Voli, transfer, 7 notti';
         $form['offerta[nonComprende]'] = 'Mance e spese personali';
@@ -182,12 +181,14 @@ class OffertaTest extends WebTestCase
 
         $this->em->clear();
         $offerta = $this->em->getRepository(Offerta::class)->find($id);
-        $al = $offerta->getAlloggio();
+        self::assertCount(2, $offerta->getAlloggi());
+        $al = $offerta->getAlloggio(); // primo alloggio (compatibilità)
         self::assertSame('Katikies Suites', $al['nome']);
         self::assertSame('Oia', $al['citta']);
         self::assertSame('Resort', $offerta->getAlloggioTipologiaLabel());
         self::assertSame('5★S', $offerta->getAlloggioStelleLabel());
         self::assertSame('Mezza pensione', $offerta->getAlloggioTrattamentoLabel());
+        self::assertSame('Mykonos Blu', $offerta->getAlloggi()[1]['nome']);
         self::assertSame(['annullamento', 'meteo', 'Copertura extra'], $offerta->getAssicurazioni());
         self::assertSame(['Assicurazione annullamento', 'Assicurazione meteo', 'Copertura extra'], $offerta->getAssicurazioniLabel());
         self::assertSame('Voli, transfer, 7 notti', $offerta->getComprende());
@@ -353,7 +354,7 @@ class OffertaTest extends WebTestCase
         $offerta = $this->em->getRepository(Offerta::class)->findOneBy([]);
         $offerta->setDestinazioneMicro('Maldive')
             ->setTipologie(['mare'])
-            ->setAlloggio(['nome' => 'Katikies', 'stelle' => '5s', 'tipologia' => 'resort'])
+            ->setAlloggi([['nome' => 'Katikies', 'stelle' => '5s', 'tipologia' => 'resort']])
             ->setAssicurazioni(['annullamento'])
             ->setComprende('Voli e transfer')
             ->setQuote([['tipo' => 'persona', 'sistemazione' => 'In doppia', 'importo' => '1990']])

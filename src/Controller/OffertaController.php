@@ -102,8 +102,8 @@ class OffertaController extends AbstractController
             $this->creaTemiMancanti($em, $offerta->getTemi() ?? []);
             $offerta->setAssicurazioni($this->decodeChip($request->request->get('assicurazioni')));
 
-            // alloggio: campi manuali name="alloggio[...]" (persistiti come JSON)
-            $offerta->setAlloggio($this->normalizzaAlloggio($request->request->all('alloggio')));
+            // alloggi: editor ripetibile (più strutture), hidden JSON
+            $offerta->setAlloggi($this->decodeSegmenti($request->request->get('alloggi'), ['nome', 'citta', 'indirizzo', 'tipologia', 'stelle', 'trattamento']));
 
             // trasporti: editor ripetibile (hidden JSON), whitelist chiavi per sezione
             $offerta->setVoli($this->decodeSegmenti($request->request->get('voli'), ['tipo', 'da', 'a', 'data', 'stay', 'compagnia', 'descrizione']));
@@ -188,26 +188,6 @@ class OffertaController extends AbstractController
                 $em->persist((new \App\Entity\Tema())->setNome($nome));
             }
         }
-    }
-
-    /**
-     * Normalizza i campi dell'alloggio dal form (whitelist chiavi, trim, tagli).
-     *
-     * @param array<string, mixed> $dati
-     *
-     * @return array<string, string>
-     */
-    private function normalizzaAlloggio(array $dati): array
-    {
-        $out = [];
-        foreach (['nome', 'citta', 'indirizzo', 'tipologia', 'stelle', 'trattamento'] as $k) {
-            $v = trim((string) ($dati[$k] ?? ''));
-            if ($v !== '') {
-                $out[$k] = mb_substr($v, 0, 180);
-            }
-        }
-
-        return $out;
     }
 
     /**

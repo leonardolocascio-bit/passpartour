@@ -40,9 +40,9 @@ class ImpaginatoreController extends AbstractController
     {
         $this->migraRigheLegacy($offerta, $em);
 
-        // loghi dal Media Kit, se caricati (tema scuro → light, tema chiaro → quadricromia)
+        // loghi dal Media Kit (set 1, il predefinito), se caricati
         $kit = [];
-        foreach ($em->getRepository(MediaKitAsset::class)->findAll() as $asset) {
+        foreach ($em->getRepository(MediaKitAsset::class)->findBy(['gruppo' => 1]) as $asset) {
             $kit[$asset->getTipo()->value] = 'uploads/creator/mediakit/' . $asset->getFile();
         }
 

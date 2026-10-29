@@ -7,10 +7,12 @@ use Doctrine\ORM\Mapping as ORM;
 
 /**
  * Un asset del Media Kit: un file per slot (ricaricare sostituisce).
+ * Gli slot sono organizzati in SET (gruppo 1, 2, …): ogni set ha i suoi
+ * loghi/format/font; gli editor usano il set 1 come predefinito.
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'media_kit_asset')]
-#[ORM\UniqueConstraint(name: 'uniq_media_kit_tipo', columns: ['tipo'])]
+#[ORM\UniqueConstraint(name: 'uniq_media_kit_tipo_gruppo', columns: ['tipo', 'gruppo'])]
 class MediaKitAsset
 {
     #[ORM\Id]
@@ -20,6 +22,10 @@ class MediaKitAsset
 
     #[ORM\Column(length: 40, enumType: TipoAssetMediaKit::class)]
     private TipoAssetMediaKit $tipo;
+
+    /** Numero del set (1 = predefinito, quello usato dagli editor). */
+    #[ORM\Column(options: ['default' => 1])]
+    private int $gruppo = 1;
 
     /** Nome file in public/uploads/creator/mediakit */
     #[ORM\Column(length: 255)]
@@ -31,10 +37,16 @@ class MediaKitAsset
     #[ORM\Column]
     private \DateTimeImmutable $updatedAt;
 
-    public function __construct(TipoAssetMediaKit $tipo)
+    public function __construct(TipoAssetMediaKit $tipo, int $gruppo = 1)
     {
         $this->tipo = $tipo;
+        $this->gruppo = max(1, $gruppo);
         $this->updatedAt = new \DateTimeImmutable();
+    }
+
+    public function getGruppo(): int
+    {
+        return $this->gruppo;
     }
 
     public function getId(): ?int

@@ -30,10 +30,12 @@
                     <p style="font-size:14px;line-height:1.6;color:#14243b;margin:14px 0 0;white-space:pre-line">{{ offerta.descrizione }}</p>
                 {% endif %}
 
-                {% set al = offerta.alloggio %}
-                {% if al|length %}
-                    <p style="font-size:14px;color:#14243b;margin:16px 0 0"><strong>Alloggio:</strong>
-                        {{ al.nome|default('Struttura') }}{% if offerta.alloggioStelleLabel %} {{ offerta.alloggioStelleLabel }}{% endif %}{% if offerta.alloggioTrattamentoLabel %} · {{ offerta.alloggioTrattamentoLabel }}{% endif %}</p>
+                {% set alloggi = offerta.alloggi %}
+                {% if alloggi|length %}
+                    <p style="font-size:14px;color:#14243b;margin:16px 0 0"><strong>{{ alloggi|length > 1 ? 'Alloggi' : 'Alloggio' }}:</strong>
+                        {%- for al in alloggi %}
+                        {{ al.nome|default('Struttura') }}{% if offerta.stelleAlloggioLabel(al.stelle|default(null)) %} {{ offerta.stelleAlloggioLabel(al.stelle|default(null)) }}{% endif %}{% if offerta.trattamentoAlloggioLabel(al.trattamento|default(null)) %} · {{ offerta.trattamentoAlloggioLabel(al.trattamento|default(null)) }}{% endif %}{{ not loop.last ? ' —' }}
+                        {%- endfor %}</p>
                 {% endif %}
 
                 {% if offerta.quote|length %}

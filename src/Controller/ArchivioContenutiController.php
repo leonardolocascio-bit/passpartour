@@ -96,8 +96,8 @@ class ArchivioContenutiController extends AbstractController
         }
         $formato = FormatoStampa::tryFrom((string) $request->request->get('formato')) ?? FormatoStampa::A4V;
 
-        // logo dal Media Kit se caricato, altrimenti quello ufficiale
-        $logoKit = $em->getRepository(MediaKitAsset::class)->findOneBy(['tipo' => TipoAssetMediaKit::LOGO_LIGHT]);
+        // logo dal Media Kit (set 1) se caricato, altrimenti quello ufficiale
+        $logoKit = $em->getRepository(MediaKitAsset::class)->findOneBy(['tipo' => TipoAssetMediaKit::LOGO_LIGHT, 'gruppo' => 1]);
         $logo = $logoKit !== null
             ? 'public/uploads/creator/mediakit/' . $logoKit->getFile()
             : 'public/images/passpartour-white.png';
