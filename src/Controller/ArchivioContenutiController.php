@@ -137,7 +137,14 @@ class ArchivioContenutiController extends AbstractController
             ? 'public/uploads/creator/mediakit/' . $logoKit->getFile()
             : 'public/images/passpartour-white.png';
 
+        // base grafica del cartello dal Media Kit (SVG/immagine), per orientamento
+        $tipoBase = $formato->orientamento() === 'verticale'
+            ? TipoAssetMediaKit::FORMAT_PRINT_VERTICALE
+            : TipoAssetMediaKit::FORMAT_PRINT_ORIZZONTALE;
+        $base = $em->getRepository(MediaKitAsset::class)->findOneBy(['tipo' => $tipoBase, 'gruppo' => 1]);
+
         $html = $this->renderView('offerta/stampa_pdf.html.twig', [
+            'base_uri' => $base !== null ? $this->dataUri('public/uploads/creator/mediakit/' . $base->getFile()) : null,
             'offerta' => $offerta,
             'carta' => $formato->carta(),
             'orientamento' => $formato->orientamento(),

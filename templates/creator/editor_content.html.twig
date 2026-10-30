@@ -5,28 +5,33 @@
 
 {% block main %}
 <p class="muted" style="margin:0 0 16px;max-width:760px">
-    Scegli un'offerta e apri l'impaginatore: post singoli e caroselli Instagram/Facebook (3:4, 1080×1440).
+    Post singoli e caroselli Instagram/Facebook (3:4, 1080×1440) generati dall'offerta.
     Con «Salva in Archivio Digital» le slide finiscono in archivio come JPG, pronte per la pubblicazione.
     Contenuti già pronti si caricano direttamente dall'<a class="tab-link" href="{{ path('app_creator_archivio_digital') }}">Archivio Digital</a>.
 </p>
 
-<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px">
-    {% for o in offerte %}
-        <a class="card" href="{{ path('app_creator_content_offerta', {id: o.id}) }}" style="overflow:hidden;display:block">
-            {% if o.immagineFile %}
-                <img src="{{ asset('uploads/destinazioni/' ~ o.immagineFile) }}" alt="" style="width:100%;height:130px;object-fit:cover;display:block">
-            {% else %}
-                <div style="height:130px;background:linear-gradient(135deg,var(--navy),var(--cyan))"></div>
-            {% endif %}
-            <div class="card-pad">
-                <strong>{{ o.titolo }}</strong>
-                <div class="muted" style="font-size:12px;margin-top:4px">
-                    {{ o.destinazioneMacro ?: '—' }}{{ o.prezzoDa ? ' · da € ' ~ o.prezzoDa|number_format(0, ',', '.') }}
-                </div>
-            </div>
-        </a>
+<div class="card" style="max-width:560px"><div class="card-pad">
+    <strong>Genera contenuto</strong>
+    <p class="muted" style="font-size:13px;margin:6px 0 12px">Scegli l'offerta da impaginare: resti nel Creator Studio.</p>
+    {% if offerte|length %}
+        <form method="get" id="form-genera-contenuto" style="display:flex;gap:10px;align-items:center">
+            <select id="sel-offerta-content" style="flex:1;min-width:0">
+                {% for o in offerte %}
+                    <option value="{{ path('app_creator_content_offerta', {id: o.id}) }}">
+                        {{ o.titolo }}{{ o.destinazioneMacro ? ' · ' ~ o.destinazioneMacro }}{{ o.prezzoDa ? ' · da € ' ~ o.prezzoDa|number_format(0, ',', '.') }}
+                    </option>
+                {% endfor %}
+            </select>
+            <button type="submit" class="btn btn-primary">✨ Genera contenuto</button>
+        </form>
+        <script>
+            document.getElementById('form-genera-contenuto').addEventListener('submit', function (e) {
+                e.preventDefault();
+                window.location.href = document.getElementById('sel-offerta-content').value;
+            });
+        </script>
     {% else %}
-        <div class="card card-pad muted">Nessuna offerta: creane una nella sezione Portale → Offerte.</div>
-    {% endfor %}
-</div>
+        <p class="muted" style="margin:0">Nessuna offerta: creane una nella sezione Portale → Offerte.</p>
+    {% endif %}
+</div></div>
 {% endblock %}

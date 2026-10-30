@@ -54,6 +54,7 @@
                 <label style="display:flex;gap:6px;align-items:center;cursor:pointer"><input type="checkbox" id="chk-claim"> Claim</label>
                 <label style="display:flex;gap:6px;align-items:center;cursor:pointer"><input type="checkbox" id="chk-durata"> Durata</label>
                 <label style="display:flex;gap:6px;align-items:center;cursor:pointer"><input type="checkbox" id="chk-prezzo"> Prezzo</label>
+                <label style="display:flex;gap:6px;align-items:center;cursor:pointer"><input type="checkbox" id="chk-validita"> Validità</label>
                 <label style="display:flex;gap:6px;align-items:center;cursor:pointer"><input type="checkbox" id="chk-logo"> Logo</label>
             </div>
             <p class="muted" style="margin:0;font-size:12px">
@@ -119,15 +120,10 @@
             </div>
         </div></div>
 
-        <div class="card"><div class="card-pad">
-            <strong>Stampa</strong>
-            <p class="muted" style="font-size:12px;margin:6px 0 10px">Layout base A4/A3 — apri e stampa (o salva in PDF) dal browser.</p>
-            <div style="display:flex;gap:8px;flex-wrap:wrap">
-                <a class="btn" target="_blank" href="{{ path('app_offerta_stampa', {id: offerta.id, formato: 'a4v'}) }}">🖨 A4 verticale</a>
-                <a class="btn" target="_blank" href="{{ path('app_offerta_stampa', {id: offerta.id, formato: 'a4o'}) }}">🖨 A4 orizzontale</a>
-                <a class="btn" target="_blank" href="{{ path('app_offerta_stampa', {id: offerta.id, formato: 'a3v'}) }}">🖨 A3 verticale</a>
-                <a class="btn" target="_blank" href="{{ path('app_offerta_stampa', {id: offerta.id, formato: 'a3o'}) }}">🖨 A3 orizzontale</a>
-            </div>
+        {# la stampa vive nell'Editor Print del Creator Studio #}
+        <div class="card"><div class="card-pad" style="display:flex;justify-content:space-between;align-items:center;gap:10px">
+            <span class="muted" style="font-size:12px">Per i cartelli A4/A3 usa l'Editor Print.</span>
+            <a class="btn" href="{{ path('app_creator_print') }}">🖨 Apri Editor Print</a>
         </div></div>
     </div>
 
@@ -167,6 +163,8 @@
         fotografoUrl: {{ offerta.fotografoUrlEffettivo|json_encode|raw }},
         righe: {{ offerta.righe|json_encode|raw }},
         varianti: {{ offerta.varianti|json_encode|raw }},
+        validoDal: {{ offerta.validoDal ? offerta.validoDal|date('d/m/Y')|json_encode|raw : 'null' }},
+        validoAl: {{ offerta.validoAl ? offerta.validoAl|date('d/m/Y')|json_encode|raw : 'null' }},
     };
     const URLS = {
         salva: {{ path('app_offerta_impaginatore_salva', {id: offerta.id})|json_encode|raw }},
@@ -205,7 +203,7 @@
     const tuttiGliIdVar = () => OFFERTA.varianti.map(v => v.id);
     const nuovaSlide = () => ({
         sfondo: OFFERTA.immagine ? { file: OFFERTA.immagine, fotografo: OFFERTA.fotografo || '', fotografoUrl: OFFERTA.fotografoUrl || '' } : null,
-        mostra: { titolo: true, destinazione: true, tipologia: true, claim: true, durata: true, prezzo: true, logo: true },
+        mostra: { titolo: true, destinazione: true, tipologia: true, claim: true, durata: true, prezzo: true, validita: false, logo: true },
         tema: 'scuro',
         righe: tuttiGliId(),
         varianti: tuttiGliIdVar(),
@@ -438,10 +436,17 @@
             const extra = vSel.filter(v => v.campo === r.id).map(variantePiuPrezzo).join(' · ');
             return extra ? { ...r, testo: (r.testo ? r.testo + ' · ' : '') + extra } : r;
         });
+        // partenze: in grafica SENZA prezzo (il dato resta sulle varianti per caption e preventivi)
         const vPartenza = vSel.filter(v => v.campo === 'partenza');
-        if (vPartenza.length) righe.push({ icona: '🛫', argomento: 'Partenze da', testo: vPartenza.map(variantePiuPrezzo).join(' · ') });
+        if (vPartenza.length) righe.push({ icona: '🛫', argomento: 'Partenze da', testo: vPartenza.map(v => v.valore).join(' · ') });
         const vValidita = vSel.filter(v => v.campo === 'validita');
         if (vValidita.length) righe.push({ icona: '📅', argomento: 'Validità', testo: vValidita.map(variantePiuPrezzo).join(' · ') });
+        else if (s.mostra.validita && (OFFERTA.validoDal || OFFERTA.validoAl)) {
+            const parti = [];
+            if (OFFERTA.validoDal) parti.push('dal ' + OFFERTA.validoDal);
+            if (OFFERTA.validoAl) parti.push('al ' + OFFERTA.validoAl);
+            righe.push({ icona: '📅', argomento: 'Validità', testo: parti.join(' ') });
+        }
         if (righe.length) {
             const iconX = PAD, textX = PAD + 78, maxW = W - PAD - (PAD + 78), lh = 52, gap = 28;
             let y = Math.max(yTop + 46, H * 0.60);
@@ -545,7 +550,7 @@
     });
 
     /* ---------- UI elementi in evidenza ---------- */
-    const chk = { titolo: $('chk-titolo'), destinazione: $('chk-destinazione'), tipologia: $('chk-tipologia'), claim: $('chk-claim'), durata: $('chk-durata'), prezzo: $('chk-prezzo'), logo: $('chk-logo') };
+    const chk = { titolo: $('chk-titolo'), destinazione: $('chk-destinazione'), tipologia: $('chk-tipologia'), claim: $('chk-claim'), durata: $('chk-durata'), prezzo: $('chk-prezzo'), validita: $('chk-validita'), logo: $('chk-logo') };
     Object.entries(chk).forEach(([k, el]) => el.addEventListener('change', () => { slide().mostra[k] = el.checked; segnaSporco(); ridisegna(); }));
     $('inp-claim').addEventListener('input', () => { segnaSporco(); ridisegna(); });
     $('sel-tema').addEventListener('change', () => { slide().tema = $('sel-tema').value; segnaSporco(); ridisegna(); });

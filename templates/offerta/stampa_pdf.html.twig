@@ -48,6 +48,9 @@
     .prezzo-variante .etichetta { font-weight: bold; text-transform: uppercase; font-size: {{ a3 ? '13pt' : '10pt' }}; }
     .prezzo-variante .importo { font-weight: bold; font-size: {{ a3 ? '24pt' : '17pt' }}; }
 
+    /* base grafica del cartello (Media Kit): layer a tutta pagina sotto i contenuti */
+    .base-cartello { position: absolute; top: 0; left: 0; width: {{ pw }}mm; height: {{ ph }}mm; }
+
     table.pagina { width: {{ pw }}mm; height: {{ ph }}mm; border-collapse: collapse; }
     table.pagina td { vertical-align: top; padding: 0; }
     table.fondo-t { width: 100%; border-collapse: collapse; }
@@ -55,6 +58,8 @@
 </style>
 </head>
 <body>
+
+{% if base_uri|default(null) %}<img class="base-cartello" src="{{ base_uri }}" alt="">{% endif %}
 
 {% set contenuto %}
     <h1>{{ offerta.titolo }}</h1>

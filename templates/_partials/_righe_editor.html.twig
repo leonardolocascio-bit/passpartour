@@ -185,13 +185,25 @@
         if (inputs.length) inputs[inputs.length - 2].focus();
     });
 
+    // se nel Media Kit c'è un'icona con nome affine all'argomento, il preset usa
+    // quella (mk:<id>) al posto dell'emoji: brand coerente senza scelta manuale
+    function iconaPreset(p) {
+        const norm = s => String(s || '').toLowerCase().replace(/[^a-zà-ù]/g, '');
+        const arg = norm(p.argomento);
+        const ic = ICONE_KIT.find(i => {
+            const n = norm(i.nome);
+            return n && (n.indexOf(arg) !== -1 || arg.indexOf(n) !== -1);
+        });
+        return ic ? ('mk:' + ic.id) : p.icona;
+    }
+
     const chips = document.getElementById('preset-chips');
     PRESET.forEach(p => {
         const b = document.createElement('button');
         b.type = 'button'; b.className = 'btn'; b.style.fontSize = '12px'; b.style.padding = '3px 9px';
-        b.textContent = p.icona + ' ' + p.argomento;
+        b.innerHTML = iconaHtml(iconaPreset(p)) + ' ' + p.argomento;
         b.addEventListener('click', () => {
-            righe.push({ id: nuovoId(), icona: p.icona, argomento: p.argomento, testo: '', evidenza: false });
+            righe.push({ id: nuovoId(), icona: iconaPreset(p), argomento: p.argomento, testo: '', evidenza: false });
             render();
             const inputs = box.querySelectorAll('input[data-campo="testo"]');
             if (inputs.length) inputs[inputs.length - 1].focus();
