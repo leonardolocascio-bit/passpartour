@@ -6,10 +6,13 @@
 {% block main %}
 <style>
     /* ---- workspace scuro stile CapCut: rail + libreria + preview + proprietà, timeline sotto ---- */
+    /* l'editor occupa TUTTO lo spazio: niente max-width della shell, altezza = viewport */
+    .content:has(.ev-studio) { max-width:none; padding:12px 14px 10px; }
     .ev-studio { --evbg:#10151f; --evpan:#161d2b; --evpan2:#1c2434; --evline:#2a3650; --evtx:#e8edf5; --evmut:#8fa0bb;
-        background:var(--evbg); border-radius:14px; color:var(--evtx); overflow:hidden; border:1px solid #0b0f17;
-        font-size:12px; }
-    .ev-top { display:grid; grid-template-columns:56px 254px minmax(0,1fr) 292px; min-height:480px; }
+        background:var(--evbg); border-radius:12px; color:var(--evtx); overflow:hidden; border:1px solid #0b0f17;
+        font-size:12px; display:flex; flex-direction:column; min-height:calc(100vh - 120px); }
+    .ev-top { display:grid; grid-template-columns:56px 254px minmax(0,1fr) 300px; flex:1; min-height:420px; }
+    .ev-top > * { min-height:0; }
     .ev-studio label { font-size:11px; color:var(--evmut); }
     .ev-studio input, .ev-studio select, .ev-studio textarea {
         background:#0d1420; border:1px solid var(--evline); color:var(--evtx); border-radius:7px; padding:5px 8px; font-size:12px; width:100%; }
@@ -41,7 +44,7 @@
     .ev-rail button:hover { color:#fff; }
 
     /* libreria */
-    .ev-lib { background:var(--evpan); border-right:1px solid var(--evline); padding:12px; overflow-y:auto; max-height:72vh; }
+    .ev-lib { background:var(--evpan); border-right:1px solid var(--evline); padding:12px; overflow-y:auto; }
     .ev-lib h4, .ev-prop h3 { font-size:10.5px; margin:0 0 10px; color:var(--evmut); text-transform:uppercase; letter-spacing:.09em; font-weight:700; }
     .ev-prop h3 .valore { color:var(--evtx); font-weight:500; text-transform:none; letter-spacing:0; }
     .ev-lib .hint { font-size:10.5px; color:var(--evmut); margin:8px 0; line-height:1.5; }
@@ -64,14 +67,14 @@
     .ev-stilecard:hover { border-color:#3b4c6e; }
 
     /* centro: preview */
-    .ev-centro { display:flex; flex-direction:column; align-items:center; padding:14px 14px 10px; min-width:0; }
-    .ev-palco { position:relative; display:flex; align-items:center; justify-content:center; width:100%; }
-    #tela { max-width:100%; max-height:46vh; background:#000; border-radius:8px; touch-action:none; box-shadow:0 0 0 1px #000; }
+    .ev-centro { display:flex; flex-direction:column; align-items:center; padding:14px 14px 10px; min-width:0; overflow-y:auto; }
+    .ev-palco { position:relative; display:flex; align-items:center; justify-content:center; width:100%; flex:1; min-height:0; }
+    #tela { max-width:100%; max-height:100%; background:#000; border-radius:8px; touch-action:none; box-shadow:0 0 0 1px #000; }
     .ev-controlli { display:flex; gap:10px; align-items:center; margin-top:12px; flex-wrap:wrap; justify-content:center; }
     #stato { font-size:11.5px; color:var(--evmut); margin-top:7px; text-align:center; }
 
     /* proprietà */
-    .ev-prop { background:var(--evpan); border-left:1px solid var(--evline); padding:12px; overflow-y:auto; max-height:72vh; }
+    .ev-prop { background:var(--evpan); border-left:1px solid var(--evline); padding:12px; overflow-y:auto; }
     .ev-prop .sez { border-top:1px solid var(--evline); margin-top:12px; padding-top:10px; }
     .ev-row2 { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
     .ev-row3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; }
@@ -139,6 +142,7 @@
             <button type="button" data-lib="media" data-ico="film" class="on"><small>Media</small></button>
             <button type="button" data-lib="audio" data-ico="musica"><small>Audio</small></button>
             <button type="button" data-lib="testo" data-ico="testo"><small>Testo</small></button>
+            <button type="button" data-lib="sub" data-ico="sub"><small>Sottotitoli</small></button>
             <button type="button" data-lib="graf" data-ico="img"><small>Grafiche</small></button>
             <button type="button" data-lib="effetti" data-ico="fx"><small>Effetti</small></button>
             <button type="button" data-lib="trans" data-ico="trans"><small>Transiz.</small></button>
@@ -172,6 +176,20 @@
                 <div class="ev-cards" id="gal-stili" style="margin-top:10px"></div>
                 <p class="hint">Un clic aggiunge il testo al cursore con lo stile scelto; poi trascinalo sul video e
                     ridimensionalo con la maniglia d'angolo.</p>
+            </div>
+            <div data-pane="sub" hidden>
+                <h4>Sottotitoli automatici</h4>
+                <div class="ev-row2" style="align-items:end">
+                    <button type="button" class="ev-btn" id="btn-sub-genera" style="justify-content:center">Genera dai dialoghi</button>
+                    <div><label>Lingua</label>
+                        <select id="sub-lingua"><option value="italian" selected>Italiano</option><option value="english">Inglese</option><option value="spanish">Spagnolo</option><option value="french">Francese</option><option value="german">Tedesco</option></select>
+                    </div>
+                </div>
+                <div id="sub-stato" class="hint"></div>
+                <div id="sub-lista" style="display:grid;gap:6px;margin-top:8px"></div>
+                <p class="hint">Trascrive l'audio della <b>clip selezionata</b> (o di tutte le clip non mute) e crea un
+                    sottotitolo a tempo per frase: <b>modificabili</b> qui, dal pannello Testo o trascinandoli sul video.
+                    Il primo uso scarica il modello Whisper (~60 MB, serve internet); poi resta in cache.</p>
             </div>
             <div data-pane="graf" hidden>
                 <h4>Grafiche</h4>
@@ -318,15 +336,18 @@
                         <div><label>Scala <span id="pc-scala-v">100%</span></label><input type="range" id="pc-scala" min="50" max="250" value="100"></div>
                         <div><label>Rotaz. <span id="pc-rot-v">0°</span></label><input type="range" id="pc-rot" min="-45" max="45" value="0"></div>
                     </div>
-                    <div class="ev-row3" style="margin-top:8px;align-items:center">
+                    <div class="ev-row2" style="margin-top:8px;align-items:center">
                         <div><label>Pos. X <span id="pc-px-v">0</span></label><input type="range" id="pc-px" min="-50" max="50" value="0"></div>
                         <div><label>Pos. Y <span id="pc-py-v">0</span></label><input type="range" id="pc-py" min="-50" max="50" value="0"></div>
-                        <div><label>Opacità <span id="pc-opa-v">100%</span></label><input type="range" id="pc-opa" min="5" max="100" value="100"></div>
                     </div>
                     <label style="display:flex;gap:6px;align-items:center;cursor:pointer;margin-top:8px;font-size:12px;color:var(--evtx)">
                         <input type="checkbox" id="pc-flip"> Specchia orizzontalmente
                     </label>
                 </details>
+                <div style="margin-top:8px">
+                    <label>Trasparenza (opacità) <span id="pc-opa-v">100%</span></label>
+                    <input type="range" id="pc-opa" min="5" max="100" value="100">
+                </div>
                 <details class="ev-sez">
                     <summary>Chroma key e scontorno</summary>
                     <label style="display:flex;gap:6px;align-items:center;cursor:pointer;margin-top:8px;font-size:12px;color:var(--evtx)">
@@ -410,7 +431,7 @@
                         </select>
                     </div>
                 </div>
-                <div style="margin-top:8px"><label>Opacità <span id="po-opa-v">100%</span></label><input type="range" id="po-opa" min="5" max="100" value="100"></div>
+                <div style="margin-top:8px"><label>Trasparenza (opacità) <span id="po-opa-v">100%</span></label><input type="range" id="po-opa" min="5" max="100" value="100"></div>
                 <div style="display:flex;gap:9px;margin-top:8px;flex-wrap:wrap;color:var(--evtx)">
                     <label style="display:flex;gap:5px;align-items:center;font-size:11.5px;cursor:pointer"><input type="checkbox" id="po-maiuscolo"> MAIUSCOLO</label>
                     <label style="display:flex;gap:5px;align-items:center;font-size:11.5px;cursor:pointer"><input type="checkbox" id="po-enfasi" checked> Enfasi</label>
@@ -436,7 +457,7 @@
                 <div class="ev-row3" style="margin-top:8px">
                     <div><label>Dim. <span id="pg-scala-v">20%</span></label><input type="range" id="pg-scala" min="4" max="80" value="20"></div>
                     <div><label>Rotaz. <span id="pg-rot-v">0°</span></label><input type="range" id="pg-rot" min="-180" max="180" value="0"></div>
-                    <div><label>Opacità <span id="pg-opa-v">100%</span></label><input type="range" id="pg-opa" min="5" max="100" value="100"></div>
+                    <div><label>Trasparenza <span id="pg-opa-v">100%</span></label><input type="range" id="pg-opa" min="5" max="100" value="100"></div>
                 </div>
                 <div style="display:flex;gap:5px;margin-top:10px;flex-wrap:wrap">
                     <button type="button" class="ev-btn ev-mini" id="pg-ph">⏱ Dal cursore</button>
@@ -543,6 +564,7 @@
         scarica: svgI('<path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/>'),
         occhio: svgI('<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/>'),
         occhioNo: svgI('<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/><line x1="3" y1="3" x2="21" y2="21"/>'),
+        sub: svgI('<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M6 13h5M13 13h5M6 16h8"/>'),
         vol: svgI('<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/>'),
         volNo: svgI('<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="15" y1="9" x2="21" y2="15"/><line x1="21" y1="9" x2="15" y2="15"/>'),
     };
@@ -608,6 +630,7 @@
         b.addEventListener('click', () => {
             document.querySelectorAll('#rail button').forEach(x => x.classList.toggle('on', x === b));
             document.querySelectorAll('.ev-lib [data-pane]').forEach(p => p.hidden = p.dataset.pane !== b.dataset.lib);
+            if (b.dataset.lib === 'sub') disegnaSubLista();
         });
     });
 
@@ -634,7 +657,7 @@
     const storia = [], futuro = [];
     let salvaChiave = '', salvaQuando = 0;
     const CAMPI_CLIP = ['id','url','nome','durata','traccia','t','in','out','vel','vol','muto','pip','preset','effetto','lum','con','sat','kb','trans','transDur','fit','scalaZ','px','py','rot','flip','opa','chromaOn','chromaCol','chromaTol','chromaMorb','ritaglio'];
-    const CAMPI_TESTO = ['id','testo','da','a','size','x','y','colore','bg','bgColore','maiuscolo','enfasi','contorno','ombra','font','effIn','effOut','opa'];
+    const CAMPI_TESTO = ['id','testo','da','a','size','x','y','colore','bg','bgColore','maiuscolo','enfasi','contorno','ombra','font','effIn','effOut','opa','sub'];
     const CAMPI_GRAF = ['id','url','nome','da','a','x','y','scala','rot','opa'];
     const CAMPI_MUS = ['id','nome','url','t','in','out','durata','vol','fadeIn','fadeOut','duck'];
     const estrai = (o, campi) => { const r = {}; campi.forEach(k => r[k] = o[k]); return r; };
@@ -662,7 +685,7 @@
         s.testi.forEach(st => testi.push(Object.assign({}, st)));
         musiche.forEach(m => m.audio.pause());
         deseleziona();
-        render(); disegnaA(playhead);
+        render(); disegnaA(playhead); disegnaSubLista();
     }
     function annulla() { if (!storia.length) return; futuro.push(fotografa()); applicaStato(storia.pop()); aggiornaUndo(); }
     function ripeti() { if (!futuro.length) return; storia.push(fotografa()); applicaStato(futuro.pop()); aggiornaUndo(); }
@@ -921,6 +944,88 @@
             });
         });
         stingBox.appendChild(b);
+    }
+
+    /* ================= sottotitoli automatici (Whisper in-browser) ================= */
+    let whisper = null, whisperCarico = false;
+    async function caricaWhisper(onProg) {
+        if (whisper) return whisper;
+        const lib = await import('https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2');
+        lib.env.allowLocalModels = false;
+        whisper = await lib.pipeline('automatic-speech-recognition', 'Xenova/whisper-base', { progress_callback: onProg });
+        return whisper;
+    }
+    // audio mono a 16 kHz (decodeAudioData ricampiona alla frequenza del contesto)
+    async function audioMono16k(url, da, a) {
+        const buf = await (await fetch(url)).arrayBuffer();
+        const dec = new OfflineAudioContext(1, 16000, 16000);
+        const audio = await dec.decodeAudioData(buf);
+        const n = audio.numberOfChannels, len = audio.length;
+        const mono = new Float32Array(len);
+        for (let c = 0; c < n; c++) { const ch = audio.getChannelData(c); for (let i = 0; i < len; i++) mono[i] += ch[i] / n; }
+        const i0 = Math.max(0, Math.floor((da || 0) * 16000));
+        const i1 = Math.min(len, Math.ceil((a || audio.duration) * 16000));
+        return mono.slice(i0, i1);
+    }
+    const subStato = msg => { $('sub-stato').textContent = msg; };
+    $('btn-sub-genera').addEventListener('click', async () => {
+        const bersagli = clipSel() ? [clipSel()] : clips.filter(c => !c.muto && c.vol > 0).sort((a, b) => a.t - b.t);
+        if (!bersagli.length) { subStato('Nessuna clip con audio in timeline.'); return; }
+        const btn = $('btn-sub-genera'); btn.disabled = true;
+        try {
+            subStato('Scarico il modello di trascrizione…');
+            await caricaWhisper(p => {
+                if (p.status === 'progress' && p.total) subStato('Scarico il modello: ' + p.file.split('/').pop() + ' ' + Math.round(p.progress) + '%');
+            });
+            if (!whisperCarico) { whisperCarico = true; }
+            let creati = 0, primo = true;
+            for (const c of bersagli) {
+                subStato('Trascrivo «' + c.nome + '»…');
+                let pcm;
+                try { pcm = await audioMono16k(c.url, c.in, c.out); } catch (e) { continue; }
+                if (!pcm.length) continue;
+                const ris = await whisper(pcm, { language: $('sub-lingua').value, task: 'transcribe',
+                    return_timestamps: true, chunk_length_s: 30, stride_length_s: 5 });
+                const pezzi = (ris.chunks || []).filter(ch => ch.text.trim() && ch.timestamp && ch.timestamp[0] != null);
+                if (pezzi.length && primo) { salvaStato(); primo = false; }
+                pezzi.forEach(ch => {
+                    const da = c.t + ch.timestamp[0] / c.vel;
+                    const fine = c.t + (ch.timestamp[1] != null ? ch.timestamp[1] : ch.timestamp[0] + 2) / c.vel;
+                    testi.push({ id: uid++, testo: ch.text.trim(), da: Math.round(da * 10) / 10,
+                        a: Math.round(Math.max(fine, da + 0.4) * 10) / 10,
+                        x: 0.5, y: 0.88, size: 0.042, colore: '#ffffff', bg: 'pill', bgColore: '#0a162c',
+                        maiuscolo: false, enfasi: false, contorno: false, ombra: false, font: 'testo',
+                        effIn: '', effOut: '', opa: 100, sub: true });
+                    creati++;
+                });
+            }
+            render(); disegnaA(playhead); disegnaSubLista();
+            subStato(creati ? creati + ' sottotitoli creati: modificali qui sotto o in timeline.' : 'Nessun parlato riconosciuto nelle clip.');
+        } catch (e) {
+            subStato('Trascrizione non riuscita (serve internet per scaricare il modello la prima volta).');
+        }
+        btn.disabled = false;
+    });
+    function disegnaSubLista() {
+        const box = $('sub-lista'); box.innerHTML = '';
+        testi.filter(o => o.sub).sort((a, b) => a.da - b.da).forEach(o => {
+            const riga = document.createElement('div');
+            riga.style.cssText = 'display:grid;grid-template-columns:62px 1fr 22px;gap:6px;align-items:center';
+            const t = document.createElement('button');
+            t.type = 'button'; t.className = 'ev-btn ev-mini'; t.style.padding = '3px 4px';
+            t.textContent = o.da.toFixed(1) + '–' + o.a.toFixed(1);
+            t.title = 'Seleziona in timeline';
+            t.addEventListener('click', () => { playhead = o.da + 0.05; seleziona('ov', o.id); render(); disegnaA(playhead); });
+            const inp = document.createElement('input');
+            inp.type = 'text'; inp.value = o.testo;
+            inp.addEventListener('input', () => { salvaStato('sub' + o.id); o.testo = inp.value; render(); disegnaA(playhead); });
+            const x = document.createElement('button');
+            x.type = 'button'; x.className = 'ev-btn ev-mini'; x.style.cssText = 'padding:3px 5px;color:#ff8d6b';
+            x.textContent = '✕';
+            x.addEventListener('click', () => { salvaStato(); testi.splice(testi.indexOf(o), 1); render(); disegnaA(playhead); disegnaSubLista(); });
+            riga.appendChild(t); riga.appendChild(inp); riga.appendChild(x);
+            box.appendChild(riga);
+        });
     }
 
     /* ================= chroma key ================= */
