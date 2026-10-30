@@ -33,6 +33,8 @@ class CreatorStudioController extends AbstractController
         return $this->render('creator/editor_video.html.twig', [
             'logo_url' => $kit[\App\Enum\TipoAssetMediaKit::LOGO_LIGHT->value] ?? 'images/passpartour-white.png',
             'kit_font' => $kitFont,
+            'sting_apertura' => $kit[\App\Enum\TipoAssetMediaKit::STING_APERTURA->value] ?? null,
+            'sting_chiusura' => $kit[\App\Enum\TipoAssetMediaKit::STING_CHIUSURA->value] ?? null,
         ]);
     }
 
