@@ -166,3 +166,27 @@ vendite, fatturato.
 | **Landing su dominio passpartourviaggi.com** | quando c'è il sito |
 | **Rifinitura UI commissioni** | resta da ottimizzare |
 | Contratto Giramondo (template da Maria), pubblicazione diretta social, ManyChat, chiave Unsplash in staging | come da piano mattina |
+
+---
+
+# Registrazione del 30/10/2026 («Riorganizzazione Media Kit, Editor Offerte e miglioramenti Print/Content/Video»)
+
+## Applicato ✓ (30/10)
+
+- **Media Kit riorganizzato**: set indipendenti **per categoria** (Loghi / Format / Sting / Font / Icone, ciascuno col suo «Aggiungi set N»); nuovo slot **Pittogramma**; **Base cartello print** orizzontale e verticale (SVG/immagine, usata dall'Editor Print come sfondo adattato ad A4/A3); **Sting apertura/chiusura** (video) selezionabili nell'Editor Video; **icone in doppia variante** light (bianca) e dark (blu) con anteprima su fondo navy/chiaro.
+- **Editor Content**: niente più card → pulsante **«Genera contenuto»** con scelta offerta restando nel Creator Studio; rimossi TUTTI gli ingressi all'impaginatore dalla sezione Offerte (catalogo e dettaglio); la sezione «Stampa» è uscita dall'impaginatore (rimando all'Editor Print).
+- **Scheda offerta — Generale**: temi e tipologie pescano dalle **tabelle del Portale** (fallback enum; slug storici riconciliati); una voce custom crea la scheda in Temi/**Tipologie**; descrizione usata per caption e print, sottotitolo per i post.
+- **Caratteristiche**: voli con tipo **«Andata e ritorno»** (ritorno auto a tratta invertita su scheda/email; doppia data e doppio scalo); **rubrica Compagnie** (voli/treni/navi/trasferimenti) censita in automatico al salvataggio + autocomplete in digitazione + gestione in Impostazioni; tipologia/trattamento alloggio e tipo extra a **datalist aperta** (i valori nuovi entrano nei suggerimenti futuri); **«comprende» generato** dalle caratteristiche se lasciato vuoto (`GeneratoreComprende`, sempre modificabile); «non comprende» con **template riutilizzabili con titolo** (`TemplateTesto`, salva/richiama dall'editor).
+- **Economics per quota**: ogni quota ha prezzo di vendita + modalità costo (netta → importo / commissionabile → %) → **MOL per quota** (`CalcolatoreMargine::perQuote`, aliquote IVA/ritenuta/lordo IVA restano globali); rimossi i doppioni «quota di vendita» e campo «prezzo a partire da» (ora derivato dalla quota più bassa, `prezzoDa()`).
+- **Info utili**: tab con clima/dress code/usi locali (colonna JSON `infoUtili`), bottone **«Genera automaticamente»** (`InfoUtiliGenerator`: Claude se configurata, fallback deterministico), mostrate nella scheda cliente; fix del salvataggio bloccato: un campo obbligatorio in una scheda nascosta ora apre la scheda giusta (handler `invalid`).
+- **Icone preset righe**: se nel Media Kit c'è un'icona con nome affine all'argomento del preset, il preset usa quella (mk:id) al posto dell'emoji.
+- **Impaginatore**: varianti **partenza senza prezzo in grafica** (il dato resta); **«Validità dal/al» esponibile** in grafica (checkbox, usa le date dell'offerta se non ci sono varianti validità).
+- **Editor Print**: la base cartello del Media Kit diventa sfondo a tutta pagina del PDF dompdf.
+- **Editor Video v3** (CapCut-like): **3 tracce video** + testi + **tracce musicali multiple**; blocchi a **posizionamento libero** con **maniglie** di trim e **magnete** (snap a bordi/cursore); **estrazione audio da clip** (bottone → traccia musicale, clip muta); PiP per le tracce sopra; transizioni per clip (taglio/dissolvenza/nero/scorri/wipe/zoom-in); **testi potenziati**: trascinabili direttamente sul video, MAIUSCOLO, enfasi, palette Passpartour per colore testo e sfondo, effetti entrata/uscita (dissolvenza, scorri, zoom, macchina da scrivere); **guide zone sicure IG/TikTok** in anteprima (mai esportate) + **linea occhi regolabile**; musiche con trim/posizione/fade/volume indipendenti; **export senza musica** (resta il parlato delle clip); **sting apertura/chiusura** dal Media Kit con un click; l'export sopravvive al cambio scheda (timer quando il tab è nascosto). Collaudato end-to-end (clip sintetiche: multi-clip, estrazione audio, testo a effetti, export MP4).
+
+## Rimandato (30/10)
+
+| Tema | Stato |
+|------|-------|
+| Colori badge «abbinati al template» (early/last minute/cancellazione già colorati come da scheda) | da rivedere se serve altro |
+| Scelta set Media Kit negli editor | come da 29/10 |
