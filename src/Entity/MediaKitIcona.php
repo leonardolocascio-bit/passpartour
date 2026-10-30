@@ -25,9 +25,13 @@ class MediaKitIcona
     #[ORM\Column(length: 100)]
     private string $nome = '';
 
-    /** Nome file in public/uploads/creator/mediakit */
+    /** Variante light (bianca, per fondi scuri) in public/uploads/creator/mediakit */
     #[ORM\Column(length: 255)]
     private string $file = '';
+
+    /** Variante dark (blu, per fondi chiari), facoltativa. */
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $fileDark = null;
 
     #[ORM\Column]
     private \DateTimeImmutable $createdAt;
@@ -68,6 +72,18 @@ class MediaKitIcona
     public function setFile(string $file): static
     {
         $this->file = $file;
+
+        return $this;
+    }
+
+    public function getFileDark(): ?string
+    {
+        return $this->fileDark;
+    }
+
+    public function setFileDark(?string $fileDark): static
+    {
+        $this->fileDark = $fileDark;
 
         return $this;
     }

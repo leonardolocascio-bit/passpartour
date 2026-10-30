@@ -37,21 +37,36 @@ class MediaKitController extends AbstractController
         foreach ($em->getRepository(MediaKitIcona::class)->findBy([], ['nome' => 'ASC']) as $icona) {
             $icone[$icona->getGruppo()][] = $icona;
         }
-        $setEsistenti = array_unique(array_merge(array_keys($assets), array_keys($icone))) ?: [1];
-        sort($setEsistenti);
-        $prossimoSet = max($setEsistenti) + 1;
-
         $gruppiTipi = [];
         foreach (TipoAssetMediaKit::cases() as $tipo) {
             $gruppiTipi[$tipo->gruppo()][] = $tipo;
         }
 
+        // i set sono INDIPENDENTI per categoria: ogni categoria mostra i propri
+        // set esistenti e il proprio «Aggiungi set N»
+        $setPerCategoria = [];
+        foreach ($gruppiTipi as $categoria => $tipi) {
+            $usati = [];
+            foreach ($tipi as $tipo) {
+                foreach ($assets as $g => $perTipo) {
+                    if (isset($perTipo[$tipo->value])) {
+                        $usati[$g] = true;
+                    }
+                }
+            }
+            $lista = array_keys($usati) ?: [1];
+            sort($lista);
+            $setPerCategoria[$categoria] = ['set' => $lista, 'prossimo' => max($lista) + 1];
+        }
+        $setIcone = array_keys($icone) ?: [1];
+        sort($setIcone);
+        $setPerCategoria['Icone'] = ['set' => $setIcone, 'prossimo' => max($setIcone) + 1];
+
         return $this->render('creator/media_kit.html.twig', [
             'assets' => $assets,
             'icone' => $icone,
-            'set_esistenti' => $setEsistenti,
-            'prossimo_set' => $prossimoSet,
             'gruppi_tipi' => $gruppiTipi,
+            'set_categoria' => $setPerCategoria,
         ]);
     }
 
@@ -69,8 +84,11 @@ class MediaKitController extends AbstractController
         /** @var UploadedFile|null $file */
         $file = $request->files->get('file');
         $ext = $file ? strtolower($file->getClientOriginalExtension() ?: (string) $file->guessExtension()) : '';
-        if ($file === null || !in_array($ext, self::EXT_IMMAGINE, true)) {
-            $this->addFlash('error', 'Carica un\'immagine (JPG/PNG/WebP/SVG).');
+        $estensioni = $tipoAsset->isVideo() ? ['mp4', 'webm', 'mov'] : self::EXT_IMMAGINE;
+        if ($file === null || !in_array($ext, $estensioni, true)) {
+            $this->addFlash('error', $tipoAsset->isVideo()
+                ? 'Per gli sting carica un video (MP4/WebM/MOV).'
+                : 'Carica un\'immagine (JPG/PNG/WebP/SVG).');
 
             return $this->redirectToRoute('app_creator_mediakit');
         }
@@ -180,7 +198,18 @@ class MediaKitController extends AbstractController
             return $this->redirectToRoute('app_creator_mediakit');
         }
 
-        $em->persist((new MediaKitIcona($gruppo))->setNome($nome)->setFile($nomeFile));
+        // variante dark (blu, per fondi chiari): facoltativa
+        $nomeFileDark = null;
+        /** @var UploadedFile|null $fileDark */
+        $fileDark = $request->files->get('file_dark');
+        if ($fileDark !== null) {
+            $extDark = strtolower($fileDark->getClientOriginalExtension() ?: (string) $fileDark->guessExtension());
+            if (in_array($extDark, self::EXT_IMMAGINE, true)) {
+                $nomeFileDark = $uploader->salva($fileDark, 'mediakit', $nome, 'icona-set' . $gruppo . '-' . $slugger->slug($nome)->lower() . '-dark-' . bin2hex(random_bytes(3)) . '.' . $extDark);
+            }
+        }
+
+        $em->persist((new MediaKitIcona($gruppo))->setNome($nome)->setFile($nomeFile)->setFileDark($nomeFileDark));
         $em->flush();
         $this->addFlash('success', 'Icona «' . $nome . '» aggiunta (set ' . $gruppo . '): la trovi nel picker delle righe.');
 
@@ -192,6 +221,9 @@ class MediaKitController extends AbstractController
     {
         if ($this->isCsrfTokenValid('mediakit_icona_elimina_' . $icona->getId(), (string) $request->request->get('_token'))) {
             $uploader->elimina('mediakit', $icona->getFile());
+            if ($icona->getFileDark() !== null) {
+                $uploader->elimina('mediakit', $icona->getFileDark());
+            }
             $em->remove($icona);
             $em->flush();
             $this->addFlash('success', 'Icona eliminata (le righe che la usavano tornano al segnaposto).');
