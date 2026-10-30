@@ -11,8 +11,8 @@ use Symfony\Component\Routing\Attribute\Route;
 
 /**
  * Creator Studio: editing per social e campagne marketing.
- * Content e Print pescano dalle offerte; Video è ancora segnaposto
- * (vedi PIANO-SVILUPPO-2026-10-29.md).
+ * Content e Print pescano dalle offerte; Video è l'NLE multi-traccia
+ * client-side (vedi PIANO-SVILUPPO-2026-10-29.md).
  */
 class CreatorStudioController extends AbstractController
 {
@@ -30,11 +30,18 @@ class CreatorStudioController extends AbstractController
             $kit[$asset->getTipo()->value] = 'uploads/creator/mediakit/' . $asset->getFile();
         }
 
+        // icone del Media Kit (set 1): nell'editor diventano grafiche trascinabili
+        $icone = array_map(
+            static fn (\App\Entity\MediaKitIcona $i) => ['nome' => $i->getNome(), 'url' => '/uploads/creator/mediakit/' . $i->getFile()],
+            $em->getRepository(\App\Entity\MediaKitIcona::class)->findBy(['gruppo' => 1], ['nome' => 'ASC']),
+        );
+
         return $this->render('creator/editor_video.html.twig', [
             'logo_url' => $kit[\App\Enum\TipoAssetMediaKit::LOGO_LIGHT->value] ?? 'images/passpartour-white.png',
             'kit_font' => $kitFont,
             'sting_apertura' => $kit[\App\Enum\TipoAssetMediaKit::STING_APERTURA->value] ?? null,
             'sting_chiusura' => $kit[\App\Enum\TipoAssetMediaKit::STING_CHIUSURA->value] ?? null,
+            'icone' => $icone,
         ]);
     }
 

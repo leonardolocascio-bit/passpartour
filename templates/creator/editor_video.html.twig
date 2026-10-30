@@ -6,12 +6,14 @@
 {% block main %}
 <style>
     .ev-grid { display:grid; grid-template-columns: minmax(0,1fr) minmax(300px,380px); gap:16px; align-items:start; }
+    /* senza min-width:0 le card sfondano la colonna e coprono i comandi del player */
+    .ev-grid > div, .ev-grid .card { min-width:0; }
     .ev-timeline { overflow-x:auto; border:1px solid var(--line); border-radius:10px; background:#f8fafc; padding:10px; }
     .ev-ruler { position:relative; height:22px; cursor:pointer; }
     .ev-ruler .tick { position:absolute; top:0; font-size:10px; color:var(--muted); border-left:1px solid var(--line); padding-left:3px; height:22px; }
     .ev-track { position:relative; min-height:52px; margin-top:6px; border-top:1px dashed #e3e8f0; }
     .ev-track-label { position:sticky; left:0; font-size:10px; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); z-index:2; }
-    .ev-blocco { position:absolute; top:4px; height:46px; border-radius:8px; overflow:hidden; cursor:grab; border:2px solid transparent; background:#123a72; color:#fff; font-size:11px; user-select:none; }
+    .ev-blocco { position:absolute; top:4px; height:46px; border-radius:8px; overflow:hidden; cursor:grab; border:2px solid transparent; background:#123a72; color:#fff; font-size:11px; user-select:none; background-size:100% 100%; }
     .ev-blocco.sel { border-color:var(--brand); box-shadow:0 0 0 2px rgba(234,91,36,.25); }
     .ev-blocco .nome { padding:3px 8px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; position:relative; z-index:1; text-shadow:0 1px 3px rgba(0,0,0,.8); }
     .ev-blocco img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; opacity:.7; }
@@ -20,7 +22,8 @@
     .ev-blocco .maniglia.l { left:0; border-radius:8px 0 0 8px; }
     .ev-blocco .maniglia.r { right:0; border-radius:0 8px 8px 0; }
     .ev-blocco.testo { height:30px; background:var(--amber); color:#5b3b00; font-weight:600; }
-    .ev-blocco.musica { height:34px; background:#1f9d54; }
+    .ev-blocco.grafica { height:30px; background:#1f9fd6; }
+    .ev-blocco.musica { height:38px; background:#1f9d54; }
     .ev-playhead { position:absolute; top:0; bottom:0; width:2px; background:var(--brand); z-index:3; pointer-events:none; }
     .ev-pan label { font-size:12px; }
     .ev-pan input[type=range] { width:100%; }
@@ -28,15 +31,22 @@
     .ev-row3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }
     .ev-mini { font-size:12px; padding:4px 8px; }
     .ev-mini.on { background:var(--navy); color:#fff; }
+    .ev-mini:disabled { opacity:.4; cursor:default; }
     .ev-sw { display:flex; gap:4px; }
     .ev-sw button { width:26px; height:26px; border-radius:6px; border:2px solid transparent; cursor:pointer; }
     .ev-sw button.on { border-color:var(--brand); }
+    .ev-stili { display:flex; gap:6px; flex-wrap:wrap; }
+    .ev-stili button { font-size:11px; padding:3px 9px; border-radius:999px; border:1px solid var(--line); background:#fff; cursor:pointer; }
+    .ev-stili button:hover { border-color:var(--brand); }
+    details.ev-sez { border-top:1px solid var(--line); margin-top:10px; padding-top:8px; }
+    details.ev-sez summary { font-size:12px; font-weight:600; cursor:pointer; color:var(--navy); }
 </style>
 
 <p class="muted" style="margin:0 0 12px;max-width:960px">
-    Montaggio multi-traccia: 3 livelli video, testi e più tracce musicali. Trascina liberamente i blocchi sulla
-    timeline (🧲 magnete per agganciarli), usa le maniglie per tagliare, estrai l'audio da una clip, trascina i testi
-    direttamente sul video. Guide IG/TikTok in anteprima, sting dal Media Kit, export anche senza musica.
+    Montaggio multi-traccia stile CapCut: dividi, duplica, annulla/ripeti e scorciatoie da tastiera; transizioni,
+    filtri colore ed effetti per clip (glitch, grana, scossa…); trasforma ogni clip (scala, posizione, rotazione,
+    sfondo sfocato); testi con stili pronti, contorno e più righe; grafiche e icone del Media Kit trascinabili;
+    musica con forma d'onda, ducking automatico e dissolvenze.
 </p>
 
 <div class="ev-grid">
@@ -45,8 +55,8 @@
         <div class="card"><div class="card-pad" style="text-align:center">
             <canvas id="tela" style="max-width:100%;max-height:46vh;background:#0a162c;border-radius:10px;touch-action:none"></canvas>
             <div style="display:flex;gap:8px;justify-content:center;align-items:center;margin-top:10px;flex-wrap:wrap">
+                <button type="button" class="btn" id="btn-inizio" title="Torna all'inizio">⏮</button>
                 <button type="button" class="btn" id="btn-play">▶ Riproduci</button>
-                <button type="button" class="btn" id="btn-stop" disabled>⏹ Stop</button>
                 <span class="muted" style="font-size:12px"><span id="t-cur">0.0</span>s / <span id="t-tot">0.0</span>s</span>
                 <button type="button" class="btn ev-mini" id="btn-guide" title="Zone sicure IG/TikTok in anteprima (non esportate)">📐 Guide</button>
                 <button type="button" class="btn btn-primary" id="btn-esporta">⬇ Esporta</button>
@@ -77,8 +87,14 @@
                     <input type="file" id="musica-file" accept="audio/*" multiple style="display:none">
                 </label>
                 <button type="button" class="btn ev-mini" id="btn-overlay">＋ Testo</button>
-                <button type="button" class="btn ev-mini" id="btn-split">✂ Dividi</button>
-                <button type="button" class="btn ev-mini" id="btn-magnete" title="Aggancia i blocchi a bordi e cursore">🧲 Magnete</button>
+                <label class="btn ev-mini" style="cursor:pointer" title="Immagine o logo sopra il video">🖼 Grafica
+                    <input type="file" id="grafica-file" accept="image/*" multiple style="display:none">
+                </label>
+                <select id="sel-icona" style="display:none;width:auto;font-size:12px;padding:3px 6px"></select>
+                <button type="button" class="btn ev-mini" id="btn-split" title="Dividi al cursore (S)">✂ Dividi</button>
+                <button type="button" class="btn ev-mini" id="btn-undo" title="Annulla (⌘Z)" disabled>↩</button>
+                <button type="button" class="btn ev-mini" id="btn-redo" title="Ripeti (⇧⌘Z)" disabled>↪</button>
+                <button type="button" class="btn ev-mini" id="btn-magnete" title="Aggancia i blocchi a bordi e cursore (M)">🧲 Magnete</button>
                 <span id="sting-btns"></span>
                 <span style="margin-left:auto;display:flex;gap:6px;align-items:center" class="muted">
                     <span style="font-size:11px">Zoom</span>
@@ -91,12 +107,17 @@
                     <div class="ev-track" id="track-v2"><span class="ev-track-label">Video C (sopra)</span></div>
                     <div class="ev-track" id="track-v1"><span class="ev-track-label">Video B</span></div>
                     <div class="ev-track" id="track-v0"><span class="ev-track-label">Video A (base)</span></div>
+                    <div class="ev-track" id="track-grafiche" style="min-height:40px"><span class="ev-track-label">Grafiche</span></div>
                     <div class="ev-track" id="track-testi" style="min-height:40px"><span class="ev-track-label">Testi</span></div>
-                    <div class="ev-track" id="track-musica" style="min-height:44px"><span class="ev-track-label">Musica</span></div>
+                    <div class="ev-track" id="track-musica" style="min-height:48px"><span class="ev-track-label">Musica</span></div>
                     <div class="ev-playhead" id="playhead" style="left:0"></div>
                 </div>
             </div>
-            <p class="muted" style="font-size:11px;margin:6px 0 0">Trascina per spostare · maniglie ai bordi per tagliare · doppio clic su una clip per mandarci il cursore.</p>
+            <p class="muted" style="font-size:11px;margin:6px 0 0">
+                Trascina per spostare · maniglie per tagliare · doppio clic = cursore sulla clip ·
+                tastiera: <b>spazio</b> play/pausa, <b>S</b> dividi, <b>⌫</b> elimina (⇧⌫ elimina e chiudi il buco),
+                <b>⌘D</b> duplica, <b>⌘Z</b> annulla, <b>←/→</b> frame (⇧ = 1s), <b>M</b> magnete, <b>G</b> guide.
+            </p>
         </div></div>
     </div>
 
@@ -109,6 +130,7 @@
                     <label>Formato</label>
                     <select id="imp-formato">
                         <option value="9:16">Reel 9:16</option>
+                        <option value="4:5">Post 4:5</option>
                         <option value="1:1">Quadrato 1:1</option>
                         <option value="16:9">16:9</option>
                     </select>
@@ -148,7 +170,7 @@
                     <select id="pc-traccia"><option value="0">A (base)</option><option value="1">B</option><option value="2">C</option></select>
                 </div>
                 <div><label>Velocità</label>
-                    <select id="pc-vel"><option value="0.5">0.5×</option><option value="0.75">0.75×</option><option value="1" selected>1×</option><option value="1.5">1.5×</option><option value="2">2×</option></select>
+                    <select id="pc-vel"><option value="0.5">0.5×</option><option value="0.75">0.75×</option><option value="1" selected>1×</option><option value="1.25">1.25×</option><option value="1.5">1.5×</option><option value="2">2×</option><option value="3">3×</option></select>
                 </div>
                 <div><label>Riquadro</label>
                     <select id="pc-pip"><option value="1">Pieno</option><option value="0.45">PiP piccolo</option><option value="0.6">PiP medio</option></select>
@@ -166,42 +188,83 @@
                         <option value="taglio">Taglio</option>
                         <option value="dissolvenza">Dissolvenza</option>
                         <option value="nero">Dissolvenza al nero</option>
+                        <option value="flashbianco">Flash bianco</option>
+                        <option value="sfocata">Dissolvenza sfocata</option>
                         <option value="scorri">Scorrimento</option>
+                        <option value="su">Scorri dal basso</option>
+                        <option value="giu">Scorri dall'alto</option>
                         <option value="wipe">Wipe</option>
+                        <option value="cerchio">Cerchio</option>
+                        <option value="dividi">Dividi</option>
                         <option value="zoomin">Zoom in</option>
                     </select>
                 </div>
                 <div><label>Durata trans. (s)</label><input type="number" id="pc-transdur" min="0.2" max="2" step="0.1" value="0.6"></div>
             </div>
-            <div style="margin-top:8px">
-                <label>Preset colore</label>
-                <select id="pc-preset"></select>
+            <div class="ev-row2" style="margin-top:8px">
+                <div>
+                    <label>Filtro colore</label>
+                    <select id="pc-preset"></select>
+                </div>
+                <div>
+                    <label>Effetto</label>
+                    <select id="pc-effetto">
+                        <option value="">Nessuno</option>
+                        <option value="vignetta">Vignetta</option>
+                        <option value="grana">Grana pellicola</option>
+                        <option value="sfocatura">Sfocatura</option>
+                        <option value="glitch">Glitch</option>
+                        <option value="scossa">Scossa</option>
+                        <option value="impulso">Impulso (zoom ritmico)</option>
+                        <option value="cromatico">Aberrazione cromatica</option>
+                    </select>
+                </div>
             </div>
             <div class="ev-row3" style="margin-top:8px">
                 <div><label>Lumin. <span id="pc-lum-v" class="muted">100</span></label><input type="range" id="pc-lum" min="50" max="150" value="100"></div>
                 <div><label>Contr. <span id="pc-con-v" class="muted">100</span></label><input type="range" id="pc-con" min="50" max="150" value="100"></div>
                 <div><label>Satur. <span id="pc-sat-v" class="muted">100</span></label><input type="range" id="pc-sat" min="0" max="200" value="100"></div>
             </div>
+            <details class="ev-sez">
+                <summary>Trasforma</summary>
+                <div class="ev-row3" style="margin-top:8px">
+                    <div><label>Riempimento</label>
+                        <select id="pc-fit"><option value="cover">Riempi</option><option value="contain">Adatta</option><option value="sfondo">Adatta + sfondo sfocato</option></select>
+                    </div>
+                    <div><label>Scala <span id="pc-scala-v" class="muted">100%</span></label><input type="range" id="pc-scala" min="50" max="250" value="100"></div>
+                    <div><label>Rotazione <span id="pc-rot-v" class="muted">0°</span></label><input type="range" id="pc-rot" min="-45" max="45" value="0"></div>
+                </div>
+                <div class="ev-row3" style="margin-top:8px;align-items:center">
+                    <div><label>Posizione X <span id="pc-px-v" class="muted">0</span></label><input type="range" id="pc-px" min="-50" max="50" value="0"></div>
+                    <div><label>Posizione Y <span id="pc-py-v" class="muted">0</span></label><input type="range" id="pc-py" min="-50" max="50" value="0"></div>
+                    <div><label>Opacità <span id="pc-opa-v" class="muted">100%</span></label><input type="range" id="pc-opa" min="10" max="100" value="100"></div>
+                </div>
+                <label style="display:flex;gap:6px;align-items:center;font-weight:500;cursor:pointer;margin-top:8px;font-size:12px">
+                    <input type="checkbox" id="pc-flip" style="width:auto"> Specchia orizzontalmente
+                </label>
+            </details>
             <div class="ev-row2" style="margin-top:8px;align-items:center">
                 <div><label>Volume clip <span id="pc-vol-v" class="muted">100%</span></label><input type="range" id="pc-vol" min="0" max="100" value="100"></div>
                 <label style="display:flex;gap:6px;align-items:center;font-weight:500;cursor:pointer;margin-top:14px">
                     <input type="checkbox" id="pc-kb" style="width:auto"> Zoom lento (Ken Burns)
                 </label>
             </div>
-            <div style="display:flex;gap:6px;margin-top:10px;justify-content:space-between">
+            <div style="display:flex;gap:6px;margin-top:10px;justify-content:space-between;flex-wrap:wrap">
                 <button type="button" class="btn ev-mini" id="pc-dup">⧉ Duplica</button>
+                <button type="button" class="btn ev-mini" id="pc-ripple" title="Elimina e fa scorrere a sinistra le clip successive" style="color:var(--danger)">✕ Rimuovi e chiudi</button>
                 <button type="button" class="btn ev-mini" id="pc-del" style="color:var(--danger)">✕ Rimuovi</button>
             </div>
         </div></div>
 
         <div class="card" id="pan-ov" style="display:none"><div class="card-pad">
             <h3 style="margin-bottom:8px;font-size:14px">Testo <span class="muted" style="font-weight:500;font-size:11px">(trascinalo sul video per posizionarlo)</span></h3>
-            <div><label>Testo</label><input type="text" id="po-testo"></div>
+            <div class="ev-stili" id="po-stili" style="margin-bottom:8px"></div>
+            <div><label>Testo (↵ = nuova riga)</label><textarea id="po-testo" rows="2" style="resize:vertical"></textarea></div>
             <div class="ev-row3" style="margin-top:8px">
                 <div><label>Da (s)</label><input type="number" id="po-da" min="0" step="0.1"></div>
                 <div><label>A (s)</label><input type="number" id="po-a" min="0" step="0.1"></div>
                 <div><label>Dimensione</label>
-                    <select id="po-size"><option value="0.045">Piccolo</option><option value="0.07" selected>Medio</option><option value="0.1">Grande</option></select>
+                    <select id="po-size"><option value="0.035">Mini</option><option value="0.045">Piccolo</option><option value="0.07" selected>Medio</option><option value="0.095">Grande</option><option value="0.12">Enorme</option></select>
                 </div>
             </div>
             <div class="ev-row2" style="margin-top:8px;align-items:end">
@@ -240,13 +303,38 @@
                     </select>
                 </div>
             </div>
-            <div style="display:flex;gap:10px;margin-top:8px">
+            <div style="display:flex;gap:10px;margin-top:8px;flex-wrap:wrap">
                 <label style="display:flex;gap:5px;align-items:center;font-size:12px;cursor:pointer"><input type="checkbox" id="po-maiuscolo" style="width:auto"> MAIUSCOLO</label>
                 <label style="display:flex;gap:5px;align-items:center;font-size:12px;cursor:pointer"><input type="checkbox" id="po-enfasi" style="width:auto" checked> Enfasi (bold)</label>
+                <label style="display:flex;gap:5px;align-items:center;font-size:12px;cursor:pointer"><input type="checkbox" id="po-contorno" style="width:auto"> Contorno</label>
+                <label style="display:flex;gap:5px;align-items:center;font-size:12px;cursor:pointer"><input type="checkbox" id="po-ombra" style="width:auto" checked> Ombra</label>
+                <label id="po-font-riga" style="display:none;gap:5px;align-items:center;font-size:12px">Font
+                    <select id="po-font" style="width:auto;font-size:12px;padding:2px 6px"><option value="titoli">Titoli</option><option value="testo">Testo</option></select>
+                </label>
             </div>
             <div style="display:flex;gap:6px;margin-top:10px;justify-content:space-between">
                 <button type="button" class="btn ev-mini" id="po-ph">⏱ Inizia dal cursore</button>
+                <button type="button" class="btn ev-mini" id="po-dup">⧉ Duplica</button>
                 <button type="button" class="btn ev-mini" id="po-del" style="color:var(--danger)">✕ Rimuovi</button>
+            </div>
+        </div></div>
+
+        <div class="card" id="pan-graf" style="display:none"><div class="card-pad">
+            <h3 style="margin-bottom:8px;font-size:14px">Grafica: <span id="pg-nome" class="muted" style="font-weight:500"></span>
+                <span class="muted" style="font-weight:500;font-size:11px">(trascinala sul video)</span></h3>
+            <div class="ev-row2">
+                <div><label>Da (s)</label><input type="number" id="pg-da" min="0" step="0.1"></div>
+                <div><label>A (s)</label><input type="number" id="pg-a" min="0" step="0.1"></div>
+            </div>
+            <div class="ev-row3" style="margin-top:8px">
+                <div><label>Dimensione <span id="pg-scala-v" class="muted">20%</span></label><input type="range" id="pg-scala" min="4" max="80" value="20"></div>
+                <div><label>Rotazione <span id="pg-rot-v" class="muted">0°</span></label><input type="range" id="pg-rot" min="-180" max="180" value="0"></div>
+                <div><label>Opacità <span id="pg-opa-v" class="muted">100%</span></label><input type="range" id="pg-opa" min="10" max="100" value="100"></div>
+            </div>
+            <div style="display:flex;gap:6px;margin-top:10px;justify-content:space-between">
+                <button type="button" class="btn ev-mini" id="pg-ph">⏱ Inizia dal cursore</button>
+                <button type="button" class="btn ev-mini" id="pg-dup">⧉ Duplica</button>
+                <button type="button" class="btn ev-mini" id="pg-del" style="color:var(--danger)">✕ Rimuovi</button>
             </div>
         </div></div>
 
@@ -262,6 +350,9 @@
                 <div><label>Fade in (s)</label><input type="number" id="pm-fi" min="0" step="0.5" value="1"></div>
                 <div><label>Fade out (s)</label><input type="number" id="pm-fo" min="0" step="0.5" value="2"></div>
             </div>
+            <label style="display:flex;gap:6px;align-items:center;font-size:12px;cursor:pointer;margin-top:8px" title="Abbassa automaticamente questa traccia quando le clip hanno audio attivo">
+                <input type="checkbox" id="pm-duck" style="width:auto"> Ducking: abbassa quando le clip parlano
+            </label>
             <button type="button" class="btn ev-mini" id="pm-del" style="color:var(--danger);margin-top:10px">✕ Rimuovi traccia</button>
         </div></div>
     </div>
@@ -273,29 +364,47 @@
     const LOGO_URL = {{ asset(logo_url)|json_encode|raw }};
     const KIT_FONT = {{ kit_font|json_encode|raw }} || {};
     const FONT_TITOLI = (KIT_FONT.titoli ? "'" + KIT_FONT.titoli + "'," : '') + "-apple-system,'Segoe UI',Roboto,sans-serif";
+    const FONT_TESTO = (KIT_FONT.testo ? "'" + KIT_FONT.testo + "'," : '') + "-apple-system,'Segoe UI',Roboto,sans-serif";
+    const ICONE = {{ icone|default([])|json_encode|raw }} || [];
     const URL_ARCHIVIA = {{ path('app_creator_video_archivia')|json_encode|raw }};
     const CSRF = {{ csrf_token('video_archivia')|json_encode|raw }};
     const STING = {
         apertura: {{ sting_apertura ? asset(sting_apertura)|json_encode|raw : 'null' }},
         chiusura: {{ sting_chiusura ? asset(sting_chiusura)|json_encode|raw : 'null' }},
     };
+    // filtri colore in stile CapCut (combinazioni di filtri CSS canvas)
     const PRESET = {
         nessuno: '', vivido: 'saturate(1.35) contrast(1.08)', caldo: 'sepia(0.25) saturate(1.3) hue-rotate(-8deg)',
         freddo: 'saturate(1.1) hue-rotate(12deg) brightness(1.03)', cinema: 'contrast(1.18) saturate(0.9) brightness(0.96)',
+        hollywood: 'contrast(1.12) saturate(1.18) sepia(0.12) brightness(1.02)',
+        fuji: 'saturate(1.15) hue-rotate(-5deg) contrast(1.05) brightness(1.04)',
+        autunno: 'sepia(0.35) saturate(1.25) hue-rotate(-14deg)',
+        crema: 'sepia(0.18) brightness(1.08) contrast(0.95) saturate(0.9)',
+        notte: 'brightness(0.85) saturate(0.8) hue-rotate(18deg) contrast(1.1)',
         bn: 'grayscale(1) contrast(1.1)', seppia: 'sepia(0.8)',
     };
-    const PRESET_LABEL = { nessuno: 'Nessuno', vivido: 'Vivido', caldo: 'Caldo', freddo: 'Freddo', cinema: 'Cinema', bn: 'Bianco e nero', seppia: 'Seppia' };
+    const PRESET_LABEL = { nessuno: 'Nessuno', vivido: 'Vivido', caldo: 'Caldo', freddo: 'Freddo', cinema: 'Cinema',
+        hollywood: 'Hollywood', fuji: 'Fuji', autunno: 'Autunno', crema: 'Crema', notte: 'Notte', bn: 'Bianco e nero', seppia: 'Seppia' };
     // palette Passpartour per i testi
     const PALETTE = ['#ffffff', '#f6a41f', '#ea5b24', '#1f9fd6', '#123a72', '#0a162c'];
     const PALETTE_BG = ['', '#0a162c', '#123a72', '#ea5b24', '#f6a41f', '#ffffff'];
+    // stili di testo pronti (alla Canva)
+    const STILI_TESTO = {
+        'Titolo':      { size: 0.095, colore: '#ffffff', bg: '', maiuscolo: true, enfasi: true, contorno: false, ombra: true, font: 'titoli', effIn: 'zoom' },
+        'Sottotitolo': { size: 0.07, colore: '#f6a41f', bg: '', maiuscolo: false, enfasi: true, contorno: false, ombra: true, font: 'titoli', effIn: 'fade' },
+        'Caption':     { size: 0.045, colore: '#ffffff', bg: 'pill', bgColore: '#0a162c', maiuscolo: false, enfasi: false, contorno: false, ombra: false, font: 'testo', effIn: 'su' },
+        'CTA':         { size: 0.045, colore: '#ffffff', bg: 'pill', bgColore: '#ea5b24', maiuscolo: true, enfasi: true, contorno: false, ombra: false, font: 'titoli', effIn: 'zoom' },
+        'Impatto':     { size: 0.12, colore: '#f6a41f', bg: '', maiuscolo: true, enfasi: true, contorno: true, ombra: false, font: 'titoli', effIn: 'macchina' },
+    };
 
     const $ = id => document.getElementById(id);
     const tela = $('tela'), ctx = tela.getContext('2d');
-    const clips = [];   // {id,url,nome,video,durata,traccia,t,in,out,vel,vol,muto,pip,preset,lum,con,sat,kb,trans,transDur,thumb,srcNode,gain}
-    const testi = [];   // {id,testo,da,a,size,x,y,colore,bg,bgColore,maiuscolo,enfasi,effIn,effOut}
-    const musiche = []; // {id,nome,url,audio,t,in,out,durata,vol,fadeIn,fadeOut,srcNode,gain}
-    let sel = null;     // {tipo:'clip'|'ov'|'mus', id}
-    let scala = 26;     // px per secondo
+    const clips = [];    // {id,url,nome,video,durata,traccia,t,in,out,vel,vol,muto,pip,preset,effetto,lum,con,sat,kb,trans,transDur,fit,scalaZ,px,py,rot,flip,opa,thumb,srcNode,gain,_auto}
+    const testi = [];    // {id,testo,da,a,size,x,y,colore,bg,bgColore,maiuscolo,enfasi,contorno,ombra,font,effIn,effOut}
+    const grafiche = []; // {id,url,nome,img,da,a,x,y,scala,rot,opa}
+    const musiche = [];  // {id,nome,url,audio,t,in,out,durata,vol,fadeIn,fadeOut,duck,wave,srcNode,gain}
+    let sel = null;      // {tipo:'clip'|'ov'|'graf'|'mus', id}
+    let scala = 26;      // px per secondo
     let playhead = 0;
     let inPlay = false, fermaRichiesto = false, esportando = false;
     let magnete = true, guide = false;
@@ -303,6 +412,9 @@
     let audioCtx = null, audioDest = null;
     let ultimoBlob = null, ultimaExt = 'webm';
     let uid = 1;
+    // registro dei media per id: sopravvive alle cancellazioni, così annulla/ripeti
+    // riaggancia gli stessi elementi <video>/<audio> (e le loro MediaElementSource)
+    const registro = new Map();
 
     /* ================= modello ================= */
     const effDur = c => Math.max(0.1, (c.out - c.in) / c.vel);
@@ -314,25 +426,70 @@
         let d = 0;
         clips.forEach(c => d = Math.max(d, fineClip(c)));
         testi.forEach(o => d = Math.max(d, o.a));
+        grafiche.forEach(g => d = Math.max(d, g.a));
         musiche.forEach(m => d = Math.max(d, fineMus(m)));
         return d;
     }
-    // la clip visibile a t su una traccia è l'ultima (in ordine di inizio) che copre t
     function clipA(traccia, t) {
         const att = clips.filter(c => c.traccia === traccia && t >= c.t && t < fineClip(c));
         return att.length ? att.sort((a, b) => a.t - b.t)[att.length - 1] : null;
     }
     const fineTraccia = tr => clips.filter(c => c.traccia === tr).reduce((m, c) => Math.max(m, fineClip(c)), 0);
 
+    /* ================= annulla / ripeti ================= */
+    const storia = [], futuro = [];
+    let salvaChiave = '', salvaQuando = 0;
+    const CAMPI_CLIP = ['id','url','nome','durata','traccia','t','in','out','vel','vol','muto','pip','preset','effetto','lum','con','sat','kb','trans','transDur','fit','scalaZ','px','py','rot','flip','opa'];
+    const CAMPI_TESTO = ['id','testo','da','a','size','x','y','colore','bg','bgColore','maiuscolo','enfasi','contorno','ombra','font','effIn','effOut'];
+    const CAMPI_GRAF = ['id','url','nome','da','a','x','y','scala','rot','opa'];
+    const CAMPI_MUS = ['id','nome','url','t','in','out','durata','vol','fadeIn','fadeOut','duck'];
+    const estrai = (o, campi) => { const r = {}; campi.forEach(k => r[k] = o[k]); return r; };
+    const fotografa = () => ({
+        clips: clips.map(c => estrai(c, CAMPI_CLIP)),
+        testi: testi.map(o => estrai(o, CAMPI_TESTO)),
+        grafiche: grafiche.map(g => estrai(g, CAMPI_GRAF)),
+        musiche: musiche.map(m => estrai(m, CAMPI_MUS)),
+    });
+    function salvaStato(chiave) {
+        // le modifiche continue (slider, drag) salvano solo il primo evento della raffica
+        const ora = Date.now();
+        if (chiave && chiave === salvaChiave && ora - salvaQuando < 800) { salvaQuando = ora; return; }
+        salvaChiave = chiave || ''; salvaQuando = ora;
+        storia.push(fotografa());
+        if (storia.length > 60) storia.shift();
+        futuro.length = 0;
+        aggiornaUndo();
+    }
+    function applicaStato(s) {
+        [ [clips, s.clips], [grafiche, s.grafiche], [musiche, s.musiche] ].forEach(([arr, snap]) => {
+            arr.length = 0;
+            snap.forEach(sc => { const vivo = registro.get(sc.id); if (vivo) { Object.assign(vivo, sc); arr.push(vivo); } });
+        });
+        testi.length = 0;
+        s.testi.forEach(st => testi.push(Object.assign({}, st)));
+        musiche.forEach(m => m.audio.pause());
+        sel = null;
+        ['pan-clip','pan-ov','pan-graf','pan-mus'].forEach(p => $(p).style.display = 'none');
+        render(); disegnaA(playhead);
+    }
+    function annulla() { if (!storia.length) return; futuro.push(fotografa()); applicaStato(storia.pop()); aggiornaUndo(); }
+    function ripeti() { if (!futuro.length) return; storia.push(fotografa()); applicaStato(futuro.pop()); aggiornaUndo(); }
+    function aggiornaUndo() { $('btn-undo').disabled = !storia.length; $('btn-redo').disabled = !futuro.length; }
+    $('btn-undo').addEventListener('click', annulla);
+    $('btn-redo').addEventListener('click', ripeti);
+
     /* ================= caricamento ================= */
     function aggiungiClip(file, url, nome, cb) {
         const video = document.createElement('video');
         video.src = url; video.preload = 'auto'; video.playsInline = true; video.crossOrigin = 'anonymous'; video.muted = false;
         const c = { id: uid++, url, nome, video, durata: 0, traccia: 0, t: 0,
-            in: 0, out: 0, vel: 1, vol: 1, muto: false, pip: 1, preset: 'nessuno', lum: 100, con: 100, sat: 100, kb: false,
-            trans: clips.length ? 'dissolvenza' : 'taglio', transDur: 0.6, thumb: null, srcNode: null, gain: null, _auto: true };
+            in: 0, out: 0, vel: 1, vol: 1, muto: false, pip: 1, preset: 'nessuno', effetto: '', lum: 100, con: 100, sat: 100, kb: false,
+            trans: clips.length ? 'dissolvenza' : 'taglio', transDur: 0.6,
+            fit: 'cover', scalaZ: 100, px: 0, py: 0, rot: 0, flip: false, opa: 100,
+            thumb: null, srcNode: null, gain: null, _auto: true };
         video.addEventListener('loadedmetadata', () => {
-            c.durata = video.duration; c.out = Math.round(video.duration * 10) / 10;
+            c.durata = video.duration;
+            if (!c.out) c.out = Math.round(video.duration * 10) / 10; // un clone ha già i suoi tagli
             // accodamento sulla traccia base SOLO ora che la durata è nota
             if (c._auto) { c.t = clips.filter(o => o !== c && o.traccia === 0).reduce((m, o) => Math.max(m, fineClip(o)), 0); c._auto = false; }
             video.currentTime = Math.min(0.15, video.duration / 2);
@@ -349,10 +506,23 @@
             render();
         });
         clips.push(c);
+        registro.set(c.id, c);
         return c;
     }
 
+    // clona una clip su un NUOVO elemento video (mai condividere l'elemento:
+    // due clip sullo stesso <video> si rubano il seek e la MediaElementSource)
+    function clonaClip(c, campi) {
+        const n = aggiungiClip(null, c.url, c.nome);
+        n._auto = false;
+        CAMPI_CLIP.forEach(k => { if (k !== 'id' && k !== 'url' && k !== 'nome') n[k] = c[k]; });
+        Object.assign(n, campi || {});
+        n.thumb = c.thumb;
+        return n;
+    }
+
     $('clip-file').addEventListener('change', e => {
+        salvaStato();
         for (const file of e.target.files) {
             const c = aggiungiClip(file, URL.createObjectURL(file), file.name.replace(/\.[^.]+$/, ''));
             seleziona('clip', c.id);
@@ -363,15 +533,18 @@
     function aggiungiMusica(url, nome, t) {
         const audio = new Audio(url); audio.crossOrigin = 'anonymous'; audio.preload = 'auto';
         const m = { id: uid++, nome, url, audio, t: t !== undefined ? t : 0, in: 0, out: 0, durata: 0,
-            vol: 0.6, fadeIn: 1, fadeOut: 2, srcNode: null, gain: null };
+            vol: 0.6, fadeIn: 1, fadeOut: 2, duck: false, wave: null, srcNode: null, gain: null };
         audio.addEventListener('loadedmetadata', () => {
             m.durata = audio.duration; m.out = m.out || Math.round(audio.duration * 10) / 10;
             render();
         });
         musiche.push(m);
+        registro.set(m.id, m);
+        generaWave(m);
         return m;
     }
     $('musica-file').addEventListener('change', e => {
+        salvaStato();
         for (const file of e.target.files) {
             const m = aggiungiMusica(URL.createObjectURL(file), file.name);
             seleziona('mus', m.id);
@@ -379,14 +552,70 @@
         e.target.value = ''; render();
     });
 
+    // forma d'onda del blocco musica (decodifica fuori dal grafo audio live)
+    async function generaWave(m) {
+        try {
+            const buf = await (await fetch(m.url)).arrayBuffer();
+            const dec = new OfflineAudioContext(1, 44100, 44100);
+            const audioBuf = await dec.decodeAudioData(buf);
+            const dati = audioBuf.getChannelData(0);
+            const cv = document.createElement('canvas'); cv.width = 600; cv.height = 38;
+            const g = cv.getContext('2d');
+            g.fillStyle = 'rgba(255,255,255,.55)';
+            const passo = Math.max(1, Math.floor(dati.length / 600));
+            for (let x = 0; x < 600; x++) {
+                let max = 0;
+                for (let i = x * passo; i < (x + 1) * passo && i < dati.length; i += 20) max = Math.max(max, Math.abs(dati[i]));
+                const h = Math.max(1, max * 36);
+                g.fillRect(x, 19 - h / 2, 1, h);
+            }
+            m.wave = cv.toDataURL();
+            render();
+        } catch (err) { /* contenitore non decodificabile: nessuna onda */ }
+    }
+
+    /* ---- grafiche: immagini caricate o icone del Media Kit ---- */
+    function aggiungiGrafica(url, nome) {
+        const img = new Image(); img.crossOrigin = 'anonymous'; img.src = url;
+        const t0 = Math.round(playhead * 10) / 10;
+        const g = { id: uid++, url, nome, img, da: t0, a: t0 + 4, x: 0.5, y: 0.5, scala: 20, rot: 0, opa: 100 };
+        img.onload = () => disegnaA(playhead);
+        grafiche.push(g);
+        registro.set(g.id, g);
+        return g;
+    }
+    $('grafica-file').addEventListener('change', e => {
+        salvaStato();
+        for (const file of e.target.files) {
+            const g = aggiungiGrafica(URL.createObjectURL(file), file.name.replace(/\.[^.]+$/, ''));
+            seleziona('graf', g.id);
+        }
+        e.target.value = ''; render(); disegnaA(playhead);
+    });
+    if (ICONE.length) {
+        const s = $('sel-icona'); s.style.display = '';
+        const vuota = document.createElement('option'); vuota.value = ''; vuota.textContent = '＋ Icona kit…'; s.appendChild(vuota);
+        ICONE.forEach(ic => { const o = document.createElement('option'); o.value = ic.url; o.textContent = ic.nome; s.appendChild(o); });
+        s.addEventListener('change', () => {
+            if (!s.value) return;
+            salvaStato();
+            const ic = ICONE.find(i => i.url === s.value);
+            const g = aggiungiGrafica(s.value, ic ? ic.nome : 'icona');
+            g.scala = 10;
+            seleziona('graf', g.id);
+            s.value = '';
+            render(); disegnaA(playhead);
+        });
+    }
+
     /* ---- sting apertura/chiusura dal Media Kit ---- */
     const stingBox = $('sting-btns');
     if (STING.apertura) {
         const b = document.createElement('button');
         b.type = 'button'; b.className = 'btn ev-mini'; b.textContent = '🎬 Sting apertura';
         b.addEventListener('click', () => {
+            salvaStato();
             aggiungiClip(null, STING.apertura, 'Sting apertura', c => {
-                // tutte le clip della traccia base scorrono a destra per far posto
                 clips.forEach(o => { if (o !== c && o.traccia === 0) o.t += effDur(c); });
                 c.t = 0; c.trans = 'taglio';
                 render(); disegnaA(playhead);
@@ -398,9 +627,8 @@
         const b = document.createElement('button');
         b.type = 'button'; b.className = 'btn ev-mini'; b.textContent = '🏁 Sting chiusura';
         b.addEventListener('click', () => {
+            salvaStato();
             aggiungiClip(null, STING.chiusura, 'Sting chiusura', c => {
-                c.t = fineTraccia(0) - effDur(c) <= 0 ? 0 : fineTraccia(0) - effDur(c);
-                // appesa in coda alla traccia base
                 c.t = Math.max(0, clips.filter(o => o !== c && o.traccia === 0).reduce((m, o) => Math.max(m, fineClip(o)), 0));
                 c.trans = 'dissolvenza';
                 render(); disegnaA(playhead);
@@ -414,14 +642,17 @@
         sel = { tipo, id };
         $('pan-clip').style.display = tipo === 'clip' ? '' : 'none';
         $('pan-ov').style.display = tipo === 'ov' ? '' : 'none';
+        $('pan-graf').style.display = tipo === 'graf' ? '' : 'none';
         $('pan-mus').style.display = tipo === 'mus' ? '' : 'none';
         if (tipo === 'clip') { const c = clipSel(); if (c) riempiPannelloClip(c); }
         if (tipo === 'ov') { const o = ovSel(); if (o) riempiPannelloOv(o); }
+        if (tipo === 'graf') { const g = grafSel(); if (g) riempiPannelloGraf(g); }
         if (tipo === 'mus') { const m = musSel(); if (m) riempiPannelloMus(m); }
         render();
     }
     const clipSel = () => clips.find(c => sel && sel.tipo === 'clip' && c.id === sel.id);
     const ovSel = () => testi.find(o => sel && sel.tipo === 'ov' && o.id === sel.id);
+    const grafSel = () => grafiche.find(g => sel && sel.tipo === 'graf' && g.id === sel.id);
     const musSel = () => musiche.find(m => sel && sel.tipo === 'mus' && m.id === sel.id);
 
     function riempiPannelloClip(c) {
@@ -432,18 +663,28 @@
         const selP = $('pc-preset'); selP.innerHTML = '';
         Object.keys(PRESET).forEach(k => { const o = document.createElement('option'); o.value = k; o.textContent = PRESET_LABEL[k]; selP.appendChild(o); });
         selP.value = c.preset;
+        $('pc-effetto').value = c.effetto;
         $('pc-lum').value = c.lum; $('pc-con').value = c.con; $('pc-sat').value = c.sat;
         $('pc-lum-v').textContent = c.lum; $('pc-con-v').textContent = c.con; $('pc-sat-v').textContent = c.sat;
+        $('pc-fit').value = c.fit;
+        $('pc-scala').value = c.scalaZ; $('pc-scala-v').textContent = c.scalaZ + '%';
+        $('pc-rot').value = c.rot; $('pc-rot-v').textContent = c.rot + '°';
+        $('pc-px').value = c.px; $('pc-px-v').textContent = c.px;
+        $('pc-py').value = c.py; $('pc-py-v').textContent = c.py;
+        $('pc-opa').value = c.opa; $('pc-opa-v').textContent = c.opa + '%';
+        $('pc-flip').checked = c.flip;
         $('pc-vol').value = Math.round((c.muto ? 0 : c.vol) * 100); $('pc-vol-v').textContent = Math.round((c.muto ? 0 : c.vol) * 100) + '%';
         $('pc-kb').checked = c.kb;
     }
     function riempiPannelloOv(o) {
-        $('po-testo').value = o.testo; $('po-da').value = o.da; $('po-a').value = o.a;
+        $('po-testo').value = o.testo; $('po-da').value = +o.da.toFixed(2); $('po-a').value = +o.a.toFixed(2);
         $('po-size').value = String(o.size); $('po-bg').value = o.bg;
         $('po-effin').value = o.effIn; $('po-effout').value = o.effOut;
         $('po-maiuscolo').checked = o.maiuscolo; $('po-enfasi').checked = o.enfasi;
-        disegnaSwatch('po-colori', PALETTE, o.colore, v => { o.colore = v; disegnaA(playhead); });
-        disegnaSwatch('po-bg-colori', PALETTE_BG, o.bgColore, v => { o.bgColore = v; disegnaA(playhead); });
+        $('po-contorno').checked = o.contorno; $('po-ombra').checked = o.ombra;
+        if (KIT_FONT.testo && KIT_FONT.testo !== KIT_FONT.titoli) { $('po-font-riga').style.display = 'flex'; $('po-font').value = o.font; }
+        disegnaSwatch('po-colori', PALETTE, o.colore, v => { salvaStato('ovcol'); o.colore = v; disegnaA(playhead); });
+        disegnaSwatch('po-bg-colori', PALETTE_BG, o.bgColore, v => { salvaStato('ovbg'); o.bgColore = v; disegnaA(playhead); });
     }
     function disegnaSwatch(id, colori, attivo, onPick) {
         const box = $(id); box.innerHTML = '';
@@ -457,15 +698,39 @@
             box.appendChild(b);
         });
     }
+    function riempiPannelloGraf(g) {
+        $('pg-nome').textContent = g.nome;
+        $('pg-da').value = +g.da.toFixed(2); $('pg-a').value = +g.a.toFixed(2);
+        $('pg-scala').value = g.scala; $('pg-scala-v').textContent = g.scala + '%';
+        $('pg-rot').value = g.rot; $('pg-rot-v').textContent = g.rot + '°';
+        $('pg-opa').value = g.opa; $('pg-opa-v').textContent = g.opa + '%';
+    }
     function riempiPannelloMus(m) {
         $('pm-nome').textContent = m.nome;
         $('pm-t').value = m.t.toFixed(1); $('pm-in').value = m.in; $('pm-out').value = m.out;
         $('pm-vol').value = Math.round(m.vol * 100); $('pm-vol-v').textContent = Math.round(m.vol * 100) + '%';
         $('pm-fi').value = m.fadeIn; $('pm-fo').value = m.fadeOut;
+        $('pm-duck').checked = m.duck;
     }
 
+    // stili pronti per i testi
+    (function () {
+        const box = $('po-stili');
+        Object.keys(STILI_TESTO).forEach(nome => {
+            const b = document.createElement('button');
+            b.type = 'button'; b.textContent = nome;
+            b.addEventListener('click', () => {
+                const o = ovSel(); if (!o) return;
+                salvaStato();
+                Object.assign(o, STILI_TESTO[nome]);
+                riempiPannelloOv(o); render(); disegnaA(playhead);
+            });
+            box.appendChild(b);
+        });
+    })();
+
     // binding pannello clip
-    const bindC = (id, fn) => $(id).addEventListener('input', () => { const c = clipSel(); if (c) { fn(c, $(id)); render(); disegnaA(playhead); } });
+    const bindC = (id, fn, ev) => $(id).addEventListener(ev || 'input', () => { const c = clipSel(); if (c) { salvaStato(id); fn(c, $(id)); render(); disegnaA(playhead); } });
     bindC('pc-t', (c, el) => c.t = Math.max(0, parseFloat(el.value) || 0));
     bindC('pc-in', (c, el) => c.in = Math.max(0, Math.min(parseFloat(el.value) || 0, c.out - 0.1)));
     bindC('pc-out', (c, el) => c.out = Math.min(c.durata, Math.max(parseFloat(el.value) || 0, c.in + 0.1)));
@@ -475,20 +740,43 @@
     bindC('pc-trans', (c, el) => c.trans = el.value);
     bindC('pc-transdur', (c, el) => c.transDur = Math.max(0.2, parseFloat(el.value) || 0.6));
     bindC('pc-preset', (c, el) => c.preset = el.value);
+    bindC('pc-effetto', (c, el) => c.effetto = el.value);
     bindC('pc-lum', (c, el) => { c.lum = +el.value; $('pc-lum-v').textContent = el.value; });
     bindC('pc-con', (c, el) => { c.con = +el.value; $('pc-con-v').textContent = el.value; });
     bindC('pc-sat', (c, el) => { c.sat = +el.value; $('pc-sat-v').textContent = el.value; });
+    bindC('pc-fit', (c, el) => c.fit = el.value);
+    bindC('pc-scala', (c, el) => { c.scalaZ = +el.value; $('pc-scala-v').textContent = el.value + '%'; });
+    bindC('pc-rot', (c, el) => { c.rot = +el.value; $('pc-rot-v').textContent = el.value + '°'; });
+    bindC('pc-px', (c, el) => { c.px = +el.value; $('pc-px-v').textContent = el.value; });
+    bindC('pc-py', (c, el) => { c.py = +el.value; $('pc-py-v').textContent = el.value; });
+    bindC('pc-opa', (c, el) => { c.opa = +el.value; $('pc-opa-v').textContent = el.value + '%'; });
+    bindC('pc-flip', (c, el) => c.flip = el.checked, 'change');
     bindC('pc-vol', (c, el) => { c.vol = el.value / 100; c.muto = c.vol === 0; $('pc-vol-v').textContent = el.value + '%'; });
-    $('pc-kb').addEventListener('change', () => { const c = clipSel(); if (c) c.kb = $('pc-kb').checked; });
-    $('pc-in-ph').addEventListener('click', () => { const c = clipSel(); if (c && playhead > c.t && playhead < fineClip(c)) { c.in = Math.max(0, Math.min(tClip(c, playhead), c.out - 0.1)); riempiPannelloClip(c); render(); } });
-    $('pc-out-ph').addEventListener('click', () => { const c = clipSel(); if (c && playhead > c.t && playhead < fineClip(c)) { c.out = Math.min(c.durata, Math.max(tClip(c, playhead), c.in + 0.1)); riempiPannelloClip(c); render(); } });
-    $('pc-dup').addEventListener('click', () => { const c = clipSel(); if (!c) return;
-        const copia = Object.assign({}, c, { id: uid++, t: fineClip(c), srcNode: null, gain: null }); clips.push(copia); seleziona('clip', copia.id); });
-    $('pc-del').addEventListener('click', () => { const c = clipSel(); if (!c) return; clips.splice(clips.indexOf(c), 1); sel = null; seleziona('clip', -1); });
+    $('pc-kb').addEventListener('change', () => { const c = clipSel(); if (c) { salvaStato(); c.kb = $('pc-kb').checked; } });
+    $('pc-in-ph').addEventListener('click', () => { const c = clipSel(); if (c && playhead > c.t && playhead < fineClip(c)) { salvaStato(); c.in = Math.max(0, Math.min(tClip(c, playhead), c.out - 0.1)); riempiPannelloClip(c); render(); } });
+    $('pc-out-ph').addEventListener('click', () => { const c = clipSel(); if (c && playhead > c.t && playhead < fineClip(c)) { salvaStato(); c.out = Math.min(c.durata, Math.max(tClip(c, playhead), c.in + 0.1)); riempiPannelloClip(c); render(); } });
+    function duplicaClip() {
+        const c = clipSel(); if (!c) return;
+        salvaStato();
+        const n = clonaClip(c, { t: fineClip(c) });
+        seleziona('clip', n.id);
+    }
+    $('pc-dup').addEventListener('click', duplicaClip);
+    function rimuoviClip(ripple) {
+        const c = clipSel(); if (!c) return;
+        salvaStato();
+        const d = effDur(c), tr = c.traccia, da = fineClip(c) - 0.01;
+        clips.splice(clips.indexOf(c), 1);
+        if (ripple) clips.forEach(o => { if (o.traccia === tr && o.t >= da) o.t = Math.max(0, o.t - d); });
+        sel = null; $('pan-clip').style.display = 'none'; render(); disegnaA(playhead);
+    }
+    $('pc-del').addEventListener('click', () => rimuoviClip(false));
+    $('pc-ripple').addEventListener('click', () => rimuoviClip(true));
 
     // estrazione audio: l'audio della clip passa su una traccia musicale, la clip resta muta
     $('pc-estrai').addEventListener('click', () => {
         const c = clipSel(); if (!c) return;
+        salvaStato();
         const m = aggiungiMusica(c.url, '🎙 ' + c.nome, c.t);
         m.in = c.in; m.out = c.out; m.vol = c.vol || 1; m.fadeIn = 0; m.fadeOut = 0;
         c.muto = true; c.vol = 0;
@@ -497,7 +785,7 @@
     });
 
     // binding pannello testo
-    const bindO = (id, fn, ev) => $(id).addEventListener(ev || 'input', () => { const o = ovSel(); if (o) { fn(o, $(id)); render(); disegnaA(playhead); } });
+    const bindO = (id, fn, ev) => $(id).addEventListener(ev || 'input', () => { const o = ovSel(); if (o) { salvaStato(id); fn(o, $(id)); render(); disegnaA(playhead); } });
     bindO('po-testo', (o, el) => o.testo = el.value);
     bindO('po-da', (o, el) => o.da = Math.max(0, parseFloat(el.value) || 0));
     bindO('po-a', (o, el) => o.a = Math.max(o.da + 0.2, parseFloat(el.value) || 0));
@@ -507,40 +795,99 @@
     bindO('po-effout', (o, el) => o.effOut = el.value);
     bindO('po-maiuscolo', (o, el) => o.maiuscolo = el.checked, 'change');
     bindO('po-enfasi', (o, el) => o.enfasi = el.checked, 'change');
-    $('po-ph').addEventListener('click', () => { const o = ovSel(); if (o) { const d = o.a - o.da; o.da = playhead; o.a = playhead + d; riempiPannelloOv(o); render(); } });
-    $('po-del').addEventListener('click', () => { const o = ovSel(); if (!o) return; testi.splice(testi.indexOf(o), 1); sel = null; $('pan-ov').style.display = 'none'; render(); disegnaA(playhead); });
+    bindO('po-contorno', (o, el) => o.contorno = el.checked, 'change');
+    bindO('po-ombra', (o, el) => o.ombra = el.checked, 'change');
+    bindO('po-font', (o, el) => o.font = el.value, 'change');
+    $('po-ph').addEventListener('click', () => { const o = ovSel(); if (o) { salvaStato(); const d = o.a - o.da; o.da = playhead; o.a = playhead + d; riempiPannelloOv(o); render(); } });
+    $('po-dup').addEventListener('click', () => { const o = ovSel(); if (!o) return; salvaStato();
+        const n = Object.assign({}, o, { id: uid++, da: o.a, a: o.a + (o.a - o.da) }); delete n._hit; testi.push(n); seleziona('ov', n.id); });
+    $('po-del').addEventListener('click', () => { const o = ovSel(); if (!o) return; salvaStato(); testi.splice(testi.indexOf(o), 1); sel = null; $('pan-ov').style.display = 'none'; render(); disegnaA(playhead); });
     $('btn-overlay').addEventListener('click', () => {
-        const o = { id: uid++, testo: 'NUOVO TESTO', da: playhead, a: playhead + 3, size: 0.07,
-            x: 0.5, y: 0.8, colore: '#ffffff', bg: '', bgColore: '#0a162c', maiuscolo: false, enfasi: true, effIn: 'fade', effOut: 'fade' };
+        salvaStato();
+        const t0 = Math.round(playhead * 10) / 10;
+        const o = { id: uid++, testo: 'NUOVO TESTO', da: t0, a: t0 + 3, size: 0.07,
+            x: 0.5, y: 0.8, colore: '#ffffff', bg: '', bgColore: '#0a162c', maiuscolo: false, enfasi: true,
+            contorno: false, ombra: true, font: 'titoli', effIn: 'fade', effOut: 'fade' };
         testi.push(o); seleziona('ov', o.id); disegnaA(playhead);
     });
 
+    // binding pannello grafica
+    const bindG = (id, fn) => $(id).addEventListener('input', () => { const g = grafSel(); if (g) { salvaStato(id); fn(g, $(id)); render(); disegnaA(playhead); } });
+    bindG('pg-da', (g, el) => g.da = Math.max(0, parseFloat(el.value) || 0));
+    bindG('pg-a', (g, el) => g.a = Math.max(g.da + 0.2, parseFloat(el.value) || 0));
+    bindG('pg-scala', (g, el) => { g.scala = +el.value; $('pg-scala-v').textContent = el.value + '%'; });
+    bindG('pg-rot', (g, el) => { g.rot = +el.value; $('pg-rot-v').textContent = el.value + '°'; });
+    bindG('pg-opa', (g, el) => { g.opa = +el.value; $('pg-opa-v').textContent = el.value + '%'; });
+    $('pg-ph').addEventListener('click', () => { const g = grafSel(); if (g) { salvaStato(); const d = g.a - g.da; g.da = playhead; g.a = playhead + d; riempiPannelloGraf(g); render(); } });
+    $('pg-dup').addEventListener('click', () => { const g = grafSel(); if (!g) return; salvaStato();
+        const n = aggiungiGrafica(g.url, g.nome); Object.assign(n, { da: g.a, a: g.a + (g.a - g.da), x: g.x, y: g.y, scala: g.scala, rot: g.rot, opa: g.opa }); seleziona('graf', n.id); render(); });
+    $('pg-del').addEventListener('click', () => { const g = grafSel(); if (!g) return; salvaStato(); grafiche.splice(grafiche.indexOf(g), 1); sel = null; $('pan-graf').style.display = 'none'; render(); disegnaA(playhead); });
+
     // binding pannello musica
-    const bindM = (id, fn) => $(id).addEventListener('input', () => { const m = musSel(); if (m) { fn(m, $(id)); render(); } });
+    const bindM = (id, fn, ev) => $(id).addEventListener(ev || 'input', () => { const m = musSel(); if (m) { salvaStato(id); fn(m, $(id)); render(); } });
     bindM('pm-t', (m, el) => m.t = Math.max(0, parseFloat(el.value) || 0));
     bindM('pm-in', (m, el) => m.in = Math.max(0, Math.min(parseFloat(el.value) || 0, m.out - 0.1)));
     bindM('pm-out', (m, el) => m.out = Math.min(m.durata || 9999, Math.max(parseFloat(el.value) || 0, m.in + 0.1)));
     bindM('pm-vol', (m, el) => { m.vol = el.value / 100; $('pm-vol-v').textContent = el.value + '%'; });
     bindM('pm-fi', (m, el) => m.fadeIn = parseFloat(el.value) || 0);
     bindM('pm-fo', (m, el) => m.fadeOut = parseFloat(el.value) || 0);
-    $('pm-del').addEventListener('click', () => { const m = musSel(); if (!m) return; m.audio.pause(); musiche.splice(musiche.indexOf(m), 1); sel = null; $('pan-mus').style.display = 'none'; render(); });
+    bindM('pm-duck', (m, el) => m.duck = el.checked, 'change');
+    $('pm-del').addEventListener('click', () => { const m = musSel(); if (!m) return; salvaStato(); m.audio.pause(); musiche.splice(musiche.indexOf(m), 1); sel = null; $('pan-mus').style.display = 'none'; render(); });
 
-    // split al cursore (sulla clip selezionata, o sulla base)
-    $('btn-split').addEventListener('click', () => {
+    // split al cursore (sulla clip selezionata, o sulla base) — il nuovo pezzo
+    // vive su un suo elemento video, mai sullo stesso dell'originale
+    function dividi() {
         let c = clipSel();
         if (!c || playhead <= c.t + 0.15 || playhead >= fineClip(c) - 0.15) c = clipA(0, playhead);
         if (!c || playhead <= c.t + 0.15 || playhead >= fineClip(c) - 0.15) return;
+        salvaStato();
         const tc = tClip(c, playhead);
-        const copia = Object.assign({}, c, { id: uid++, t: playhead, in: tc, trans: 'taglio', srcNode: null, gain: null });
+        const n = clonaClip(c, { t: playhead, in: tc, trans: 'taglio' });
         c.out = tc;
-        clips.push(copia);
-        seleziona('clip', copia.id);
-    });
+        seleziona('clip', n.id);
+    }
+    $('btn-split').addEventListener('click', dividi);
 
     $('btn-magnete').classList.add('on');
     $('btn-magnete').addEventListener('click', () => { magnete = !magnete; $('btn-magnete').classList.toggle('on', magnete); });
     $('btn-guide').addEventListener('click', () => { guide = !guide; $('btn-guide').classList.toggle('on', guide); $('riga-eyeline').style.display = guide ? 'flex' : 'none'; disegnaA(playhead); });
     $('eyeline').addEventListener('input', () => disegnaA(playhead));
+
+    /* ================= scorciatoie da tastiera ================= */
+    document.addEventListener('keydown', ev => {
+        const t = ev.target;
+        if (t && (t.matches('input, textarea, select') || t.isContentEditable)) return;
+        const mod = ev.metaKey || ev.ctrlKey;
+        if (ev.code === 'Space') { ev.preventDefault(); $('btn-play').click(); return; }
+        if (mod && ev.key.toLowerCase() === 'z') { ev.preventDefault(); ev.shiftKey ? ripeti() : annulla(); return; }
+        if (mod && ev.key.toLowerCase() === 'd') { ev.preventDefault();
+            if (sel && sel.tipo === 'clip') duplicaClip();
+            else if (sel && sel.tipo === 'ov') $('po-dup').click();
+            else if (sel && sel.tipo === 'graf') $('pg-dup').click();
+            return; }
+        if (mod) return;
+        switch (ev.key) {
+            case 's': case 'S': dividi(); break;
+            case 'm': case 'M': $('btn-magnete').click(); break;
+            case 'g': case 'G': $('btn-guide').click(); break;
+            case 'Backspace': case 'Delete':
+                ev.preventDefault();
+                if (sel && sel.tipo === 'clip') rimuoviClip(ev.shiftKey);
+                else if (sel && sel.tipo === 'ov') $('po-del').click();
+                else if (sel && sel.tipo === 'graf') $('pg-del').click();
+                else if (sel && sel.tipo === 'mus') $('pm-del').click();
+                break;
+            case 'ArrowLeft': case 'ArrowRight': {
+                ev.preventDefault();
+                const passo = ev.shiftKey ? 1 : 1 / 30;
+                playhead = Math.max(0, Math.min(playhead + (ev.key === 'ArrowRight' ? passo : -passo), durataTotale()));
+                $('playhead').style.left = (playhead * scala) + 'px';
+                $('t-cur').textContent = playhead.toFixed(1);
+                disegnaA(playhead);
+                break;
+            }
+        }
+    });
 
     /* ================= timeline UI ================= */
     $('zoom').addEventListener('input', () => { scala = +$('zoom').value; render(); });
@@ -550,6 +897,7 @@
         const p = [0, playhead];
         clips.forEach(c => { if (c !== escludi) { p.push(c.t, fineClip(c)); } });
         testi.forEach(o => { if (o !== escludi) { p.push(o.da, o.a); } });
+        grafiche.forEach(g => { if (g !== escludi) { p.push(g.da, g.a); } });
         musiche.forEach(m => { if (m !== escludi) { p.push(m.t, fineMus(m)); } });
         return p;
     }
@@ -572,12 +920,13 @@
     }
 
     // drag generico: move / resize sinistra / destra
-    let drag = null; // {tipo, item, modo, dxT (offset in s), startX}
+    let drag = null;
     function iniziaDrag(ev, tipo, item, modo) {
         ev.preventDefault(); ev.stopPropagation();
+        salvaStato();
         const r = $('tl-inner').getBoundingClientRect();
         const tMouse = (ev.clientX - r.left) / scala;
-        drag = { tipo, item, modo, dxT: tMouse - (tipo === 'mus' ? item.t : tipo === 'ov' ? item.da : item.t) };
+        drag = { tipo, item, modo, dxT: tMouse - (tipo === 'mus' ? item.t : (tipo === 'ov' || tipo === 'graf') ? item.da : item.t) };
     }
     document.addEventListener('mousemove', ev => {
         if (!drag) return;
@@ -595,12 +944,12 @@
                 it.out = Math.min(it.durata, it.in + (fine - it.t) * it.vel);
             }
             if (sel && sel.tipo === 'clip' && sel.id === it.id) riempiPannelloClip(it);
-        } else if (drag.tipo === 'ov') {
+        } else if (drag.tipo === 'ov' || drag.tipo === 'graf') {
             const durata = it.a - it.da;
             if (drag.modo === 'move') { it.da = snap(tMouse - drag.dxT, it); it.a = it.da + durata; }
             else if (drag.modo === 'l') it.da = Math.min(snap(tMouse, it), it.a - 0.2);
             else it.a = Math.max(snap(tMouse, it), it.da + 0.2);
-            if (sel && sel.tipo === 'ov' && sel.id === it.id) riempiPannelloOv(it);
+            if (sel && sel.id === it.id) { drag.tipo === 'ov' ? riempiPannelloOv(it) : riempiPannelloGraf(it); }
         } else if (drag.tipo === 'mus') {
             if (drag.modo === 'move') it.t = snap(tMouse - drag.dxT, it);
             else if (drag.modo === 'l') {
@@ -616,6 +965,12 @@
         render();
     });
     document.addEventListener('mouseup', () => { if (drag) { drag = null; disegnaA(playhead); } });
+
+    function collegaBlocco(d, ml, mr, tipo, item) {
+        d.addEventListener('mousedown', ev => { if (ev.target === ml || ev.target === mr) return; seleziona(tipo, item.id); iniziaDrag(ev, tipo, item, 'move'); });
+        ml.addEventListener('mousedown', ev => { seleziona(tipo, item.id); iniziaDrag(ev, tipo, item, 'l'); });
+        mr.addEventListener('mousedown', ev => { seleziona(tipo, item.id); iniziaDrag(ev, tipo, item, 'r'); });
+    }
 
     function render() {
         const durata = Math.max(durataTotale(), 10);
@@ -637,14 +992,24 @@
                 const { d, ml, mr } = blocco('', c.t * scala, effDur(c) * scala, sel && sel.tipo === 'clip' && sel.id === c.id);
                 if (c.thumb) { const im = document.createElement('img'); im.src = c.thumb; d.insertBefore(im, d.firstChild); }
                 const n = document.createElement('div'); n.className = 'nome';
-                n.textContent = (c.trans !== 'taglio' ? '⇄ ' : '') + c.nome + ' · ' + effDur(c).toFixed(1) + 's' + (c.vel !== 1 ? ' · ' + c.vel + '×' : '') + (c.muto ? ' · 🔇' : '');
+                n.textContent = (c.trans !== 'taglio' ? '⇄ ' : '') + c.nome + ' · ' + effDur(c).toFixed(1) + 's'
+                    + (c.vel !== 1 ? ' · ' + c.vel + '×' : '') + (c.muto ? ' · 🔇' : '') + (c.effetto ? ' · ✨' : '');
                 d.appendChild(n);
-                d.addEventListener('mousedown', ev => { if (ev.target === ml || ev.target === mr) return; seleziona('clip', c.id); iniziaDrag(ev, 'clip', c, 'move'); });
-                ml.addEventListener('mousedown', ev => { seleziona('clip', c.id); iniziaDrag(ev, 'clip', c, 'l'); });
-                mr.addEventListener('mousedown', ev => { seleziona('clip', c.id); iniziaDrag(ev, 'clip', c, 'r'); });
+                collegaBlocco(d, ml, mr, 'clip', c);
                 d.addEventListener('dblclick', () => { playhead = c.t + 0.01; render(); disegnaA(playhead); });
                 tv.appendChild(d);
             });
+        });
+
+        // grafiche
+        const tg = $('track-grafiche');
+        tg.querySelectorAll('.ev-blocco').forEach(n => n.remove());
+        grafiche.forEach(g => {
+            const { d, ml, mr } = blocco('grafica', g.da * scala, (g.a - g.da) * scala, sel && sel.tipo === 'graf' && sel.id === g.id);
+            const n = document.createElement('div'); n.className = 'nome'; n.textContent = '🖼 ' + g.nome;
+            d.appendChild(n);
+            collegaBlocco(d, ml, mr, 'graf', g);
+            tg.appendChild(d);
         });
 
         // testi
@@ -652,25 +1017,22 @@
         to.querySelectorAll('.ev-blocco').forEach(n => n.remove());
         testi.forEach(o => {
             const { d, ml, mr } = blocco('testo', o.da * scala, (o.a - o.da) * scala, sel && sel.tipo === 'ov' && sel.id === o.id);
-            const n = document.createElement('div'); n.className = 'nome'; n.textContent = o.testo || 'testo';
+            const n = document.createElement('div'); n.className = 'nome'; n.textContent = (o.testo || 'testo').split('\n')[0];
             d.appendChild(n);
-            d.addEventListener('mousedown', ev => { if (ev.target === ml || ev.target === mr) return; seleziona('ov', o.id); iniziaDrag(ev, 'ov', o, 'move'); });
-            ml.addEventListener('mousedown', ev => { seleziona('ov', o.id); iniziaDrag(ev, 'ov', o, 'l'); });
-            mr.addEventListener('mousedown', ev => { seleziona('ov', o.id); iniziaDrag(ev, 'ov', o, 'r'); });
+            collegaBlocco(d, ml, mr, 'ov', o);
             to.appendChild(d);
         });
 
-        // musiche (ognuna un blocco libero)
+        // musiche (con forma d'onda quando disponibile)
         const tm = $('track-musica');
         tm.querySelectorAll('.ev-blocco').forEach(n => n.remove());
         musiche.forEach(m => {
             const { d, ml, mr } = blocco('musica', m.t * scala, durMus(m) * scala, sel && sel.tipo === 'mus' && sel.id === m.id);
+            if (m.wave) d.style.backgroundImage = 'url(' + m.wave + ')';
             const n = document.createElement('div'); n.className = 'nome';
-            n.textContent = '🎵 ' + m.nome + ' · ' + Math.round(m.vol * 100) + '%';
+            n.textContent = '🎵 ' + m.nome + ' · ' + Math.round(m.vol * 100) + '%' + (m.duck ? ' · 🦆' : '');
             d.appendChild(n);
-            d.addEventListener('mousedown', ev => { if (ev.target === ml || ev.target === mr) return; seleziona('mus', m.id); iniziaDrag(ev, 'mus', m, 'move'); });
-            ml.addEventListener('mousedown', ev => { seleziona('mus', m.id); iniziaDrag(ev, 'mus', m, 'l'); });
-            mr.addEventListener('mousedown', ev => { seleziona('mus', m.id); iniziaDrag(ev, 'mus', m, 'r'); });
+            collegaBlocco(d, ml, mr, 'mus', m);
             tm.appendChild(d);
         });
 
@@ -698,44 +1060,116 @@
     document.addEventListener('mouseup', () => scrubbing = false);
 
     /* ================= disegno frame ================= */
-    function dimensioni() { const f = $('imp-formato').value; return f === '1:1' ? [1080, 1080] : f === '16:9' ? [1920, 1080] : [1080, 1920]; }
+    function dimensioni() {
+        const f = $('imp-formato').value;
+        return f === '1:1' ? [1080, 1080] : f === '16:9' ? [1920, 1080] : f === '4:5' ? [1080, 1350] : [1080, 1920];
+    }
     function applicaFormato() { const [w, h] = dimensioni(); tela.width = w; tela.height = h; disegnaA(playhead); }
     $('imp-formato').addEventListener('change', applicaFormato);
     $('imp-logo-size').addEventListener('input', () => { $('logo-size-v').textContent = $('imp-logo-size').value + '%'; disegnaA(playhead); });
     $('imp-logo').addEventListener('change', () => disegnaA(playhead));
 
-    function filtroClip(c) {
+    function filtroClip(c, extra) {
         const reg = 'brightness(' + c.lum / 100 + ') contrast(' + c.con / 100 + ') saturate(' + c.sat / 100 + ')';
-        return ((PRESET[c.preset] || '') + ' ' + reg).trim();
+        return ((PRESET[c.preset] || '') + ' ' + reg + ' ' + (extra || '')).trim();
     }
+
+    // rumore per l'effetto grana: una tessera generata una volta sola
+    const grana = (function () {
+        const cv = document.createElement('canvas'); cv.width = 256; cv.height = 256;
+        const g = cv.getContext('2d'), im = g.createImageData(256, 256);
+        for (let i = 0; i < im.data.length; i += 4) { const v = 128 + (Math.random() - 0.5) * 255; im.data[i] = im.data[i+1] = im.data[i+2] = v; im.data[i+3] = 255; }
+        g.putImageData(im, 0, 0);
+        return cv;
+    })();
 
     function disegnaVideo(c, t, opz) {
         const v = c.video, W = tela.width, H = tela.height;
         if (!v.videoWidth) return;
         opz = opz || {};
+        const eff = c.effetto;
         ctx.save();
-        if (opz.alpha !== undefined) ctx.globalAlpha = opz.alpha;
+        let alpha = (opz.alpha !== undefined ? opz.alpha : 1) * (c.opa / 100);
+        ctx.globalAlpha = alpha;
         if (opz.clipW !== undefined) { ctx.beginPath(); ctx.rect(0, 0, opz.clipW, H); ctx.clip(); }
-        ctx.filter = filtroClip(c);
-        let z = opz.zoom || 1;
+        if (opz.centroW !== undefined) { const cw = opz.centroW * W; ctx.beginPath(); ctx.rect((W - cw) / 2, 0, cw, H); ctx.clip(); }
+        if (opz.cerchio !== undefined) { ctx.beginPath(); ctx.arc(W / 2, H / 2, Math.max(1, opz.cerchio * Math.hypot(W, H) / 2), 0, Math.PI * 2); ctx.clip(); }
+
+        let z = (opz.zoom || 1) * c.scalaZ / 100;
         if (c.kb) { const p = Math.max(0, Math.min(1, (t - c.in) / Math.max(0.1, c.out - c.in))); z *= 1 + 0.08 * p; }
+        if (eff === 'impulso') z *= 1 + 0.06 * Math.abs(Math.sin(t * Math.PI * 2));
+        let jx = 0, jy = 0;
+        if (eff === 'scossa') { jx = Math.sin(t * 43) * W * 0.008; jy = Math.cos(t * 59) * H * 0.006; z *= 1.03; }
+
         const area = c.pip < 1 ? c.pip : 1;
         const aw = W * area, ah = H * area;
-        const r = Math.max(aw / v.videoWidth, ah / v.videoHeight) * z;
-        const w = v.videoWidth * r, h = v.videoHeight * r;
-        const cx = c.pip < 1 ? W - aw / 2 - W * 0.04 : W / 2;
-        const cy = c.pip < 1 ? H * 0.04 + ah / 2 : H / 2;
+        const cx = (c.pip < 1 ? W - aw / 2 - W * 0.04 : W / 2) + W * c.px / 100 + (opz.dx || 0) + jx;
+        const cy = (c.pip < 1 ? H * 0.04 + ah / 2 : H / 2) + H * c.py / 100 + (opz.dy || 0) + jy;
         if (c.pip < 1) {
             ctx.beginPath(); ctx.roundRect(cx - aw / 2, cy - ah / 2, aw, ah, W * 0.02); ctx.clip();
         }
-        ctx.translate(opz.dx || 0, 0);
-        ctx.drawImage(v, cx - w / 2, cy - h / 2, w, h);
+
+        const extraBlur = (eff === 'sfocatura' ? 'blur(' + Math.round(W * 0.007) + 'px)' : '') + (opz.blur ? ' blur(' + opz.blur + 'px)' : '');
+
+        // «adatta + sfondo sfocato»: dietro il video adattato va la sua versione
+        // ingrandita e sfocata, il riempimento classico dei reel
+        if (c.fit === 'sfondo') {
+            ctx.save();
+            ctx.filter = filtroClip(c, 'blur(' + Math.round(W * 0.03) + 'px) brightness(0.7)');
+            const rb = Math.max(aw / v.videoWidth, ah / v.videoHeight) * 1.1;
+            ctx.drawImage(v, cx - v.videoWidth * rb / 2, cy - v.videoHeight * rb / 2, v.videoWidth * rb, v.videoHeight * rb);
+            ctx.restore();
+            ctx.globalAlpha = alpha;
+        }
+
+        ctx.filter = filtroClip(c, extraBlur);
+        const copri = c.fit === 'cover';
+        const r = (copri ? Math.max(aw / v.videoWidth, ah / v.videoHeight) : Math.min(aw / v.videoWidth, ah / v.videoHeight)) * z;
+        const w = v.videoWidth * r, h = v.videoHeight * r;
+        ctx.translate(cx, cy);
+        if (c.rot) ctx.rotate(c.rot * Math.PI / 180);
+        if (c.flip) ctx.scale(-1, 1);
+        ctx.drawImage(v, -w / 2, -h / 2, w, h);
+
+        // aberrazione cromatica: due scie colorate leggermente sfalsate
+        if (eff === 'cromatico') {
+            ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = alpha * 0.25;
+            ctx.filter = filtroClip(c, 'hue-rotate(120deg)');
+            ctx.drawImage(v, -w / 2 + W * 0.005, -h / 2, w, h);
+            ctx.filter = filtroClip(c, 'hue-rotate(-120deg)');
+            ctx.drawImage(v, -w / 2 - W * 0.005, -h / 2, w, h);
+        }
+        // glitch: a raffiche brevi, fasce orizzontali sfalsate
+        if (eff === 'glitch' && (t % 0.9) < 0.18 && v.videoHeight) {
+            ctx.filter = 'none'; ctx.globalAlpha = alpha;
+            for (let i = 0; i < 3; i++) {
+                const fy = ((t * 7 + i * 1.7) % 1);
+                const sy = fy * v.videoHeight * 0.9, sh = v.videoHeight * 0.05;
+                const dx2 = (i % 2 ? 1 : -1) * W * 0.015;
+                ctx.drawImage(v, 0, sy, v.videoWidth, sh, -w / 2 + dx2, -h / 2 + fy * h * 0.9, w, h * 0.05);
+            }
+        }
         ctx.restore();
+
+        // vignetta e grana coprono l'inquadratura intera
+        if (eff === 'vignetta') {
+            ctx.save(); ctx.globalAlpha = alpha;
+            const gr = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.42, W / 2, H / 2, Math.hypot(W, H) / 2);
+            gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(1, 'rgba(0,0,0,0.55)');
+            ctx.fillStyle = gr; ctx.fillRect(0, 0, W, H);
+            ctx.restore();
+        }
+        if (eff === 'grana') {
+            ctx.save(); ctx.globalAlpha = 0.12 * alpha; ctx.globalCompositeOperation = 'overlay';
+            const ox = Math.floor((t * 977) % 256), oy = Math.floor((t * 557) % 256);
+            for (let x = -ox; x < W; x += 256) for (let y = -oy; y < H; y += 256) ctx.drawImage(grana, x, y);
+            ctx.restore();
+        }
     }
 
     function disegnaFrame(t) {
         const W = tela.width, H = tela.height;
-        ctx.filter = 'none'; ctx.globalAlpha = 1;
+        ctx.filter = 'none'; ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
         ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H);
 
         // tracce dal basso verso l'alto; la transizione di una clip la fa entrare
@@ -749,8 +1183,14 @@
                     const p = Math.max(0, Math.min(1, dEntra / c.transDur));
                     if (c.trans === 'dissolvenza') disegnaVideo(c, tc, { alpha: p });
                     else if (c.trans === 'nero') { disegnaVideo(c, tc, {}); ctx.fillStyle = 'rgba(0,0,0,' + (1 - p) + ')'; ctx.fillRect(0, 0, W, H); }
+                    else if (c.trans === 'flashbianco') { disegnaVideo(c, tc, {}); ctx.fillStyle = 'rgba(255,255,255,' + (1 - p) + ')'; ctx.fillRect(0, 0, W, H); }
+                    else if (c.trans === 'sfocata') disegnaVideo(c, tc, { alpha: p, blur: Math.round((1 - p) * 18) });
                     else if (c.trans === 'scorri') disegnaVideo(c, tc, { dx: (1 - p) * W });
+                    else if (c.trans === 'su') disegnaVideo(c, tc, { dy: (1 - p) * H });
+                    else if (c.trans === 'giu') disegnaVideo(c, tc, { dy: -(1 - p) * H });
                     else if (c.trans === 'wipe') disegnaVideo(c, tc, { clipW: p * W });
+                    else if (c.trans === 'cerchio') disegnaVideo(c, tc, { cerchio: p });
+                    else if (c.trans === 'dividi') disegnaVideo(c, tc, { centroW: p });
                     else if (c.trans === 'zoomin') disegnaVideo(c, tc, { alpha: p, zoom: 1.25 - 0.25 * p });
                 } else {
                     disegnaVideo(c, tc, {});
@@ -758,9 +1198,23 @@
             });
         });
 
-        // testi con effetti di entrata/uscita
+        // grafiche (sotto i testi)
+        grafiche.forEach(g => {
+            if (t < g.da || t > g.a || !g.img.complete || !g.img.naturalWidth) { g._hit = null; return; }
+            const gw = W * g.scala / 100, gh = gw * g.img.naturalHeight / g.img.naturalWidth;
+            const x = W * g.x, y = H * g.y;
+            ctx.save();
+            ctx.globalAlpha = g.opa / 100;
+            ctx.translate(x, y);
+            if (g.rot) ctx.rotate(g.rot * Math.PI / 180);
+            ctx.drawImage(g.img, -gw / 2, -gh / 2, gw, gh);
+            ctx.restore();
+            g._hit = { x, y, w: Math.max(gw, gh), h: Math.max(gw, gh) };
+        });
+
+        // testi con effetti di entrata/uscita (multiriga)
         testi.forEach(o => {
-            if (t < o.da || t > o.a || !o.testo) return;
+            if (t < o.da || t > o.a || !o.testo) { o._hit = null; return; }
             let testo = o.maiuscolo ? o.testo.toUpperCase() : o.testo;
             const durIn = Math.min(0.5, (o.a - o.da) / 3), durOut = durIn;
             const pIn = Math.min(1, (t - o.da) / durIn), pOut = Math.min(1, (o.a - t) / durOut);
@@ -777,23 +1231,37 @@
 
             const size = Math.round(W * o.size * zoom);
             const x = W * o.x + dx, y = H * o.y + dy;
+            const righe = testo.split('\n');
+            const lineH = size * 1.18;
             ctx.save(); ctx.globalAlpha = Math.max(0, alpha);
-            ctx.font = (o.enfasi ? '900 ' : '600 ') + size + 'px ' + FONT_TITOLI;
+            ctx.font = (o.enfasi ? '900 ' : '600 ') + size + 'px ' + (o.font === 'testo' ? FONT_TESTO : FONT_TITOLI);
             ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-            const tw = ctx.measureText(testo).width;
+            const twMax = righe.reduce((m, r) => Math.max(m, ctx.measureText(r).width), 0);
+            const hTot = lineH * righe.length;
+            const y0 = y - (hTot - lineH) / 2;
             if (o.bg === 'pill' && o.bgColore) {
                 ctx.fillStyle = o.bgColore + 'd9';
-                const px = x - tw / 2 - size * 0.5, pw = tw + size, ph = size * 1.5;
-                ctx.beginPath(); ctx.roundRect(px, y - ph / 2, pw, ph, ph / 2); ctx.fill();
+                const px = x - twMax / 2 - size * 0.5, pw = twMax + size, ph = hTot + size * 0.5;
+                ctx.beginPath(); ctx.roundRect(px, y - ph / 2, pw, ph, Math.min(ph / 2, size * 0.75)); ctx.fill();
             } else if (o.bg === 'band' && o.bgColore) {
-                ctx.fillStyle = o.bgColore + 'b0'; ctx.fillRect(0, y - size * 0.9, W, size * 1.8);
-            } else {
+                ctx.fillStyle = o.bgColore + 'b0'; ctx.fillRect(0, y - hTot / 2 - size * 0.3, W, hTot + size * 0.6);
+            } else if (o.ombra) {
                 ctx.shadowColor = 'rgba(0,0,0,.6)'; ctx.shadowBlur = 20;
             }
-            ctx.fillStyle = o.colore;
-            ctx.fillText(testo, x, y);
+            righe.forEach((riga, i) => {
+                const ry = y0 + i * lineH;
+                if (o.contorno) {
+                    ctx.save(); ctx.shadowBlur = 0;
+                    ctx.lineWidth = Math.max(2, size * 0.1); ctx.lineJoin = 'round';
+                    ctx.strokeStyle = '#0a162c';
+                    ctx.strokeText(riga, x, ry);
+                    ctx.restore();
+                }
+                ctx.fillStyle = o.colore;
+                ctx.fillText(riga, x, ry);
+            });
             ctx.restore();
-            o._hit = { x, y, w: tw + size, h: size * 1.6 }; // per il drag sul video
+            o._hit = { x, y, w: twMax + size, h: hTot + size * 0.6 }; // per il drag sul video
         });
 
         // logo
@@ -809,11 +1277,9 @@
         if (guide && !esportando) {
             ctx.save();
             ctx.strokeStyle = 'rgba(31,159,214,.9)'; ctx.setLineDash([12, 10]); ctx.lineWidth = 3;
-            // margini UI reel/tiktok: alto 10%, basso 20% (barre azioni), destro 12% (icone)
             ctx.strokeRect(W * 0.04, H * 0.10, W * 0.80, H * 0.70);
             ctx.fillStyle = 'rgba(31,159,214,.85)'; ctx.font = '600 ' + Math.round(W * 0.028) + 'px sans-serif';
             ctx.fillText('zona sicura IG/TikTok', W * 0.05, H * 0.10 - 10);
-            // linea occhi (modificabile)
             const ey = H * ($('eyeline').value / 100);
             ctx.strokeStyle = 'rgba(246,164,31,.95)'; ctx.setLineDash([6, 8]); ctx.lineWidth = 2;
             ctx.beginPath(); ctx.moveTo(0, ey); ctx.lineTo(W, ey); ctx.stroke();
@@ -823,8 +1289,8 @@
         }
     }
 
-    // drag dei testi direttamente sul video
-    let dragTesto = null;
+    // drag di testi e grafiche direttamente sul video
+    let dragCanvas = null; // {tipo:'ov'|'graf', item}
     function coordCanvas(ev) {
         const r = tela.getBoundingClientRect();
         return [ (ev.clientX - r.left) * tela.width / r.width, (ev.clientY - r.top) * tela.height / r.height ];
@@ -832,24 +1298,28 @@
     tela.addEventListener('mousedown', ev => {
         if (inPlay) return;
         const [mx, my] = coordCanvas(ev);
-        const visibili = testi.filter(o => playhead >= o.da && playhead <= o.a && o._hit);
-        for (let i = visibili.length - 1; i >= 0; i--) {
-            const o = visibili[i], h = o._hit;
-            if (Math.abs(mx - h.x) < h.w / 2 && Math.abs(my - h.y) < h.h / 2) {
-                dragTesto = o; seleziona('ov', o.id);
+        const candidati = []
+            .concat(testi.filter(o => playhead >= o.da && playhead <= o.a && o._hit).map(o => ({ tipo: 'ov', item: o })))
+            .concat(grafiche.filter(g => playhead >= g.da && playhead <= g.a && g._hit).map(g => ({ tipo: 'graf', item: g })));
+        for (let i = candidati.length - 1; i >= 0; i--) {
+            const h = candidati[i].item._hit;
+            if (h && Math.abs(mx - h.x) < h.w / 2 && Math.abs(my - h.y) < h.h / 2) {
+                salvaStato();
+                dragCanvas = candidati[i];
+                seleziona(dragCanvas.tipo, dragCanvas.item.id);
                 ev.preventDefault();
                 return;
             }
         }
     });
     document.addEventListener('mousemove', ev => {
-        if (!dragTesto) return;
+        if (!dragCanvas) return;
         const [mx, my] = coordCanvas(ev);
-        dragTesto.x = Math.max(0.05, Math.min(0.95, mx / tela.width));
-        dragTesto.y = Math.max(0.05, Math.min(0.95, my / tela.height));
+        dragCanvas.item.x = Math.max(0.02, Math.min(0.98, mx / tela.width));
+        dragCanvas.item.y = Math.max(0.02, Math.min(0.98, my / tela.height));
         disegnaA(playhead);
     });
-    document.addEventListener('mouseup', () => dragTesto = null);
+    document.addEventListener('mouseup', () => dragCanvas = null);
 
     // disegno asincrono di un singolo frame (scrub): seeka i video coinvolti
     let disegnoTok = 0;
@@ -905,12 +1375,12 @@
         if (!clips.length && !musiche.length) return;
         await setupAudio();
         inPlay = true; fermaRichiesto = false;
-        $('btn-stop').disabled = false; $('btn-play').disabled = true;
+        $('btn-play').textContent = '⏸ Pausa';
         const durata = durataTotale();
         const t0clock = performance.now() / 1000 - daT;
         const senzaMusica = esportando && $('chk-no-musica').checked;
-        // in «senza musica» restano le voci estratte? No: TUTTE le tracce musicali
-        // sono escluse; l'audio originale delle clip non mute resta.
+        // «senza musica» esclude TUTTE le tracce musicali (comprese quelle
+        // estratte); l'audio originale delle clip non mute resta.
 
         // con la scheda in background requestAnimationFrame si ferma: il timer
         // tiene vivo l'export anche se l'utente cambia scheda a metà
@@ -920,6 +1390,8 @@
                 const t = performance.now() / 1000 - t0clock;
                 if (fermaRichiesto || t >= durata) { res(); return; }
                 playhead = t;
+                // ducking: quando una clip con audio è attiva, la musica si abbassa
+                const parlato = clips.some(c => !c.muto && c.vol > 0 && t >= c.t && t < fineClip(c));
                 clips.forEach(c => {
                     const v = c.video;
                     const attivo = t >= c.t && t < fineClip(c);
@@ -930,7 +1402,6 @@
                         else if (Math.abs(v.currentTime - tc) > 0.12) { v.currentTime = tc; }
                         if (c.gain) {
                             let g = (attivo && !c.muto) ? c.vol : 0;
-                            // dissolvenza audio in ingresso quando la clip ha una transizione
                             if (g > 0 && c.trans !== 'taglio' && t < c.t + c.transDur) g *= (t - c.t) / c.transDur;
                             c.gain.gain.setTargetAtTime(g, audioCtx.currentTime, 0.03);
                         }
@@ -943,7 +1414,10 @@
                         const tm = Math.min(m.in + Math.max(0, t - m.t), (m.durata || 9999) - 0.05);
                         if (m.audio.paused) { m.audio.currentTime = tm; m.audio.play().catch(() => {}); }
                         else if (Math.abs(m.audio.currentTime - tm) > 0.25) { m.audio.currentTime = tm; }
-                        if (m.gain) m.gain.gain.setTargetAtTime(attivo ? volumeMusica(m, t) : 0, audioCtx.currentTime, 0.05);
+                        if (m.gain) {
+                            const vol = (attivo ? volumeMusica(m, t) : 0) * (m.duck && parlato ? 0.25 : 1);
+                            m.gain.gain.setTargetAtTime(vol, audioCtx.currentTime, m.duck ? 0.15 : 0.05);
+                        }
                     } else if (!m.audio.paused) { m.audio.pause(); if (m.gain) m.gain.gain.value = 0; }
                 });
                 disegnaFrame(t);
@@ -956,17 +1430,24 @@
 
         clips.forEach(c => { c.video.pause(); if (c.gain) c.gain.gain.value = 0; });
         musiche.forEach(m => { m.audio.pause(); if (m.gain) m.gain.gain.value = 0; });
-        inPlay = false; $('btn-stop').disabled = true; $('btn-play').disabled = false;
+        inPlay = false;
+        $('btn-play').textContent = '▶ Riproduci';
         onFine && onFine();
     }
 
     $('btn-play').addEventListener('click', () => {
-        if ((!clips.length && !musiche.length) || inPlay) return;
+        if (inPlay) { fermaRichiesto = true; return; } // pausa: il cursore resta dov'è
+        if (!clips.length && !musiche.length) return;
         applicaFormato();
         const da = playhead >= durataTotale() - 0.2 ? 0 : playhead;
-        riproduci(da, () => $('stato').textContent = 'Riproduzione terminata.');
+        riproduci(da, () => $('stato').textContent = esportando ? $('stato').textContent : 'In pausa a ' + playhead.toFixed(1) + 's.');
     });
-    $('btn-stop').addEventListener('click', () => fermaRichiesto = true);
+    $('btn-inizio').addEventListener('click', () => {
+        if (inPlay) fermaRichiesto = true;
+        playhead = 0;
+        $('playhead').style.left = '0px'; $('t-cur').textContent = '0.0';
+        disegnaA(0);
+    });
 
     /* ================= export ================= */
     $('btn-esporta').addEventListener('click', async () => {
