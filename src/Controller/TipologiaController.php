@@ -38,6 +38,11 @@ class TipologiaController extends AbstractCatalogoController
         return 'Nome tipologia';
     }
 
+    protected function conIcona(): bool
+    {
+        return true;
+    }
+
     #[Route('/tipologie', name: 'app_tipologia_index')]
     public function index(EntityManagerInterface $em, UnsplashClient $unsplash): Response
     {

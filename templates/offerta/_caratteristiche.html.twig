@@ -1,20 +1,28 @@
 {# Scheda "Caratteristiche" dell'offerta. Va DENTRO #form-offerta.
-   Parametri: form, offerta, tipologia_alloggio_scelte, stelle_scelte,
-   trattamento_scelte, assicurazioni_scelte. #}
+   Parametri: form, offerta, tipologia_alloggio_scelte (list label), stelle_scelte,
+   trattamento_scelte (list label), assicurazioni_scelte, extra_scelte, compagnie. #}
 {# ---------- ALLOGGI (ripetibile: più strutture per tour e combinati) ---------- #}
+{# tipologia/trattamento: valori storici a slug risolti in label (datalist libera) #}
+{% set alloggi_editor = [] %}
+{% for a in offerta.alloggi %}
+    {% set alloggi_editor = alloggi_editor|merge([a|merge({
+        tipologia: offerta.tipologiaAlloggioLabel(a.tipologia|default(null)) ?? '',
+        trattamento: offerta.trattamentoAlloggioLabel(a.trattamento|default(null)) ?? '',
+    })]) %}
+{% endfor %}
 {{ include('_partials/_segmenti_editor.html.twig', {
     name: 'alloggi',
     label: 'Alloggi',
-    dati: offerta.alloggi,
+    dati: alloggi_editor,
     add_label: 'Alloggio',
-    hint: 'Una struttura per soggiorno (es. tour con più tappe).',
+    hint: 'Una struttura per soggiorno (es. tour con più tappe). Tipologia e trattamento: scegli dai suggerimenti o scrivi una voce nuova (entra nei suggerimenti futuri).',
     campi: [
         {key: 'nome', label: 'Nome struttura', type: 'text', placeholder: 'Es. Katikies Suites'},
         {key: 'citta', label: 'Città', type: 'text', placeholder: 'Es. Oia'},
         {key: 'indirizzo', label: 'Indirizzo', type: 'text', placeholder: 'Via / zona'},
-        {key: 'tipologia', label: 'Tipologia', type: 'select', options: tipologia_alloggio_scelte},
+        {key: 'tipologia', label: 'Tipologia', type: 'datalist', options: tipologia_alloggio_scelte},
         {key: 'stelle', label: 'Stelle', type: 'select', options: stelle_scelte},
-        {key: 'trattamento', label: 'Trattamento', type: 'select', options: trattamento_scelte},
+        {key: 'trattamento', label: 'Trattamento', type: 'datalist', options: trattamento_scelte},
     ],
 }) }}
 
@@ -24,14 +32,16 @@
     label: 'Voli',
     dati: offerta.voli,
     add_label: 'Volo',
-    hint: 'Andata, ritorno o tratte interne. Per gli scali indica la durata nel campo Scalo.',
+    hint: 'Con «Andata e ritorno» il ritorno si ricava in automatico a tratta invertita: compila anche data e scalo del ritorno. Per gli scali indica la durata.',
     campi: [
-        {key: 'tipo', label: 'Tipo', type: 'select', options: {andata: 'Andata', ritorno: 'Ritorno', interno: 'Interno'}},
+        {key: 'tipo', label: 'Tipo', type: 'select', options: {ar: 'Andata e ritorno', andata: 'Andata', ritorno: 'Ritorno', interno: 'Interno'}},
         {key: 'da', label: 'Da', type: 'text', placeholder: 'Aeroporto / città'},
         {key: 'a', label: 'A', type: 'text', placeholder: 'Aeroporto / città'},
-        {key: 'data', label: 'Data e ora', type: 'datetime'},
-        {key: 'stay', label: 'Scalo (durata)', type: 'text', placeholder: 'es. 2h 30m'},
-        {key: 'compagnia', label: 'Compagnia', type: 'text'},
+        {key: 'data', label: 'Data e ora andata', type: 'datetime'},
+        {key: 'stay', label: 'Scalo andata (durata)', type: 'text', placeholder: 'es. 2h 30m'},
+        {key: 'dataRitorno', label: 'Data e ora ritorno (A/R)', type: 'datetime'},
+        {key: 'stayRitorno', label: 'Scalo ritorno (durata)', type: 'text', placeholder: 'es. 1h 45m'},
+        {key: 'compagnia', label: 'Compagnia', type: 'datalist', options: compagnie.volo},
         {key: 'descrizione', label: 'Note', type: 'textarea'},
     ],
 }) }}
@@ -86,7 +96,7 @@
         {key: 'da', label: 'Da', type: 'text'},
         {key: 'a', label: 'A', type: 'text'},
         {key: 'data', label: 'Data e ora', type: 'datetime'},
-        {key: 'compagnia', label: 'Compagnia', type: 'text'},
+        {key: 'compagnia', label: 'Compagnia', type: 'datalist', options: compagnie.treno},
         {key: 'descrizione', label: 'Note', type: 'textarea'},
     ],
 }) }}
@@ -101,7 +111,7 @@
         {key: 'da', label: 'Da', type: 'text'},
         {key: 'a', label: 'A', type: 'text'},
         {key: 'data', label: 'Data e ora', type: 'datetime'},
-        {key: 'compagnia', label: 'Compagnia', type: 'text'},
+        {key: 'compagnia', label: 'Compagnia', type: 'datalist', options: compagnie.nave},
         {key: 'descrizione', label: 'Note', type: 'textarea'},
     ],
 }) }}
@@ -117,7 +127,7 @@
         {key: 'da', label: 'Da', type: 'text'},
         {key: 'a', label: 'A', type: 'text'},
         {key: 'data', label: 'Data e ora', type: 'datetime'},
-        {key: 'compagnia', label: 'Compagnia / operatore', type: 'text'},
+        {key: 'compagnia', label: 'Compagnia / operatore', type: 'datalist', options: compagnie.trasferimento},
     ],
 }) }}
 
@@ -151,7 +161,58 @@
 <fieldset style="border:1px solid var(--line);border-radius:10px;padding:14px;margin:0">
     <legend style="font-weight:700;padding:0 6px">Condizioni</legend>
     <div style="display:grid;gap:12px">
-        {{ form_row(form.comprende) }}
-        {{ form_row(form.nonComprende) }}
+        <div>
+            {{ form_row(form.comprende) }}
+            <p class="muted" style="font-size:12px;margin:4px 0 0">Vuoto = generato in automatico dalle caratteristiche al salvataggio (poi modificabile).</p>
+        </div>
+        <div>
+            {{ form_row(form.nonComprende) }}
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:6px">
+                {% if template_testi is not empty %}
+                    <select id="noncomp-template" style="max-width:260px">
+                        <option value="">Richiama un template…</option>
+                        {% for t in template_testi %}
+                            <option value="{{ t.testo }}">{{ t.titolo }}</option>
+                        {% endfor %}
+                    </select>
+                {% endif %}
+                <button type="button" class="btn" id="btn-noncomp-salva"
+                        data-url="{{ path('app_offerta_template_testo') }}"
+                        data-token="{{ csrf_token('template_testo') }}">💾 Salva come template</button>
+            </div>
+        </div>
     </div>
 </fieldset>
+<script>
+(function () {
+    var area = document.querySelector('[name$="[nonComprende]"]');
+    var sel = document.getElementById('noncomp-template');
+    if (sel && area) sel.addEventListener('change', function () {
+        if (!sel.value) return;
+        area.value = area.value.trim() ? area.value.replace(/\s+$/, '') + '\n' + sel.value : sel.value;
+        sel.selectedIndex = 0;
+    });
+    var btn = document.getElementById('btn-noncomp-salva');
+    if (btn && area) btn.addEventListener('click', function () {
+        var testo = area.value.trim();
+        if (!testo) { alert('Scrivi prima il testo da salvare.'); return; }
+        var titolo = prompt('Titolo del template:');
+        if (!titolo) return;
+        fetch(btn.dataset.url, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'X-CSRF-Token': btn.dataset.token},
+            body: JSON.stringify({titolo: titolo, testo: testo}),
+        }).then(function (r) { return r.json(); }).then(function (d) {
+            if (d.error) { alert(d.error); return; }
+            var s = sel;
+            if (s) {
+                var o = document.createElement('option');
+                o.value = testo; o.textContent = d.titolo;
+                s.appendChild(o);
+            }
+            btn.textContent = '✓ Template salvato';
+            setTimeout(function () { btn.textContent = '💾 Salva come template'; }, 2000);
+        });
+    });
+})();
+</script>

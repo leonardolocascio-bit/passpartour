@@ -28,8 +28,10 @@ use Symfony\Component\Routing\Attribute\Route;
 
 class OffertaController extends AbstractController
 {
-    public function __construct(private readonly CalcolatoreMargine $margine)
-    {
+    public function __construct(
+        private readonly CalcolatoreMargine $margine,
+        private readonly \App\Service\GeneratoreComprende $comprende,
+    ) {
     }
 
     #[Route('/offerte', name: 'app_offerta_index')]
@@ -98,27 +100,50 @@ class OffertaController extends AbstractController
 
             // la destinazione collegata si risolve dalle macro/micro (niente campo doppio)
             $offerta->setDestinazione($this->risolviDestinazione($em, $offerta));
-            // un tema custom diventa una scheda Tema (e quindi una sezione del sito)
+            // un tema/tipologia custom diventa una scheda del Portale (e quindi del sito)
             $this->creaTemiMancanti($em, $offerta->getTemi() ?? []);
+            $this->creaTipologieMancanti($em, $offerta->getTipologie() ?? []);
             $offerta->setAssicurazioni($this->decodeChip($request->request->get('assicurazioni')));
 
             // alloggi: editor ripetibile (più strutture), hidden JSON
             $offerta->setAlloggi($this->decodeSegmenti($request->request->get('alloggi'), ['nome', 'citta', 'indirizzo', 'tipologia', 'stelle', 'trattamento']));
 
             // trasporti: editor ripetibile (hidden JSON), whitelist chiavi per sezione
-            $offerta->setVoli($this->decodeSegmenti($request->request->get('voli'), ['tipo', 'da', 'a', 'data', 'stay', 'compagnia', 'descrizione']));
+            $offerta->setVoli($this->decodeSegmenti($request->request->get('voli'), ['tipo', 'da', 'a', 'data', 'dataRitorno', 'stay', 'stayRitorno', 'compagnia', 'descrizione']));
             $offerta->setTreni($this->decodeSegmenti($request->request->get('treni'), ['da', 'a', 'data', 'compagnia', 'descrizione']));
             $offerta->setNavi($this->decodeSegmenti($request->request->get('navi'), ['da', 'a', 'data', 'compagnia', 'descrizione']));
             $offerta->setTrasferimenti($this->decodeSegmenti($request->request->get('trasferimenti'), ['descrizione', 'da', 'a', 'data', 'compagnia']));
             $offerta->setExtra($this->decodeSegmenti($request->request->get('extra'), ['tipo', 'descrizione', 'da', 'a', 'data', 'compagnia']));
             $offerta->setBagaglio($this->normalizzaBagaglio($request->request->all('bagaglio')));
 
-            // itinerario (crociere/tour) e quote di vendita (editor ripetibile)
+            // itinerario (crociere/tour) e quote di vendita (editor ripetibile);
+            // ogni quota porta la sua modalità di costo (netta/commissionabile)
             $offerta->setItinerario($this->decodeSegmenti($request->request->get('itinerario'), ['giorno', 'luogo', 'arrivo', 'partenza', 'descrizione']));
-            $offerta->setQuote($this->decodeSegmenti($request->request->get('quote'), ['tipo', 'sistemazione', 'importo']));
+            $offerta->setQuote($this->decodeSegmenti($request->request->get('quote'), ['tipo', 'sistemazione', 'importo', 'modo', 'costo']));
 
-            // costi/MOL (dato interno)
+            // costi/MOL (dato interno: aliquote globali, il resto è per quota)
             $offerta->setCosti($this->normalizzaCosti($request->request->all('costi')));
+
+            // «prezzo a partire da» = quota più bassa (niente doppio inserimento)
+            $minimo = $this->margine->prezzoDa($offerta);
+            if ($minimo !== null) {
+                $offerta->setPrezzoDa(number_format($minimo, 2, '.', ''));
+            }
+
+            // info utili (clima, dress code, usi locali): modificabili a mano
+            $offerta->setInfoUtili([
+                'clima' => (string) $request->request->get('info_clima', ''),
+                'dressCode' => (string) $request->request->get('info_dresscode', ''),
+                'usiLocali' => (string) $request->request->get('info_usilocali', ''),
+            ]);
+
+            // «comprende» vuoto → generato dalle caratteristiche (sempre modificabile)
+            if (trim((string) $offerta->getComprende()) === '') {
+                $offerta->setComprende($this->comprende->genera($offerta) ?: null);
+            }
+
+            // censimento compagnie in rubrica (suggerite alla digitazione)
+            $this->censisciCompagnie($em, $offerta);
 
             if ($isNuovo) {
                 $em->persist($offerta);
@@ -140,23 +165,32 @@ class OffertaController extends AbstractController
             $em->getRepository(\App\Entity\MediaKitIcona::class)->findBy(['gruppo' => 1], ['nome' => 'ASC']),
         );
 
+        // temi e tipologie pescano dalle sezioni del Portale (fallback: enum);
+        // dove la voce combacia con una label enum si riusa il valore enum come
+        // chiave, così le offerte salvate con gli slug storici restano selezionate
+        $temiScelte = $this->scelteDaPortale($em, \App\Entity\Tema::class, TemaViaggio::scelte());
+        $tipologieScelte = $this->scelteDaPortale($em, \App\Entity\Tipologia::class, TipologiaViaggio::scelte());
+
         return $this->render('offerta/form.html.twig', [
             'form' => $form,
             'offerta' => $offerta,
             'destinazioni_nomi' => $destinazioniNomi,
             'icone_kit' => $iconeKit,
             'unsplash_configurato' => $unsplash->isConfigured(),
-            'margine' => $this->margine->calcola($offerta),
-            'tipologie_scelte' => TipologiaViaggio::scelte(),
-            'temi_scelte' => TemaViaggio::scelte(),
+            'margini_quote' => $this->margine->perQuote($offerta),
+            'compagnie' => $this->rubricaCompagnie($em),
+            'template_testi' => $em->getRepository(\App\Entity\TemplateTesto::class)->findBy(['ambito' => 'non_comprende'], ['titolo' => 'ASC']),
+            'tipologie_scelte' => $tipologieScelte,
+            'temi_scelte' => $temiScelte,
             'assicurazioni_scelte' => TipoAssicurazione::scelte(),
-            'extra_scelte' => TipoExtra::labels(),
-            'tipologia_alloggio_scelte' => TipologiaAlloggio::scelte(),
-            'stelle_scelte' => StelleAlloggio::scelte(),
-            'trattamento_scelte' => array_combine(
-                array_map(static fn (TrattamentoHotel $t) => $t->value, TrattamentoHotel::cases()),
+            'extra_scelte' => $this->conValoriUsati($em, TipoExtra::labels(), 'extra', 'tipo'),
+            // datalist: label predefinite + valori custom già usati (rubrica implicita)
+            'tipologia_alloggio_scelte' => $this->unisci(array_values(TipologiaAlloggio::scelte()), $this->valoriAlloggioUsati($em, 'tipologia')),
+            'trattamento_scelte' => $this->unisci(
                 array_map(static fn (TrattamentoHotel $t) => $t->label(), TrattamentoHotel::cases()),
+                $this->valoriAlloggioUsati($em, 'trattamento'),
             ),
+            'stelle_scelte' => StelleAlloggio::scelte(),
             'titolo' => $isNuovo ? 'Nuova offerta' : 'Modifica offerta',
         ]);
     }
@@ -184,7 +218,8 @@ class OffertaController extends AbstractController
     {
         $repo = $em->getRepository(\App\Entity\Tema::class);
         foreach ($temi as $nome) {
-            $nome = trim((string) $nome);
+            // i valori predefiniti sono slug enum: risolviamo in label per la scheda
+            $nome = trim(TemaViaggio::etichetta((string) $nome));
             if ($nome === '') {
                 continue;
             }
@@ -195,6 +230,178 @@ class OffertaController extends AbstractController
                 $em->persist((new \App\Entity\Tema())->setNome($nome));
             }
         }
+    }
+
+    /** Ogni tipologia scelta nell'offerta che non ha una scheda Tipologia la crea. */
+    private function creaTipologieMancanti(EntityManagerInterface $em, array $tipologie): void
+    {
+        $repo = $em->getRepository(\App\Entity\Tipologia::class);
+        foreach ($tipologie as $nome) {
+            // i valori predefiniti sono slug enum: risolviamo in label per la scheda
+            $nome = trim(TipologiaViaggio::etichetta((string) $nome));
+            if ($nome === '') {
+                continue;
+            }
+            $esiste = $repo->createQueryBuilder('t')
+                ->where('LOWER(t.nome) = :n')->setParameter('n', mb_strtolower($nome))
+                ->setMaxResults(1)->getQuery()->getOneOrNullResult();
+            if ($esiste === null) {
+                $em->persist((new \App\Entity\Tipologia())->setNome($nome));
+            }
+        }
+    }
+
+    /**
+     * Scelte del chip picker da una sezione del Portale: mappa valore => etichetta.
+     *
+     * @param array<string, string> $scelteEnum fallback e riconciliazione slug storici
+     *
+     * @return array<string, string>
+     */
+    private function scelteDaPortale(EntityManagerInterface $em, string $classe, array $scelteEnum): array
+    {
+        $out = [];
+        foreach ($em->getRepository($classe)->findBy([], ['nome' => 'ASC']) as $voce) {
+            $nome = $voce->getNome();
+            $chiave = array_search($nome, $scelteEnum, true) ?: $nome;
+            $out[$chiave] = $nome;
+        }
+
+        return $out ?: $scelteEnum;
+    }
+
+    /** Rubrica compagnie per sezione: ['volo' => [...], 'treno' => [...], …]. */
+    private function rubricaCompagnie(EntityManagerInterface $em): array
+    {
+        $out = array_fill_keys(array_keys(\App\Entity\Compagnia::TIPI), []);
+        foreach ($em->getRepository(\App\Entity\Compagnia::class)->findBy([], ['nome' => 'ASC']) as $c) {
+            $out[$c->getTipo()][] = $c->getNome();
+        }
+
+        return $out;
+    }
+
+    /** Censisce in rubrica le compagnie usate nelle caratteristiche salvate. */
+    private function censisciCompagnie(EntityManagerInterface $em, Offerta $offerta): void
+    {
+        $sezioni = [
+            'volo' => $offerta->getVoli() ?? [],
+            'treno' => $offerta->getTreni() ?? [],
+            'nave' => $offerta->getNavi() ?? [],
+            'trasferimento' => $offerta->getTrasferimenti() ?? [],
+        ];
+        $repo = $em->getRepository(\App\Entity\Compagnia::class);
+        $visti = []; // dedup anche dentro la stessa richiesta (persist non ancora flushati)
+        foreach ($sezioni as $tipo => $righe) {
+            foreach ($righe as $r) {
+                $nome = mb_substr(trim((string) ($r['compagnia'] ?? '')), 0, 120);
+                $chiave = $tipo . '|' . mb_strtolower($nome);
+                if ($nome === '' || isset($visti[$chiave])) {
+                    continue;
+                }
+                $visti[$chiave] = true;
+                $esiste = $repo->createQueryBuilder('c')
+                    ->where('c.tipo = :t AND LOWER(c.nome) = :n')
+                    ->setParameter('t', $tipo)->setParameter('n', mb_strtolower($nome))
+                    ->setMaxResults(1)->getQuery()->getOneOrNullResult();
+                if ($esiste === null) {
+                    $em->persist(new \App\Entity\Compagnia($tipo, $nome));
+                }
+            }
+        }
+    }
+
+    /**
+     * Scelte predefinite (label enum) + valori custom già usati nelle offerte:
+     * ogni voce digitata a mano entra nei suggerimenti futuri (rubrica implicita).
+     *
+     * @param array<string, string> $labels valore enum => label
+     *
+     * @return list<string>
+     */
+    private function conValoriUsati(EntityManagerInterface $em, array $labels, string $colonna, string $chiave): array
+    {
+        $valori = array_values($labels);
+        $getter = 'get' . ucfirst($colonna);
+        foreach ($em->getRepository(Offerta::class)->findAll() as $o) {
+            foreach ((array) $o->{$getter}() as $riga) {
+                $v = trim((string) ($riga[$chiave] ?? ''));
+                if ($v !== '' && !isset($labels[$v]) && !in_array($v, $valori, true)) {
+                    $valori[] = $v;
+                }
+            }
+        }
+        sort($valori);
+
+        return $valori;
+    }
+
+    /** Predefiniti (in ordine) + custom non già presenti, per le datalist. @return list<string> */
+    private function unisci(array $predefiniti, array $custom): array
+    {
+        foreach ($custom as $v) {
+            if (!in_array($v, $predefiniti, true)) {
+                $predefiniti[] = $v;
+            }
+        }
+
+        return $predefiniti;
+    }
+
+    /** Valori già usati negli alloggi per un campo (tipologia/trattamento), risolti in label. @return list<string> */
+    private function valoriAlloggioUsati(EntityManagerInterface $em, string $campo): array
+    {
+        $valori = [];
+        foreach ($em->getRepository(Offerta::class)->findAll() as $o) {
+            foreach ($o->getAlloggi() as $a) {
+                $v = trim((string) ($a[$campo] ?? ''));
+                if ($v === '') {
+                    continue;
+                }
+                $label = $campo === 'tipologia' ? $o->tipologiaAlloggioLabel($v) : $o->trattamentoAlloggioLabel($v);
+                if ($label !== null && $label !== '' && !in_array($label, $valori, true)) {
+                    $valori[] = $label;
+                }
+            }
+        }
+        sort($valori);
+
+        return $valori;
+    }
+
+    /** Salva un template «non comprende» con titolo (dall'editor offerta, via fetch). */
+    #[Route('/offerte/template-testo', name: 'app_offerta_template_testo', methods: ['POST'])]
+    public function salvaTemplateTesto(Request $request, EntityManagerInterface $em): Response
+    {
+        if (!$this->isCsrfTokenValid('template_testo', (string) $request->headers->get('X-CSRF-Token'))) {
+            return $this->json(['error' => 'Token non valido.'], 403);
+        }
+        $dati = json_decode($request->getContent() ?: '{}', true) ?: [];
+        $titolo = mb_substr(trim((string) ($dati['titolo'] ?? '')), 0, 120);
+        $testo = trim((string) ($dati['testo'] ?? ''));
+        if ($titolo === '' || $testo === '') {
+            return $this->json(['error' => 'Servono titolo e testo.'], 400);
+        }
+
+        $template = (new \App\Entity\TemplateTesto('non_comprende'))->setTitolo($titolo)->setTesto($testo);
+        $em->persist($template);
+        $em->flush();
+
+        return $this->json(['ok' => true, 'id' => $template->getId(), 'titolo' => $titolo]);
+    }
+
+    /** Genera le «info utili» (clima, dress code, usi locali) per la destinazione indicata. */
+    #[Route('/offerte/info-utili/genera', name: 'app_offerta_info_genera', methods: ['POST'])]
+    public function generaInfoUtili(Request $request, \App\Service\InfoUtiliGenerator $generator): Response
+    {
+        $dati = json_decode($request->getContent() ?: '{}', true) ?: [];
+        $temp = new Offerta();
+        $temp->setTitolo(mb_substr(trim((string) ($dati['titolo'] ?? '')), 0, 200));
+        $temp->setDestinazioneMacro(trim((string) ($dati['macro'] ?? '')) ?: null);
+        $temp->setDestinazioneMicro(trim((string) ($dati['micro'] ?? '')) ?: null);
+        $temp->setDurata(trim((string) ($dati['durata'] ?? '')) ?: null);
+
+        return $this->json(['ok' => true, 'ai' => $generator->isConfigured()] + $generator->genera($temp));
     }
 
     /**

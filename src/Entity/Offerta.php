@@ -214,6 +214,10 @@ class Offerta
     #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
     private ?TourOperator $tourOperator = null;
 
+    /** Info utili smart {clima, dressCode, usiLocali}: generate e modificabili. */
+    #[ORM\Column(type: 'json', nullable: true)]
+    private ?array $infoUtili = null;
+
     #[ORM\Column(type: 'text', nullable: true)]
     private ?string $descrizione = null;
 
@@ -709,6 +713,20 @@ class Offerta
     public function getTourOperator(): ?TourOperator
     {
         return $this->tourOperator;
+    }
+
+    /** @return array<string, string> */
+    public function getInfoUtili(): array
+    {
+        return $this->infoUtili ?? [];
+    }
+
+    /** @param array<string, string>|null $infoUtili */
+    public function setInfoUtili(?array $infoUtili): static
+    {
+        $this->infoUtili = array_filter($infoUtili ?? [], static fn ($v) => trim((string) $v) !== '') ?: null;
+
+        return $this;
     }
 
     public function setTourOperator(?TourOperator $tourOperator): static

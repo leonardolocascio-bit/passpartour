@@ -55,5 +55,37 @@
             {% endif %}
         </div>
     </div>
+
+    {# ---------- RUBRICA COMPAGNIE ---------- #}
+    <div class="card" style="margin-top:18px"><div class="card-pad">
+        <h3 style="margin:0 0 6px">Rubrica compagnie</h3>
+        <p class="muted" style="font-size:13px;margin:0 0 14px">Censite in automatico quando salvi le caratteristiche di un'offerta; suggerite in digitazione negli editor. Qui puoi aggiungerle o rimuoverle.</p>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px">
+            {% for tipo, etichetta in tipi_compagnia %}
+                <div>
+                    <div style="font-weight:700;margin-bottom:8px">{{ etichetta }}</div>
+                    <div style="display:grid;gap:6px">
+                        {% for c in compagnie[tipo] %}
+                            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;border:1px solid var(--line);border-radius:8px;padding:5px 10px;font-size:14px">
+                                <span>{{ c.nome }}</span>
+                                <form method="post" action="{{ path('app_impostazioni_compagnia_elimina', {id: c.id}) }}" onsubmit="return confirm('Rimuovere {{ c.nome }} dalla rubrica?')" style="margin:0">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('compagnia_elimina_' ~ c.id) }}">
+                                    <button class="btn" style="padding:0 7px;color:var(--danger)" title="Rimuovi">×</button>
+                                </form>
+                            </div>
+                        {% else %}
+                            <span class="muted" style="font-size:13px">Nessuna voce.</span>
+                        {% endfor %}
+                    </div>
+                    <form method="post" action="{{ path('app_impostazioni_compagnia_aggiungi') }}" style="display:flex;gap:6px;margin-top:8px">
+                        <input type="hidden" name="_token" value="{{ csrf_token('compagnia_aggiungi') }}">
+                        <input type="hidden" name="tipo" value="{{ tipo }}">
+                        <input type="text" name="nome" placeholder="Aggiungi…" required style="flex:1;min-width:0">
+                        <button class="btn">+</button>
+                    </form>
+                </div>
+            {% endfor %}
+        </div>
+    </div></div>
 </div>
 {% endblock %}

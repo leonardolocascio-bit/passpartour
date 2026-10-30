@@ -30,12 +30,23 @@ class CatalogoType extends AbstractType
                     new File(maxSize: '6M', mimeTypes: ['image/jpeg', 'image/png', 'image/webp'], mimeTypesMessage: 'Carica un\'immagine JPG, PNG o WebP'),
                 ],
             ]);
+
+        if ($options['con_icona']) {
+            $builder->add('icona', \Symfony\Bridge\Doctrine\Form\Type\EntityType::class, [
+                'label' => 'Icona (dal Media Kit)',
+                'class' => \App\Entity\MediaKitIcona::class,
+                'choice_label' => 'nome',
+                'required' => false,
+                'placeholder' => '— nessuna —',
+            ]);
+        }
     }
 
     public function configureOptions(OptionsResolver $resolver): void
     {
-        $resolver->setDefaults(['nome_label' => 'Nome']);
+        $resolver->setDefaults(['nome_label' => 'Nome', 'con_icona' => false]);
         $resolver->setRequired('data_class');
         $resolver->setAllowedTypes('nome_label', 'string');
+        $resolver->setAllowedTypes('con_icona', 'bool');
     }
 }

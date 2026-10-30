@@ -33,6 +33,11 @@ class Tipologia implements VoceCatalogo
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $fotografoUrl = null;
 
+    /** Icona dal Media Kit (compare sulle visual e sul sito). */
+    #[ORM\ManyToOne(targetEntity: MediaKitIcona::class)]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    private ?MediaKitIcona $icona = null;
+
     #[ORM\Column]
     private \DateTimeImmutable $createdAt;
 
@@ -102,6 +107,18 @@ class Tipologia implements VoceCatalogo
     public function setFotografoUrl(?string $fotografoUrl): static
     {
         $this->fotografoUrl = $fotografoUrl;
+
+        return $this;
+    }
+
+    public function getIcona(): ?MediaKitIcona
+    {
+        return $this->icona;
+    }
+
+    public function setIcona(?MediaKitIcona $icona): static
+    {
+        $this->icona = $icona;
 
         return $this;
     }

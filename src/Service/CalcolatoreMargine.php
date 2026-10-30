@@ -94,6 +94,60 @@ class CalcolatoreMargine
         ];
     }
 
+    /**
+     * MOL per OGNI quota dell'offerta: ogni riga quota porta la sua modalità
+     * (netta → importo netto; commissionabile → % sul prezzo di vendita);
+     * IVA, ritenuta e flag «a lordo IVA» restano impostazioni globali dell'offerta.
+     *
+     * @return list<array{etichetta: string, prezzo: float, dettaglio: array|null}>
+     */
+    public function perQuote(Offerta $offerta): array
+    {
+        $globali = $offerta->getCosti();
+        $out = [];
+        foreach ($offerta->getQuote() ?? [] as $q) {
+            $prezzo = $this->num($q['importo'] ?? null);
+            if ($prezzo === null || $prezzo <= 0) {
+                continue;
+            }
+            $modo = (string) ($q['modo'] ?? '');
+            $dettaglio = null;
+            if (\in_array($modo, ['netta', 'commissionabile'], true)) {
+                $dettaglio = $this->calcolaDa([
+                    'quotaVendita' => $prezzo,
+                    'tipo' => $modo,
+                    'quotaNetta' => $q['costo'] ?? null,
+                    'commissioneModo' => 'percentuale',
+                    'commissioneValore' => $q['costo'] ?? null,
+                    'ivaPercentuale' => $globali['ivaPercentuale'] ?? null,
+                    'ritenutaPercentuale' => $globali['ritenutaPercentuale'] ?? null,
+                    'nettaLordoIva' => $globali['nettaLordoIva'] ?? false,
+                ]);
+            }
+            $out[] = [
+                'etichetta' => trim(($q['tipo'] ?? '') === 'gruppo' ? 'Quota gruppo' : 'Per persona') . ($q['sistemazione'] ?? '' ? ' · ' . $q['sistemazione'] : ''),
+                'prezzo' => round($prezzo, 2),
+                'dettaglio' => $dettaglio,
+            ];
+        }
+
+        return $out;
+    }
+
+    /** Il «prezzo a partire da» deriva dalla quota più bassa (niente campo doppio). */
+    public function prezzoDa(Offerta $offerta): ?float
+    {
+        $minimo = null;
+        foreach ($offerta->getQuote() ?? [] as $q) {
+            $v = $this->num($q['importo'] ?? null);
+            if ($v !== null && $v > 0 && ($minimo === null || $v < $minimo)) {
+                $minimo = $v;
+            }
+        }
+
+        return $minimo;
+    }
+
     /** Converte in float accettando virgola decimale; null se vuoto/non numerico. */
     private function num(mixed $v): ?float
     {

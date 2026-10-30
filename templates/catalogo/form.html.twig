@@ -9,6 +9,7 @@
     {{ form_start(form, {attr: {id: fid}}) }}
     <div style="display:grid;gap:14px">
         {{ form_row(form.nome) }}
+        {% if form.icona is defined %}{{ form_row(form.icona) }}{% endif %}
         {{ form_row(form.descrizione) }}
 
         {{ include('_partials/_image_picker.html.twig', {

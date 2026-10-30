@@ -38,6 +38,11 @@ class TemaController extends AbstractCatalogoController
         return 'Nome tema';
     }
 
+    protected function conIcona(): bool
+    {
+        return true;
+    }
+
     #[Route('/temi', name: 'app_tema_index')]
     public function index(EntityManagerInterface $em, UnsplashClient $unsplash): Response
     {

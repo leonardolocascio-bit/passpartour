@@ -102,8 +102,16 @@
 
 {# ---------- TRASPORTI ---------- #}
 {% if offerta.voli|length %}
+    {# «Andata e ritorno»: il ritorno si mostra a tratta invertita, con data/scalo propri #}
     <section class="sk-sec"><h3 class="sk-h">✈️ Voli</h3><div style="display:grid;gap:8px">
-        {% for v in offerta.voli %}{{ sk.tratta(v, voliLabel) }}{% endfor %}
+        {% for v in offerta.voli %}
+            {% if v.tipo|default('') == 'ar' %}
+                {{ sk.tratta(v|merge({tipo: 'andata'}), voliLabel) }}
+                {{ sk.tratta({tipo: 'ritorno', da: v.a|default(''), a: v.da|default(''), data: v.dataRitorno|default(''), stay: v.stayRitorno|default(''), compagnia: v.compagnia|default('')}, voliLabel) }}
+            {% else %}
+                {{ sk.tratta(v, voliLabel) }}
+            {% endif %}
+        {% endfor %}
     </div></section>
 {% endif %}
 {% if offerta.treni|length %}
@@ -168,6 +176,18 @@
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
             {% if offerta.comprende %}<div><div style="font-weight:600;color:var(--ok);margin-bottom:4px">Il pacchetto comprende</div><div style="white-space:pre-line;font-size:14px">{{ offerta.comprende }}</div></div>{% endif %}
             {% if offerta.nonComprende %}<div><div style="font-weight:600;color:var(--danger);margin-bottom:4px">Non comprende</div><div style="white-space:pre-line;font-size:14px">{{ offerta.nonComprende }}</div></div>{% endif %}
+        </div>
+    </section>
+{% endif %}
+
+{# ---------- INFO UTILI (clima, dress code, usi locali) ---------- #}
+{% set iu = offerta.infoUtili %}
+{% if iu.clima|default('') or iu.dressCode|default('') or iu.usiLocali|default('') %}
+    <section class="sk-sec"><h3 class="sk-h">💡 Info utili</h3>
+        <div style="display:grid;gap:10px;font-size:14px">
+            {% if iu.clima|default('') %}<div><div style="font-weight:600;margin-bottom:2px">☀️ Clima nel periodo</div><div style="white-space:pre-line">{{ iu.clima }}</div></div>{% endif %}
+            {% if iu.dressCode|default('') %}<div><div style="font-weight:600;margin-bottom:2px">👔 Dress code</div><div style="white-space:pre-line">{{ iu.dressCode }}</div></div>{% endif %}
+            {% if iu.usiLocali|default('') %}<div><div style="font-weight:600;margin-bottom:2px">🤝 Usi locali</div><div style="white-space:pre-line">{{ iu.usiLocali }}</div></div>{% endif %}
         </div>
     </section>
 {% endif %}

@@ -114,9 +114,12 @@
                 campi: [
                     {key: 'tipo', label: 'Riferimento', type: 'select', options: {persona: 'Per persona', gruppo: 'Quota gruppo'}},
                     {key: 'sistemazione', label: 'Sistemazione', type: 'datalist', options: ['In doppia', 'In tripla', 'In singola', 'In quadrupla']},
-                    {key: 'importo', label: 'Importo', type: 'text'},
+                    {key: 'importo', label: 'Prezzo di vendita', type: 'text'},
+                    {key: 'modo', label: 'Costo (interno)', type: 'select', options: {netta: 'Quota netta (importo)', commissionabile: 'Commissionabile (%)'}},
+                    {key: 'costo', label: 'Netto o %', type: 'text'},
                 ],
             }) }}
+            <p class="muted" style="font-size:12px;margin:6px 0 0">Il «prezzo a partire da» si ricava in automatico dalla quota più bassa. Costo e % sono dati interni (MOL qui sotto).</p>
             {# il supplemento singola viene DOPO le quote #}
             <div style="margin-top:12px;max-width:260px">
                 {{ form_row(form.supplementoSingola) }}
@@ -129,42 +132,7 @@
             <legend style="font-weight:700;padding:0 6px">Costi e margine (MOL)</legend>
             <p class="muted" style="font-size:12px;margin:0 0 12px">🔒 Dato interno: non pubblicare su web o social.</p>
             <div style="display:grid;gap:12px">
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-                    <div>
-                        <label for="co_quota">Quota di vendita (su cui calcolare il margine)</label>
-                        <input type="text" id="co_quota" name="costi[quotaVendita]" inputmode="decimal" value="{{ co.quotaVendita|default('') }}" placeholder="es. 1990">
-                    </div>
-                    <div>
-                        <label for="co_tipo">Modalità</label>
-                        <select id="co_tipo" name="costi[tipo]" data-costi-tipo>
-                            <option value="">—</option>
-                            <option value="netta"{{ (co.tipo|default('')) == 'netta' ? ' selected' }}>Quota netta</option>
-                            <option value="commissionabile"{{ (co.tipo|default('')) == 'commissionabile' ? ' selected' }}>Commissionabile</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div data-costi-netta style="{{ (co.tipo|default('')) == 'netta' ? '' : 'display:none' }}">
-                    <label for="co_netta">Quota netta (costo fornitore)</label>
-                    <input type="text" id="co_netta" name="costi[quotaNetta]" inputmode="decimal" value="{{ co.quotaNetta|default('') }}" placeholder="es. 1650">
-                </div>
-
-                <div data-costi-comm style="{{ (co.tipo|default('')) == 'commissionabile' ? '' : 'display:none' }}">
-                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-                        <div>
-                            <label for="co_modo">Commissione</label>
-                            <select id="co_modo" name="costi[commissioneModo]">
-                                <option value="percentuale"{{ (co.commissioneModo|default('percentuale')) == 'percentuale' ? ' selected' }}>Percentuale (%)</option>
-                                <option value="fisso"{{ (co.commissioneModo|default('')) == 'fisso' ? ' selected' }}>Importo fisso</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label for="co_valore">Valore</label>
-                            <input type="text" id="co_valore" name="costi[commissioneValore]" inputmode="decimal" value="{{ co.commissioneValore|default('') }}" placeholder="es. 12 (%) o 200 (€)">
-                        </div>
-                    </div>
-                </div>
-
+                <p class="muted" style="font-size:12px;margin:0">Il costo si imposta su ogni quota (netta o commissionabile). Qui restano le aliquote comuni.</p>
                 <label style="display:flex;align-items:center;gap:8px;font-weight:500;cursor:pointer">
                     <input type="checkbox" name="costi[nettaLordoIva]" value="1"{{ co.nettaLordoIva|default(false) ? ' checked' }}> L'importo della commissione è a lordo IVA (da scorporare)
                 </label>
@@ -180,21 +148,23 @@
                     </div>
                 </div>
 
-                {% if margine %}
-                    <div style="border-top:1px solid var(--line);padding-top:10px;font-size:13px;display:grid;gap:4px">
-                        <div style="display:flex;justify-content:space-between"><span class="muted">Commissione lorda</span><strong>{{ offerta.valuta }} {{ margine.commissioneLorda|number_format(2, ',', '.') }}</strong></div>
-                        <div style="display:flex;justify-content:space-between"><span class="muted">IVA ({{ margine.ivaPercentuale|number_format(0, ',', '.') }}%)</span><span>{{ offerta.valuta }} {{ margine.iva|number_format(2, ',', '.') }}</span></div>
-                        {% if margine.ritenutaPercentuale > 0 %}
-                            <div style="display:flex;justify-content:space-between"><span class="muted">Ritenuta d'acconto ({{ margine.ritenutaPercentuale|number_format(0, ',', '.') }}%)</span><span>−{{ offerta.valuta }} {{ margine.ritenuta|number_format(2, ',', '.') }}</span></div>
-                        {% endif %}
-                        <div style="display:flex;justify-content:space-between;font-size:15px;margin-top:2px"><strong>MOL (imponibile)</strong><strong style="color:var(--ok)">{{ offerta.valuta }} {{ margine.imponibile|number_format(2, ',', '.') }}</strong></div>
-                        {% if margine.ritenutaPercentuale > 0 %}
-                            <div style="display:flex;justify-content:space-between"><span class="muted">Netto dopo ritenuta</span><span>{{ offerta.valuta }} {{ margine.nettoDopoRitenuta|number_format(2, ',', '.') }}</span></div>
-                        {% endif %}
-                        <p class="muted" style="font-size:11px;margin:4px 0 0">Ricalcolato al salvataggio.</p>
+                {% if margini_quote|filter(m => m.dettaglio) is not empty %}
+                    <div style="border-top:1px solid var(--line);padding-top:10px;font-size:13px;display:grid;gap:8px">
+                        {% for m in margini_quote %}
+                            <div style="display:flex;justify-content:space-between;gap:12px;align-items:baseline">
+                                <span>{{ m.etichetta }} · <strong>{{ offerta.valuta }} {{ m.prezzo|number_format(2, ',', '.') }}</strong></span>
+                                {% if m.dettaglio %}
+                                    <span>MOL <strong style="color:var(--ok)">{{ offerta.valuta }} {{ m.dettaglio.imponibile|number_format(2, ',', '.') }}</strong>
+                                        <span class="muted" style="font-size:11px">(comm. {{ m.dettaglio.commissioneLorda|number_format(2, ',', '.') }}{% if m.dettaglio.ritenutaPercentuale > 0 %} · netto {{ m.dettaglio.nettoDopoRitenuta|number_format(2, ',', '.') }}{% endif %})</span></span>
+                                {% else %}
+                                    <span class="muted" style="font-size:12px">costo non indicato</span>
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+                        <p class="muted" style="font-size:11px;margin:0">Ricalcolato al salvataggio.</p>
                     </div>
                 {% else %}
-                    <p class="muted" style="font-size:12px;margin:0">Compila quota di vendita e modalità per vedere il MOL (al salvataggio).</p>
+                    <p class="muted" style="font-size:12px;margin:0">Imposta costo (netta o %) sulle quote per vedere il MOL al salvataggio.</p>
                 {% endif %}
             </div>
         </fieldset>
@@ -212,8 +182,11 @@
 
         {{ include('_partials/_righe_editor.html.twig', {offerta: offerta}) }}
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
-            {{ form_row(form.prezzoDa) }}
             {{ form_row(form.durata) }}
+            <div>
+                <label style="visibility:hidden">Prezzo da</label>
+                <p class="muted" style="font-size:12px;margin:8px 0 0">Prezzo «a partire da»: {{ offerta.prezzoDa ? offerta.valuta ~ ' ' ~ offerta.prezzoDa|number_format(0, ',', '.') : 'si ricava dalle quote' }}.</p>
+            </div>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
             {{ form_row(form.validoDal) }}
@@ -226,7 +199,25 @@
 
     {# ---------- INFO UTILI (Fase D) ---------- #}
     <section class="tab-panel" data-panel="info" hidden>
-        <div class="section-hint">Clima nel periodo, dress code e usi locali: in arrivo.</div>
+        {% set iu = offerta.infoUtili %}
+        <p class="muted" style="font-size:13px;margin:0 0 12px">Clima nel periodo, dress code e usi locali della destinazione. «Genera» compila una bozza (AI se configurata): sempre modificabile a mano prima di salvare.</p>
+        <div style="display:flex;justify-content:flex-end;margin-bottom:10px">
+            <button type="button" class="btn" id="btn-info-genera" data-url="{{ path('app_offerta_info_genera') }}">✨ Genera automaticamente</button>
+        </div>
+        <div style="display:grid;gap:14px">
+            <div>
+                <label for="info_clima">Meteo / clima nel periodo</label>
+                <textarea id="info_clima" name="info_clima" rows="3">{{ iu.clima|default('') }}</textarea>
+            </div>
+            <div>
+                <label for="info_dresscode">Dress code / come vestirsi</label>
+                <textarea id="info_dresscode" name="info_dresscode" rows="3">{{ iu.dressCode|default('') }}</textarea>
+            </div>
+            <div>
+                <label for="info_usilocali">Usi locali e consigli pratici</label>
+                <textarea id="info_usilocali" name="info_usilocali" rows="3">{{ iu.usiLocali|default('') }}</textarea>
+            </div>
+        </div>
     </section>
 
     {{ form_end(form) }}
@@ -258,28 +249,42 @@
         });
     });
 
-    // costi: mostra i campi in base alla modalità (netta / commissionabile)
-    var tipoSel = document.querySelector('[data-costi-tipo]');
-    if (tipoSel) {
-        var netta = document.querySelector('[data-costi-netta]');
-        var comm = document.querySelector('[data-costi-comm]');
-        var aggiorna = function () {
-            if (netta) netta.style.display = tipoSel.value === 'netta' ? 'block' : 'none';
-            if (comm) comm.style.display = tipoSel.value === 'commissionabile' ? 'block' : 'none';
+    // «Genera» info utili: chiede al server una bozza per la destinazione corrente
+    var btnInfo = document.getElementById('btn-info-genera');
+    if (btnInfo) btnInfo.addEventListener('click', function () {
+        var campo = function (nome) {
+            var el = document.querySelector('[name$="[' + nome + ']"]');
+            return el ? el.value : '';
         };
-        tipoSel.addEventListener('change', aggiorna);
-        aggiorna();
-    }
+        btnInfo.disabled = true; btnInfo.textContent = 'Genero…';
+        fetch(btnInfo.dataset.url, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({titolo: campo('titolo'), macro: campo('destinazioneMacro'), micro: campo('destinazioneMicro'), durata: campo('durata')}),
+        }).then(function (r) { return r.json(); }).then(function (d) {
+            if (d.clima) document.getElementById('info_clima').value = d.clima;
+            if (d.dressCode) document.getElementById('info_dresscode').value = d.dressCode;
+            if (d.usiLocali) document.getElementById('info_usilocali').value = d.usiLocali;
+        }).finally(function () { btnInfo.disabled = false; btnInfo.textContent = '✨ Genera automaticamente'; });
+    });
 })();
 (function () {
     var tabs = document.querySelectorAll('.tab-btn:not(.tab-link)');
     var panels = document.querySelectorAll('.tab-panel');
+    function mostra(nome) {
+        tabs.forEach(function (b) { b.classList.toggle('is-active', b.dataset.tab === nome); });
+        panels.forEach(function (p) { p.hidden = (p.dataset.panel !== nome); });
+    }
     tabs.forEach(function (btn) {
-        btn.addEventListener('click', function () {
-            tabs.forEach(function (b) { b.classList.toggle('is-active', b === btn); });
-            panels.forEach(function (p) { p.hidden = (p.dataset.panel !== btn.dataset.tab); });
-        });
+        btn.addEventListener('click', function () { mostra(btn.dataset.tab); });
     });
+    // un campo obbligatorio in una scheda nascosta bloccherebbe il submit in
+    // silenzio: al primo campo invalido si apre la scheda che lo contiene
+    var form = document.getElementById('form-offerta');
+    if (form) form.addEventListener('invalid', function (e) {
+        var panel = e.target.closest('.tab-panel');
+        if (panel && panel.hidden) mostra(panel.dataset.panel);
+    }, true);
 })();
 </script>
 {% endblock %}

@@ -305,22 +305,26 @@ class OffertaTest extends WebTestCase
 
         $crawler = $this->client->request('GET', '/offerte/' . $id . '/modifica');
         $form = $crawler->selectButton('Salva')->form();
-        $form['costi[quotaVendita]'] = '1990';
-        $form['costi[tipo]'] = 'netta';
-        $form['costi[quotaNetta]'] = '1650';
+        // il costo è PER QUOTA: netta (importo) o commissionabile (%)
+        $form['quote'] = json_encode([
+            ['tipo' => 'persona', 'sistemazione' => 'In doppia', 'importo' => '1990', 'modo' => 'netta', 'costo' => '1650'],
+            ['tipo' => 'persona', 'sistemazione' => 'In tripla', 'importo' => '1790', 'modo' => 'commissionabile', 'costo' => '10'],
+        ]);
         $form['costi[ivaPercentuale]'] = '22';
         $this->client->submit($form);
         self::assertResponseRedirects();
 
         $this->em->clear();
         $offerta = $this->em->getRepository(Offerta::class)->find($id);
-        self::assertSame('netta', $offerta->getCosti()['tipo']);
-        self::assertSame('1650', $offerta->getCosti()['quotaNetta']);
+        self::assertSame('netta', $offerta->getQuote()[0]['modo']);
+        self::assertSame('1650', $offerta->getQuote()[0]['costo']);
+        // il «prezzo a partire da» si ricava dalla quota più bassa
+        self::assertSame('1790.00', $offerta->getPrezzoDa());
 
-        // riaprendo la scheda il MOL è calcolato e mostrato
+        // riaprendo la scheda il MOL per quota è calcolato e mostrato
         $this->client->request('GET', '/offerte/' . $id . '/modifica');
         self::assertResponseIsSuccessful();
-        self::assertSelectorTextContains('body', 'MOL (imponibile)');
+        self::assertSelectorTextContains('body', 'MOL');
         self::assertSelectorTextContains('body', '340,00'); // commissione lorda = 1990 - 1650
     }
 
@@ -517,5 +521,66 @@ class OffertaTest extends WebTestCase
         self::assertSame('Offerta speciale per te', $email->getSubject());
         self::assertSame('lead@example.com', $email->getTo()[0]->getAddress());
         self::assertStringContainsString($offerta->getTitolo(), $email->getHtmlBody());
+    }
+
+    public function testVoloArComprendeAutoECompagnieCensite(): void
+    {
+        $offerta = $this->em->getRepository(Offerta::class)->findOneBy([]);
+        $id = $offerta->getId();
+        $offerta->setComprende(null);
+        $this->em->flush();
+
+        $crawler = $this->client->request('GET', '/offerte/' . $id . '/modifica');
+        $form = $crawler->selectButton('Salva')->form();
+        $form['voli'] = json_encode([[
+            'tipo' => 'ar', 'da' => 'Milano MXP', 'a' => 'Dubai DXB',
+            'data' => '2026-12-01T08:30', 'dataRitorno' => '2026-12-08T14:00',
+            'stay' => '2h', 'stayRitorno' => '1h 30m', 'compagnia' => 'Flydubai',
+        ]]);
+        $form['info_clima'] = 'Caldo secco, 28–33 °C.';
+        $form['info_dresscode'] = 'Capi leggeri, spalle coperte nei luoghi di culto.';
+        $this->client->submit($form);
+        self::assertResponseRedirects();
+
+        $this->em->clear();
+        $offerta = $this->em->getRepository(Offerta::class)->find($id);
+        self::assertSame('ar', $offerta->getVoli()[0]['tipo']);
+        self::assertSame('2026-12-08T14:00', $offerta->getVoli()[0]['dataRitorno']);
+        // comprende vuoto → generato dalle caratteristiche
+        self::assertStringContainsString('Volo A/R Milano MXP → Dubai DXB con Flydubai', (string) $offerta->getComprende());
+        // info utili salvate
+        self::assertSame('Caldo secco, 28–33 °C.', $offerta->getInfoUtili()['clima']);
+        // la compagnia è stata censita in rubrica
+        $compagnia = $this->em->getRepository(\App\Entity\Compagnia::class)->findOneBy(['tipo' => 'volo', 'nome' => 'Flydubai']);
+        self::assertNotNull($compagnia);
+
+        // la scheda cliente mostra andata e ritorno a tratta invertita
+        $this->client->request('GET', '/offerte/' . $id);
+        self::assertResponseIsSuccessful();
+        $body = (string) $this->client->getResponse()->getContent();
+        self::assertStringContainsString('Dubai DXB → Milano MXP', $body);
+        self::assertStringContainsString('Caldo secco', $body);
+    }
+
+    public function testTemplateNonComprende(): void
+    {
+        // il token CSRF di sessione si legge dal form renderizzato
+        $offerta = $this->em->getRepository(Offerta::class)->findOneBy([]);
+        $crawler = $this->client->request('GET', '/offerte/' . $offerta->getId() . '/modifica');
+        $token = $crawler->filter('#btn-noncomp-salva')->attr('data-token');
+
+        $this->client->request('POST', '/offerte/template-testo', [], [], [
+            'HTTP_X-CSRF-Token' => $token,
+            'CONTENT_TYPE' => 'application/json',
+        ], json_encode(['titolo' => 'Standard estero', 'testo' => "Mance\nExtra personali"]));
+        self::assertResponseIsSuccessful();
+
+        $salvato = $this->em->getRepository(\App\Entity\TemplateTesto::class)->findOneBy(['titolo' => 'Standard estero']);
+        self::assertNotNull($salvato);
+        self::assertSame('non_comprende', $salvato->getAmbito());
+
+        // riaprendo l'editor il template è richiamabile a tendina
+        $this->client->request('GET', '/offerte/' . $offerta->getId() . '/modifica');
+        self::assertSelectorTextContains('#noncomp-template', 'Standard estero');
     }
 }

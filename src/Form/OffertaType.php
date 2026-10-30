@@ -55,7 +55,6 @@ class OffertaType extends AbstractType
             ->add('lastMinute', CheckboxType::class, ['label' => 'Last minute', 'required' => false])
             ->add('cancellazioneGratuita', CheckboxType::class, ['label' => 'Cancellazione gratuita', 'required' => false])
             ->add('cancellazioneEntroGiorni', IntegerType::class, ['label' => 'Cancellazione gratuita entro (giorni)', 'required' => false, 'attr' => ['min' => 0]])
-            ->add('prezzoDa', TextType::class, ['label' => 'Prezzo a partire da (€)', 'required' => false, 'attr' => ['inputmode' => 'decimal']])
             ->add('durata', TextType::class, ['label' => 'Durata', 'required' => false, 'attr' => ['placeholder' => 'Es. 7 notti']])
             ->add('validoDal', DateType::class, ['label' => 'Valida dal', 'required' => false, 'widget' => 'single_text', 'input' => 'datetime_immutable'])
             ->add('validoAl', DateType::class, ['label' => 'Valida al', 'required' => false, 'widget' => 'single_text', 'input' => 'datetime_immutable'])

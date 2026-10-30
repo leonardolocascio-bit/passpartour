@@ -30,6 +30,12 @@ abstract class AbstractCatalogoController extends AbstractController
 
     abstract protected function labelNome(): string;
 
+    /** true se la voce ha anche un'icona dal Media Kit (temi, tipologie). */
+    protected function conIcona(): bool
+    {
+        return false;
+    }
+
     protected function elencaVoci(EntityManagerInterface $em, UnsplashClient $unsplash): Response
     {
         return $this->render('catalogo/index.html.twig', [
@@ -44,6 +50,7 @@ abstract class AbstractCatalogoController extends AbstractController
         $form = $this->createForm(CatalogoType::class, $voce, [
             'data_class' => $this->classe(),
             'nome_label' => $this->labelNome(),
+            'con_icona' => $this->conIcona(),
         ]);
         $form->handleRequest($request);
 
