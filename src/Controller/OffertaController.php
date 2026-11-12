@@ -31,6 +31,7 @@ class OffertaController extends AbstractController
     public function __construct(
         private readonly CalcolatoreMargine $margine,
         private readonly \App\Service\GeneratoreComprende $comprende,
+        private readonly \App\Service\Meta\CatalogoWhatsApp $catalogo,
     ) {
     }
 
@@ -150,6 +151,14 @@ class OffertaController extends AbstractController
             }
             $em->flush();
             $this->addFlash('success', 'Offerta salvata.');
+
+            // catalogo WhatsApp: upsert (o rimozione se scaduta/incompleta), mai bloccante
+            if ($this->catalogo->isConfigured()) {
+                $esito = $this->catalogo->sincronizza($offerta);
+                if (!$esito['ok']) {
+                    $this->addFlash('warning', 'Catalogo WhatsApp non aggiornato: ' . ($esito['errore'] ?? 'errore sconosciuto'));
+                }
+            }
 
             return $this->redirectToRoute('app_offerta_index');
         }
@@ -605,9 +614,17 @@ class OffertaController extends AbstractController
     public function elimina(Offerta $offerta, Request $request, EntityManagerInterface $em): Response
     {
         if ($this->isCsrfTokenValid('offerta_elimina_' . $offerta->getId(), (string) $request->request->get('_token'))) {
+            $offertaId = (int) $offerta->getId();
             $em->remove($offerta);
             $em->flush();
             $this->addFlash('success', 'Offerta eliminata.');
+
+            if ($this->catalogo->isConfigured()) {
+                $esito = $this->catalogo->rimuovi($offertaId);
+                if (!$esito['ok']) {
+                    $this->addFlash('warning', 'Voce non rimossa dal catalogo WhatsApp: ' . ($esito['errore'] ?? 'errore sconosciuto'));
+                }
+            }
         }
 
         return $this->redirectToRoute('app_offerta_index');
