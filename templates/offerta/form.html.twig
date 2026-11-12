@@ -21,6 +21,7 @@
 
     {# ---------- GENERALE ---------- #}
     <section class="tab-panel" data-panel="generale">
+        {{ include('_partials/_import_link.html.twig') }}
         {{ form_row(form.titolo) }}
         {{ form_row(form.sottotitolo) }}
         {{ form_row(form.claim) }}

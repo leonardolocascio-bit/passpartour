@@ -101,6 +101,8 @@
         render();
     }
     function initAll() { document.querySelectorAll('[data-segmenti]').forEach(initSeg); }
+    // re-init dopo una modifica programmatica dell'hidden (es. import da link)
+    window.segReinit = function (root) { delete root.dataset.segInit; initSeg(root); };
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', initAll);
     } else {

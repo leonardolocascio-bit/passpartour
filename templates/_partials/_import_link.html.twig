@@ -1,0 +1,144 @@
+{# Import offerta da un portale esterno (BookingExpert).
+   Il server NON può leggere quelle pagine (protezione anti-bot + login agenzia),
+   quindi l'estrazione avviene nel browser dell'operatore con un bookmarklet:
+   sulla pagina dell'hotel copia un JSON negli appunti, qui lo si incolla e i
+   campi si compilano. L'immagine scelta viaggia nell'hidden unsplash_url già
+   esistente (UploaderImmagini::salvaDaUrl la scarica al salvataggio: il CDN
+   ber.my-cdn.cloud è pubblico). Va DENTRO #form-offerta, nella scheda Generale. #}
+<details style="border:1px dashed var(--line);border-radius:10px;padding:10px 14px;margin:0 0 16px">
+    <summary style="cursor:pointer;font-weight:700">📥 Importa da link (BookingExpert)</summary>
+    <ol class="muted" style="font-size:12px;margin:10px 0;padding-left:18px">
+        <li><strong>Una volta sola:</strong> trascina il pulsante «→ Passpartour» nella barra dei preferiti del browser.</li>
+        <li>Apri la pagina dell'hotel su BookingExpert (dove sei già loggato) e clicca il preferito «→ Passpartour»: i dati vengono copiati.</li>
+        <li>Torna qui e premi «Incolla e compila».</li>
+    </ol>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <a id="imp-bookmarklet" class="btn" href="#" title="Trascinami nella barra dei preferiti">→ Passpartour</a>
+        <button type="button" class="btn" id="imp-incolla">📋 Incolla e compila</button>
+    </div>
+    <textarea id="imp-json" rows="2" placeholder="…se «Incolla e compila» non funziona, incolla qui i dati copiati e premi di nuovo il pulsante" style="width:100%;margin-top:8px;font-size:11px"></textarea>
+    <div id="imp-esito" class="muted" style="font-size:12px;margin-top:6px"></div>
+    <div id="imp-gallery" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:8px"></div>
+</details>
+
+<script>
+(function () {
+    // ---- bookmarklet: gira SULLA pagina BookingExpert e copia un JSON negli appunti ----
+    function estrattore() {
+        function txt(s, r) { var e = (r || document).querySelector(s); return e ? e.textContent.trim() : ''; }
+        var imgs = [];
+        var gal = document.querySelector('.popup-gallery');
+        if (gal) gal.querySelectorAll('img').forEach(function (i) {
+            var u = i.getAttribute('src') || i.getAttribute('data-src') || '';
+            if (u && u.indexOf('http') === 0 && imgs.indexOf(u) < 0) imgs.push(u);
+        });
+        var og = document.querySelector('meta[property="og:image"]');
+        if (!imgs.length && og && og.content) imgs.push(og.content);
+        var camere = [];
+        document.querySelectorAll('.card.card-type-normal').forEach(function (c) {
+            var nome = txt('h2.content-title', c); if (!nome) return;
+            var t = c.textContent || '';
+            camere.push({
+                nome: nome,
+                mq: (t.match(/(\d+)\s*m²/) || [])[1] || '',
+                max: (t.match(/Max\s*(\d+)/) || [])[1] || '',
+                descrizione: txt('.card-description', c)
+            });
+        });
+        var dati = {
+            fonte: 'bookingexpert', url: location.href,
+            nome: txt('h2.content-title.xl') || txt('h2.content-title') || document.title,
+            indirizzo: txt('.hotel-details-address'),
+            descrizione: txt('.card-description'),
+            immagini: imgs, camere: camere
+        };
+        var j = JSON.stringify(dati);
+        function fatto() { alert('Dati copiati!\nTorna su Passpartour > Nuova offerta > Importa da link e premi «Incolla e compila».'); }
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(j).then(fatto, function () { window.prompt('Copia a mano (Ctrl/Cmd+C):', j); });
+        } else { window.prompt('Copia a mano (Ctrl/Cmd+C):', j); }
+    }
+    var bk = document.getElementById('imp-bookmarklet');
+    bk.href = 'javascript:(' + encodeURIComponent(estrattore.toString()) + ')()';
+    // il pulsante va TRASCINATO nei preferiti: un clic qui non deve eseguire nulla
+    bk.addEventListener('click', function (e) { e.preventDefault(); esito('Trascina «→ Passpartour» nella barra dei preferiti (non cliccarlo qui): si usa sulla pagina dell\'hotel.'); });
+
+    // ---- lato CRM: incolla il JSON e compila i campi ----
+    function esito(msg) { document.getElementById('imp-esito').textContent = msg; }
+
+    function campo(nome) { return document.querySelector('[name$="[' + nome + ']"]'); }
+    function setVal(nome, v) { var el = campo(nome); if (el && v) el.value = v; }
+
+    function maiuscole(s) {
+        return s.toLowerCase().replace(/(^|[\s'])\S/g, function (c) { return c.toUpperCase(); });
+    }
+
+    function compila(dati) {
+        if (!dati || typeof dati !== 'object' || !dati.nome) { esito('Dati non riconosciuti: usa il pulsante «→ Passpartour» sulla pagina dell\'hotel.'); return; }
+
+        // indirizzo BookingExpert: "Via ..., CAP - REGIONE - Città (PR)"
+        var via = dati.indirizzo || '', macro = '', citta = '';
+        var parti = (dati.indirizzo || '').split(' - ');
+        if (parti.length >= 3) {
+            via = parti[0].replace(/,?\s*\d{5}\s*$/, '').trim();
+            macro = maiuscole(parti[1].trim());
+            citta = parti.slice(2).join(' - ').trim();
+        }
+        var micro = citta.replace(/\s*\([A-Z]{2}\)\s*$/, '');
+
+        setVal('titolo', dati.nome);
+        setVal('sottotitolo', micro && macro ? micro + ' – ' + macro : (micro || macro));
+        setVal('destinazioneMacro', macro);
+        setVal('destinazioneMicro', micro);
+        setVal('descrizione', dati.descrizione);
+
+        // alloggio: prima riga dell'editor (se non già presente)
+        var seg = document.querySelector('[data-segmenti][data-name="alloggi"]');
+        if (seg) {
+            var hid = seg.querySelector('[data-seg-hidden]');
+            var righe = [];
+            try { righe = JSON.parse(hid.value || '[]'); } catch (e) { righe = []; }
+            var esiste = righe.some(function (r) { return (r.nome || '') === dati.nome; });
+            if (!esiste) {
+                righe.unshift({ nome: dati.nome, citta: citta || micro, indirizzo: via, tipologia: 'Hotel' });
+                hid.value = JSON.stringify(righe);
+                if (window.segReinit) window.segReinit(seg);
+            }
+        }
+
+        // gallery: clic su una foto = copertina (scaricata al salvataggio via unsplash_url)
+        var box = document.getElementById('imp-gallery');
+        box.innerHTML = '';
+        (dati.immagini || []).slice(0, 12).forEach(function (u) {
+            var img = document.createElement('img');
+            img.src = u; img.loading = 'lazy';
+            img.style.cssText = 'width:100%;height:70px;object-fit:cover;border-radius:6px;cursor:pointer;border:2px solid transparent;background:#eee';
+            img.addEventListener('click', function () {
+                box.querySelectorAll('img').forEach(function (i) { i.style.borderColor = 'transparent'; });
+                img.style.borderColor = 'var(--brand)';
+                var h = document.getElementById('unsplash_url'); if (h) h.value = u;
+                var a = document.getElementById('unsplash_autore'); if (a) a.value = '';
+                var au = document.getElementById('unsplash_autore_url'); if (au) au.value = '';
+                esito('Copertina scelta: verrà scaricata al salvataggio.');
+            });
+            box.appendChild(img);
+        });
+
+        var nCam = (dati.camere || []).length;
+        esito('Campi compilati' + (nCam ? ' (' + nCam + ' camere lette dalla pagina)' : '') +
+              ((dati.immagini || []).length ? '. Clicca una foto per sceglierla come copertina.' : '. Nessuna foto trovata nella pagina.'));
+    }
+
+    function daTesto(t) {
+        try { compila(JSON.parse(t)); } catch (e) { esito('Testo non valido: incolla esattamente ciò che ha copiato il pulsante «→ Passpartour».'); }
+    }
+
+    document.getElementById('imp-incolla').addEventListener('click', function () {
+        var manuale = document.getElementById('imp-json').value.trim();
+        if (manuale) { daTesto(manuale); return; }
+        if (navigator.clipboard && navigator.clipboard.readText) {
+            navigator.clipboard.readText().then(daTesto, function () { esito('Non riesco a leggere gli appunti: incolla il testo nel riquadro qui sotto.'); });
+        } else { esito('Incolla il testo nel riquadro qui sotto e ripremi il pulsante.'); }
+    });
+})();
+</script>
