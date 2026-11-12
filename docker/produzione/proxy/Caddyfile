@@ -54,7 +54,7 @@ stagingest.passpartourviaggi.com {
 	# ECCEZIONE: il webhook di ingestione lead resta raggiungibile senza
 	# password (le piattaforme di lead gen non sanno fare basic auth; il
 	# webhook ha già il suo token nel percorso).
-	@protetto not path /webhook/*
+	@protetto not path /webhook/* /privacy
 	basic_auth @protetto {
 		collaudo {$STAGING_PASSWORD_HASH}
 	}

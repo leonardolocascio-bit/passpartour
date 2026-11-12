@@ -38,6 +38,15 @@ class SmokeTest extends WebTestCase
         self::assertSelectorTextContains('button', 'Accedi');
     }
 
+    public function testPrivacyPubblicaSenzaAutenticazione(): void
+    {
+        // L'App Review di Meta verifica l'URL della privacy: deve rispondere 200 da anonimi.
+        $client = static::createClient();
+        $client->request('GET', '/privacy');
+        self::assertResponseIsSuccessful('L\'informativa privacy deve essere pubblica');
+        self::assertSelectorTextContains('h1', 'Informativa sulla privacy');
+    }
+
     public function testHomeRichiedeAutenticazione(): void
     {
         $client = static::createClient();

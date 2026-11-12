@@ -43,6 +43,7 @@ security:
         - { path: ^/login, roles: PUBLIC_ACCESS }
         - { path: ^/webhook, roles: PUBLIC_ACCESS }
         - { path: ^/c/, roles: PUBLIC_ACCESS }   # landing pubbliche delle campagne
+        - { path: ^/privacy$, roles: PUBLIC_ACCESS } # informativa richiesta dall'App Review Meta
         - { path: ^/, roles: ROLE_USER }
 
 when@test:
