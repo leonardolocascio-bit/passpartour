@@ -32,7 +32,8 @@ class Messaggio
     #[ORM\Column(length: 20, options: ['default' => 'text'])]
     private string $tipo = 'text';
 
-    #[ORM\Column(length: 128, nullable: true)]
+    // 255: i mid di Instagram Direct sono stringhe base64 che superano i 128 caratteri.
+    #[ORM\Column(length: 255, nullable: true)]
     private ?string $idEsterno = null;
 
     /** ricevuto | inviato | consegnato | letto | errore */
