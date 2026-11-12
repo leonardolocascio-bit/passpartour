@@ -156,6 +156,47 @@ class InboxMetaTest extends WebTestCase
         self::assertSame('Info sul viaggio a New York?', $msn->getAnteprima());
     }
 
+    public function testIdEsternoLungoComeIMidDiInstagram(): void
+    {
+        // I mid di Instagram Direct superano i 128 caratteri: la colonna deve reggerli.
+        $mid = 'aWdfZA.' . str_repeat('X', 200);
+        $body = $this->postMeta([
+            'object' => 'instagram',
+            'entry' => [[
+                'id' => '999',
+                'messaging' => [[
+                    'sender' => ['id' => '1784000000000002'],
+                    'recipient' => ['id' => '111222333'],
+                    'timestamp' => time() * 1000,
+                    'message' => ['mid' => $mid, 'text' => 'Mid lunghissimo'],
+                ]],
+            ]],
+        ]);
+        self::assertTrue($body['ok']);
+        self::assertSame(1, $body['ricevuti']);
+        self::assertNotNull($this->em->getRepository(Messaggio::class)->findOneBy(['idEsterno' => $mid]));
+    }
+
+    public function testNomeContattoDaGraphApi(): void
+    {
+        $risposte = [
+            new \Symfony\Component\HttpClient\Response\MockResponse(json_encode(['first_name' => 'Anna', 'last_name' => 'Bianchi', 'id' => '1'])),
+            new \Symfony\Component\HttpClient\Response\MockResponse(json_encode(['username' => 'leo_ig', 'id' => '2'])),
+            new \Symfony\Component\HttpClient\Response\MockResponse(json_encode(['error' => ['message' => 'negato']]), ['http_code' => 400]),
+        ];
+        $client = new \App\Service\Meta\MetaClient(new \Symfony\Component\HttpClient\MockHttpClient($risposte), 'token-pagina', '', '');
+
+        self::assertSame('Anna Bianchi', $client->nomeContatto(CanaleMessaggio::MESSENGER, '1'));
+        self::assertSame('leo_ig', $client->nomeContatto(CanaleMessaggio::INSTAGRAM, '2'));
+        self::assertNull($client->nomeContatto(CanaleMessaggio::INSTAGRAM, '3'));
+
+        // senza token pagina: nessuna chiamata, nessun nome
+        $spento = new \App\Service\Meta\MetaClient(new \Symfony\Component\HttpClient\MockHttpClient(), '', '', '');
+        self::assertNull($spento->nomeContatto(CanaleMessaggio::MESSENGER, '4'));
+        // i canali senza profilo Graph restano fuori
+        self::assertNull($client->nomeContatto(CanaleMessaggio::WHATSAPP, '5'));
+    }
+
     public function testAggiornamentoStatoWhatsapp(): void
     {
         $this->postMeta($this->payloadWhatsapp('393330000005', 'wamid.T5', 'Ciao'));

@@ -34,6 +34,38 @@ class MetaClient
     }
 
     /**
+     * Nome del contatto Messenger/Instagram via Graph API (PSID/IGSID → profilo).
+     * Ritorna null se il canale non lo supporta, il token manca o Meta nega il
+     * profilo (succede senza l'autorizzazione avanzata): il chiamante tiene l'id.
+     */
+    public function nomeContatto(CanaleMessaggio $canale, string $idEsterno): ?string
+    {
+        if (!\in_array($canale, [CanaleMessaggio::MESSENGER, CanaleMessaggio::INSTAGRAM], true) || $this->pageToken === '') {
+            return null;
+        }
+
+        try {
+            $campi = $canale === CanaleMessaggio::MESSENGER ? 'first_name,last_name,name' : 'name,username';
+            $resp = $this->http->request('GET', self::GRAPH . '/' . $idEsterno, [
+                'query' => ['fields' => $campi, 'access_token' => $this->pageToken],
+                'timeout' => 5,
+            ]);
+            $dati = $resp->toArray(false);
+            if ($resp->getStatusCode() >= 400) {
+                return null;
+            }
+
+            $nome = trim(($dati['first_name'] ?? '') . ' ' . ($dati['last_name'] ?? ''));
+            $nome = $nome !== '' ? $nome : (string) ($dati['name'] ?? '');
+            $nome = $nome !== '' ? $nome : (string) ($dati['username'] ?? '');
+
+            return $nome !== '' ? $nome : null;
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
+    /**
      * Invia un messaggio di testo al contatto della conversazione.
      * @return array{ok:bool,id?:?string,errore?:string}
      */

@@ -25,6 +25,7 @@ class MetaInboxService
         private readonly ConversazioneRepository $conversazioni,
         private readonly LeadRepository $leadRepository,
         private readonly InboxRealtime $realtime,
+        private readonly MetaClient $client,
     ) {
     }
 
@@ -131,6 +132,9 @@ class MetaInboxService
             }
 
             $conv = $this->conversazione($canale, (string) $idContatto);
+            if ($conv->getNome() === null) {
+                $conv->setNome($this->client->nomeContatto($canale, (string) $idContatto));
+            }
 
             $testo = (string) ($msg['text'] ?? '');
             $tipo = 'text';
